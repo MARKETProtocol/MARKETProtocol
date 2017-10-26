@@ -29,8 +29,8 @@ contract MarketContract is Creatable, usingOraclize  {
     // constants
     string public CONTRACT_NAME;
     address public BASE_TOKEN;
-    int public PRICE_CAP;
-    int public PRICE_FLOOR;
+    uint public PRICE_CAP;
+    uint public PRICE_FLOOR;
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
     uint public EXPIRATION;
     string public ORACLE_DATA_SOURCE;
@@ -41,7 +41,7 @@ contract MarketContract is Creatable, usingOraclize  {
 
     // state variables
     string public lastPriceQueryResult;
-    int public lastPrice;
+    uint public lastPrice;
     bool public isExpired;
     mapping(bytes32 => bool) validQueryIDs;
 
@@ -66,8 +66,8 @@ contract MarketContract is Creatable, usingOraclize  {
         address baseToken,
         string oracleDataSource,
         string oracleQuery,
-        int capPrice,
-        int floorPrice,
+        uint capPrice,
+        uint floorPrice,
         uint priceDecimalPlaces,
         uint daysToExpiration){
 
