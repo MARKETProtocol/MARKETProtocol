@@ -16,7 +16,7 @@
 
 pragma solidity ^0.4.0;
 
-import "Creatable.sol";
+import "./Creatable.sol";
 import "./Oraclize/oraclizeAPI.sol";
 
 //TODO: fix style issues
