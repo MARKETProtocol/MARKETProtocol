@@ -17,7 +17,7 @@
 pragma solidity ^0.4.0;
 
 import "Creatable.sol";
-import "github.com/oraclize/ethereum-api/oraclizeAPI.sol";
+import "./Oraclize/oraclizeAPI.sol";
 
 //TODO: fix style issues
 //      add accounting for users and positions
