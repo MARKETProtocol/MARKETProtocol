@@ -80,6 +80,7 @@ contract MarketContract is Creatable, usingOraclize  {
         EXPIRATION = now + daysToExpiration * 1 days;
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
+        PRICE_DECIMAL_PLACES = priceDecimalPlaces;
         queryOracle();  // schedules recursive calls to oracle
     }
 
@@ -100,6 +101,7 @@ contract MarketContract is Creatable, usingOraclize  {
     {
         if (oraclize_getPrice(ORACLE_DATA_SOURCE) > this.balance) {
             NewOracleQuery("Oraclize query was NOT sent, please add some ETH to cover for the query fee");
+            lastPriceQueryResult = "FAILED"; //TODO: failsafe
         } else {
             NewOracleQuery("Oraclize query was sent, standing by for the answer..");
             bytes32 queryId = oraclize_query(ORACLE_QUERY_REPEAT, ORACLE_DATA_SOURCE, ORACLE_QUERY);
