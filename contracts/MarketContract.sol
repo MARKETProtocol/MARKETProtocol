@@ -23,14 +23,14 @@ import "./Oraclize/oraclizeAPI.sol";
 //      add accounting for users and positions
 //      how to hold ether for needed gas
 //      how to hold collateral pool
-//      adding failsafe for pool distribution.
+//      add failsafe for pool distribution.
 contract MarketContract is Creatable, usingOraclize  {
 
     // constants
     string public CONTRACT_NAME;
     address public BASE_TOKEN;
-    int public MAX_PRICE;
-    int public MIN_PRICE;
+    int public PRICE_CAP;
+    int public PRICE_FLOOR;
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
     uint public EXPIRATION;
     string public ORACLE_DATA_SOURCE;
@@ -66,17 +66,17 @@ contract MarketContract is Creatable, usingOraclize  {
         address baseToken,
         string oracleDataSource,
         string oracleQuery,
-        int maxPrice,
-        int minPrice,
+        int capPrice,
+        int floorPrice,
         uint priceDecimalPlaces,
         uint daysToExpiration){
 
-        require(maxPrice > minPrice);
+        require(capPrice > floorPrice);
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
         CONTRACT_NAME = contractName;
         BASE_TOKEN = baseToken;
-        MAX_PRICE = maxPrice;
-        MIN_PRICE = minPrice;
+        PRICE_CAP = capPrice;
+        PRICE_FLOOR = floorPrice;
         EXPIRATION = now + daysToExpiration * 1 days;
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
@@ -114,7 +114,7 @@ contract MarketContract is Creatable, usingOraclize  {
 
         if(now > EXPIRATION) {
             isExpired = true;   // time based expiration has occurred.
-        } else if(lastPrice >= MAX_PRICE || lastPrice <= MIN_PRICE) {
+        } else if(lastPrice >= PRICE_CAP || lastPrice <= PRICE_FLOOR) {
             isExpired = true;   // we have breached/touched our pricing bands
         }
 
