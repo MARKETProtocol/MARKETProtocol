@@ -85,8 +85,8 @@ contract MarketContract is Creatable, usingOraclize  {
     }
 
     function __callback(bytes32 queryID, string result, bytes proof) {
-        if (!validQueryIDs[queryID]) throw;
-        if (msg.sender != oraclize_cbAddress()) throw;
+        require(validQueryIDs[queryID]);
+        require(msg.sender == oraclize_cbAddress());
         lastPriceQueryResult = result;
         lastPrice = parseInt(result, PRICE_DECIMAL_PLACES);
         UpdatedLastPrice(result);
