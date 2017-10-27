@@ -46,7 +46,6 @@ contract MarketContract is Creatable, usingOraclize  {
     mapping(bytes32 => bool) validQueryIDs;
 
     // how to map user to position?
-
     event NewOracleQuery(string description);
     event UpdatedLastPrice(string price);
     event ContractSettled();
@@ -67,8 +66,8 @@ contract MarketContract is Creatable, usingOraclize  {
         string oracleDataSource,
         string oracleQuery,
         uint oracleQueryRepeatSeconds,
-        uint capPrice,
         uint floorPrice,
+        uint capPrice,
         uint priceDecimalPlaces,
         uint daysToExpiration) payable {
 
@@ -78,11 +77,13 @@ contract MarketContract is Creatable, usingOraclize  {
         BASE_TOKEN = baseToken;
         PRICE_CAP = capPrice;
         PRICE_FLOOR = floorPrice;
-        EXPIRATION = now + daysToExpiration * 1 days;
+        uint secondsToExpiration = daysToExpiration * 1 days;
+        EXPIRATION = now + secondsToExpiration;
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
         ORACLE_QUERY_REPEAT = oracleQueryRepeatSeconds;
         PRICE_DECIMAL_PLACES = priceDecimalPlaces;
+        require(checkSufficientStartingBalance(secondsToExpiration));
         queryOracle();  // schedules recursive calls to oracle
     }
 
@@ -131,6 +132,13 @@ contract MarketContract is Creatable, usingOraclize  {
     {
         // TODO: build mechanism for distribution of collateral
         ContractSettled();
+    }
+
+    // for now lets require alot of padding for the settlement,
+    function checkSufficientStartingBalance(uint secondsToExpiration) private returns (bool isSufficient) {
+        uint approxQueriesRequired = secondsToExpiration / ORACLE_QUERY_REPEAT;
+        uint approxGasRequired = oraclize_getPrice(ORACLE_DATA_SOURCE) * approxQueriesRequired;
+        return this.balance > (approxGasRequired * 2);
     }
 }
 
