@@ -35,7 +35,7 @@ contract MarketContract is Creatable, usingOraclize  {
     uint public EXPIRATION;
     string public ORACLE_DATA_SOURCE;
     string public ORACLE_QUERY;
-    uint public ORACLE_QUERY_REPEAT = 1 days;
+    uint public ORACLE_QUERY_REPEAT;
     uint8 public BUY_SIDE = 0;
     uint8 public SELL_SIDE = 1;
 
@@ -66,10 +66,11 @@ contract MarketContract is Creatable, usingOraclize  {
         address baseToken,
         string oracleDataSource,
         string oracleQuery,
+        uint oracleQueryRepeatSeconds,
         uint capPrice,
         uint floorPrice,
         uint priceDecimalPlaces,
-        uint daysToExpiration){
+        uint daysToExpiration) payable {
 
         require(capPrice > floorPrice);
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
@@ -80,6 +81,7 @@ contract MarketContract is Creatable, usingOraclize  {
         EXPIRATION = now + daysToExpiration * 1 days;
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
+        ORACLE_QUERY_REPEAT = oracleQueryRepeatSeconds;
         PRICE_DECIMAL_PLACES = priceDecimalPlaces;
         queryOracle();  // schedules recursive calls to oracle
     }
