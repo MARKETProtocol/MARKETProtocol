@@ -26,6 +26,23 @@ import "./Oraclize/oraclizeAPI.sol";
 //      add failsafe for pool distribution.
 contract MarketContract is Creatable, usingOraclize  {
 
+    struct User {
+        address userAddress;
+        uint[] prices;                      // prices user has transacted at (fifo upon exit)
+        mapping(uint => int) priceToQty;    // prices to qty at price for users position
+        int netPosition;                    // net position across all prices
+    }
+
+    struct Order {
+        address maker;
+        address taker;
+        uint qty;
+        uint price;
+        uint8 makerSide;
+        uint expirationTimeStamp;
+        bytes32 orderHash;
+    }
+
     // constants
     string public CONTRACT_NAME;
     address public BASE_TOKEN;
@@ -46,20 +63,14 @@ contract MarketContract is Creatable, usingOraclize  {
     bool public isExpired;
     mapping(bytes32 => bool) validQueryIDs;
 
-    // how to map user to position?
+    // accounting
+    mapping(bytes32 => User) addressToUser;
+
+    // events
     event NewOracleQuery(string description);
     event UpdatedLastPrice(string price);
     event ContractSettled();
 
-    struct Order {
-        address maker;
-        address taker;
-        uint qty;
-        uint price;
-        uint8 makerSide;
-        uint expirationTimeStamp;
-        bytes32 orderHash;
-    }
 
     function MarketContract(
         string contractName,
@@ -70,7 +81,8 @@ contract MarketContract is Creatable, usingOraclize  {
         uint floorPrice,
         uint capPrice,
         uint priceDecimalPlaces,
-        uint secondsToExpiration) payable {
+        uint secondsToExpiration
+    ) payable {
 
         require(capPrice > floorPrice);
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
