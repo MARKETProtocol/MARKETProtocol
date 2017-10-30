@@ -38,6 +38,7 @@ contract MarketContract is Creatable, usingOraclize  {
     uint public ORACLE_QUERY_REPEAT;
     uint8 public BUY_SIDE = 0;
     uint8 public SELL_SIDE = 1;
+    uint public COST_PER_QUERY = 2 finney;    // leave static for now, price of first query from oraclize is 0
 
     // state variables
     string public lastPriceQueryResult;
@@ -69,7 +70,7 @@ contract MarketContract is Creatable, usingOraclize  {
         uint floorPrice,
         uint capPrice,
         uint priceDecimalPlaces,
-        uint daysToExpiration) payable {
+        uint secondsToExpiration) payable {
 
         require(capPrice > floorPrice);
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
@@ -77,7 +78,6 @@ contract MarketContract is Creatable, usingOraclize  {
         BASE_TOKEN = baseToken;
         PRICE_CAP = capPrice;
         PRICE_FLOOR = floorPrice;
-        uint secondsToExpiration = daysToExpiration * 1 days;
         EXPIRATION = now + secondsToExpiration;
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
@@ -136,8 +136,9 @@ contract MarketContract is Creatable, usingOraclize  {
 
     // for now lets require alot of padding for the settlement,
     function checkSufficientStartingBalance(uint secondsToExpiration) private returns (bool isSufficient) {
-        uint approxQueriesRequired = secondsToExpiration / ORACLE_QUERY_REPEAT;
-        uint approxGasRequired = oraclize_getPrice(ORACLE_DATA_SOURCE) * approxQueriesRequired;
+        //uint costPerQuery = oraclize_getPrice(ORACLE_DATA_SOURCE); this doesn't work prior to first query(its free)
+        uint expectedNoOfQueries = secondsToExpiration / ORACLE_QUERY_REPEAT;
+        uint approxGasRequired = COST_PER_QUERY * expectedNoOfQueries;
         return this.balance > (approxGasRequired * 2);
     }
 }
