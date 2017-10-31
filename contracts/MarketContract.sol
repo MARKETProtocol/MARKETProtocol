@@ -31,9 +31,9 @@ contract MarketContract is Creatable, usingOraclize  {
 
     struct UserPosition {
         address userAddress;
-        uint[] prices;                      // prices user has transacted at (fifo upon exit)
-        mapping(uint => int) priceToQty;    // prices to qty at price for users position
-        int netPosition;                    // net position across all prices
+        uint[] prices;                      // prices of open positions (fifo upon exit)
+        mapping(uint => int) priceToQty;    // prices to qty at price for open positions
+        int netPosition;                    // net position across all prices / executions
     }
 
     struct Order {
