@@ -17,7 +17,7 @@
 pragma solidity ^0.4.0;
 
 import "./Creatable.sol";
-import "./Oraclize/oraclizeAPI.sol";
+import "./oraclize/oraclizeAPI.sol";
 
 //TODO: fix style issues
 //      add accounting for users and positions
@@ -26,7 +26,7 @@ import "./Oraclize/oraclizeAPI.sol";
 //      add failsafe for pool distribution.
 contract MarketContract is Creatable, usingOraclize  {
 
-    struct User {
+    struct UserPosition {
         address userAddress;
         uint[] prices;                      // prices user has transacted at (fifo upon exit)
         mapping(uint => int) priceToQty;    // prices to qty at price for users position
@@ -64,7 +64,7 @@ contract MarketContract is Creatable, usingOraclize  {
     mapping(bytes32 => bool) validQueryIDs;
 
     // accounting
-    mapping(bytes32 => User) addressToUser;
+    mapping(address => UserPosition) addressToUserPosition;
 
     // events
     event NewOracleQuery(string description);
@@ -110,6 +110,14 @@ contract MarketContract is Creatable, usingOraclize  {
         if (!isExpired) {
             queryOracle();  // set up our next query
         }
+    }
+
+    function trade(address maker, address taker, int qty, uint price) {
+        // TODO validate orders, etc
+        require(maker != address(0) && maker != taker);     // do not allow self trade
+        UserPosition storage makerPosition = addressToUserPosition[maker];
+
+        // TODO create library to handle most bookeeping so we can reuse code and save gas!
     }
 
     function queryOracle() internal
