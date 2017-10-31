@@ -18,6 +18,7 @@ pragma solidity ^0.4.0;
 
 import "./Creatable.sol";
 import "./oraclize/oraclizeAPI.sol";
+import "./libraries/MathLib.sol";
 
 //TODO: fix style issues
 //      add accounting for users and positions
@@ -25,6 +26,8 @@ import "./oraclize/oraclizeAPI.sol";
 //      how to hold collateral pool
 //      add failsafe for pool distribution.
 contract MarketContract is Creatable, usingOraclize  {
+    using MathLib for uint256;
+    using MathLib for int;
 
     struct UserPosition {
         address userAddress;
@@ -116,8 +119,18 @@ contract MarketContract is Creatable, usingOraclize  {
         // TODO validate orders, etc
         require(maker != address(0) && maker != taker);     // do not allow self trade
         UserPosition storage makerPosition = addressToUserPosition[maker];
-
         // TODO create library to handle most bookeeping so we can reuse code and save gas!
+
+        if(makerPosition.netPosition == 0 ||  makerPosition.netPosition.isSameSign(qty))
+        {
+            // new position or adding to open pos, no collateral returned
+        }
+        else
+        {
+            // taking position or part of position off, collateral needs to be returned
+        }
+
+        // continue process for taker.
     }
 
     function queryOracle() internal
