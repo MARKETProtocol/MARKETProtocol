@@ -22,18 +22,21 @@ import "./libraries/MathLib.sol";
 
 //TODO: fix style issues
 //      add accounting for users and positions
-//      how to hold ether for needed gas
-//      how to hold collateral pool
 //      add failsafe for pool distribution.
+//      push as much into library as possible
 contract MarketContract is Creatable, usingOraclize  {
     using MathLib for uint256;
     using MathLib for int;
 
-    struct UserPosition {
+    struct UserNetPosition {
         address userAddress;
-        uint[] prices;                      // prices of open positions (fifo upon exit)
-        mapping(uint => int) priceToQty;    // prices to qty at price for open positions
-        int netPosition;                    // net position across all prices / executions
+        Position[] positions;   // all open positions (lifo upon exit - allows us to not reindex array!)
+        int netPosition;        // net position across all prices / executions
+    }
+
+    struct Position {
+        uint price;
+        int qty;
     }
 
     struct Order {
@@ -70,7 +73,7 @@ contract MarketContract is Creatable, usingOraclize  {
     mapping(bytes32 => bool) validQueryIDs;
 
     // accounting
-    mapping(address => UserPosition) addressToUserPosition;
+    mapping(address => UserNetPosition) addressToUserPosition;
 
     // events
     event NewOracleQuery(string description);
@@ -118,25 +121,40 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
-    function trade(address maker, address taker, int qty, uint price) {
-        // TODO validate orders, etc
+    function trade(address maker, address taker) {
         require(maker != address(0) && maker != taker);     // do not allow self trade
-        UserPosition storage makerPosition = addressToUserPosition[maker];
-        // TODO create library to handle most bookeeping so we can reuse code and save gas!
-
-        if(makerPosition.netPosition == 0 ||  makerPosition.netPosition.isSameSign(qty))
-        {
-            // new position or adding to open pos, no collateral returned
-        }
-        else
-        {
-            // taking position or part of position off, collateral needs to be returned
-        }
-
-        // continue process for taker.
+        // TODO validate orders, etc
     }
 
-    function queryOracle() internal
+    function updatePositions(address maker, address taker, int qty, uint price) private {
+        updatePosition(addressToUserPosition[maker], qty, price);   // TODO: ensure struct is passed as storage!
+        // continue process for taker, but qty is opposite sign for taker
+        updatePosition(addressToUserPosition[taker], qty * -1, price);   // TODO: ensure struct is passed as storage!
+    }
+
+    function updatePosition(UserNetPosition storage userNetPosition, int qty, uint price) private {
+        if(userNetPosition.netPosition == 0 ||  userNetPosition.netPosition.isSameSign(qty)) {
+            // new position or adding to open pos, no collateral returned
+            userNetPosition.positions.push(Position(price, newNetPos)); //append array with new position
+        }
+        else {
+            // opposite side from open position, reduce, flattened, or flipped.
+            if(userNetPosition.netPosition >= qty * -1) { // pos is reduced of flattened
+                reduceUserNetPosition(userNetPosition, qty, price);
+            } else {    // pos is flipped, reduce and then create new open pos!
+                reduceUserNetPosition(userNetPosition, userNetPosition.netPosition * -1, price); // flatten completely
+                int newNetPos = userNetPosition.netPosition + qty;            // the portion remaining after flattening
+                userNetPosition.positions.push(Position(price, newNetPos));   // append array with new position
+            }
+        }
+        userNetPosition.netPosition += qty;
+    }
+
+    function reduceUserNetPosition(UserNetPosition storage userNetPos, int qty, uint price) private {
+        // TODO: determine collateral to return
+    }
+
+    function queryOracle() private
     {
         if (oraclize_getPrice(ORACLE_DATA_SOURCE) > this.balance) {
             NewOracleQuery("Oraclize query was NOT sent, please add some ETH to cover for the query fee");
@@ -148,7 +166,7 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
-    function checkSettlement() internal
+    function checkSettlement() private
     {
         if(isExpired)   // already expired.
             return;
@@ -164,7 +182,7 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
-    function settleContract() internal
+    function settleContract() private
     {
         // TODO: build mechanism for distribution of collateral
         ContractSettled();
