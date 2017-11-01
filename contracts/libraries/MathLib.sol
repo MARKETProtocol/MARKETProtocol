@@ -29,6 +29,10 @@ library MathLib {
         return 0;
     }
 
+    function abs(int a) returns (int) {
+        return uint(a);
+    }
+
     function isSameSign(int a, int b) internal constant returns (bool) {
         return ( a == b || a * b > 0);
     }
