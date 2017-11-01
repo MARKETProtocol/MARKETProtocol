@@ -29,7 +29,7 @@ library MathLib {
         return 0;
     }
 
-    function abs(int a) returns (int) {
+    function abs(int a) returns (uint) {
         return uint(a);
     }
 
