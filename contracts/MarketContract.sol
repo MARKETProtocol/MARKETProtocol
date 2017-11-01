@@ -39,6 +39,9 @@ contract MarketContract is Creatable, usingOraclize  {
     struct Order {
         address maker;
         address taker;
+        address feeRecipient;
+        uint makerFee;
+        uint takerFee;
         uint qty;
         uint price;
         uint8 makerSide;
