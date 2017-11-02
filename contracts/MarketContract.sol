@@ -19,6 +19,7 @@ pragma solidity ^0.4.0;
 import "./Creatable.sol";
 import "./oraclize/oraclizeAPI.sol";
 import "./libraries/MathLib.sol";
+import "./libraries/HashLib.sol";
 
 //TODO: fix style issues
 //      add accounting for users and positions
@@ -27,6 +28,7 @@ import "./libraries/MathLib.sol";
 contract MarketContract is Creatable, usingOraclize  {
     using MathLib for uint256;
     using MathLib for int;
+    using HashLib for address;
 
     struct UserNetPosition {
         address userAddress;
@@ -47,7 +49,7 @@ contract MarketContract is Creatable, usingOraclize  {
         uint takerFee;
         uint qty;
         uint price;
-        uint8 makerSide;
+        uint8 makerSide;            // 0=Buy 1=Sell
         uint expirationTimeStamp;
         bytes32 orderHash;
     }
@@ -79,7 +81,6 @@ contract MarketContract is Creatable, usingOraclize  {
     event NewOracleQuery(string description);
     event UpdatedLastPrice(string price);
     event ContractSettled();
-
 
     function MarketContract(
         string contractName,
