@@ -161,7 +161,7 @@ contract MarketContract is Creatable, usingOraclize  {
             lastPriceQueryResult = "FAILED"; //TODO: failsafe
         } else {
             NewOracleQuery("Oraclize query was sent, standing by for the answer..");
-            bytes32 queryId = oraclize_query(ORACLE_QUERY_REPEAT, ORACLE_DATA_SOURCE, ORACLE_QUERY);
+            bytes32 queryId = oraclize_query(ORACLE_QUERY_REPEAT, ORACLE_DATA_SOURCE, ORACLE_QUERY, 300000);
             validQueryIDs[queryId] = true;
         }
     }
