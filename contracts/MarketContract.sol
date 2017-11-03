@@ -64,10 +64,10 @@ contract MarketContract is Creatable, usingOraclize  {
     string public ORACLE_DATA_SOURCE;
     string public ORACLE_QUERY;
     uint public ORACLE_QUERY_REPEAT;
-    uint8 public BUY_SIDE = 0;
-    uint8 public SELL_SIDE = 1;
-    uint public COST_PER_QUERY = 2 finney;    // leave static for now, price of first query from oraclize is 0
-    uint public QUERY_CALLBACK_GAS = 300000;
+    uint8 constant public BUY_SIDE = 0;
+    uint8 constant public SELL_SIDE = 1;
+    uint constant public COST_PER_QUERY = 2 finney;    // leave static for now, price of first query from oraclize is 0
+    uint constant public QUERY_CALLBACK_GAS = 300000;
 
     // state variables
     string public lastPriceQueryResult;
