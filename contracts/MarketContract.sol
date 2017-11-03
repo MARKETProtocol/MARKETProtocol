@@ -67,6 +67,7 @@ contract MarketContract is Creatable, usingOraclize  {
     uint8 public BUY_SIDE = 0;
     uint8 public SELL_SIDE = 1;
     uint public COST_PER_QUERY = 2 finney;    // leave static for now, price of first query from oraclize is 0
+    uint public QUERY_CALLBACK_GAS = 300000;
 
     // state variables
     string public lastPriceQueryResult;
@@ -162,7 +163,7 @@ contract MarketContract is Creatable, usingOraclize  {
             lastPriceQueryResult = "FAILED"; //TODO: failsafe
         } else {
             NewOracleQuery("Oraclize query was sent, standing by for the answer..");
-            bytes32 queryId = oraclize_query(ORACLE_QUERY_REPEAT, ORACLE_DATA_SOURCE, ORACLE_QUERY, 300000);
+            bytes32 queryId = oraclize_query(ORACLE_QUERY_REPEAT, ORACLE_DATA_SOURCE, ORACLE_QUERY, QUERY_CALLBACK_GAS);
             validQueryIDs[queryId] = true;
         }
     }
