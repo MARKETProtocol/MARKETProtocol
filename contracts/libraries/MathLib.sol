@@ -45,7 +45,12 @@ library MathLib {
     }
 
     function abs(int a) pure internal returns (uint) {
-        return uint(a);
+        if(a < 0) {
+            return uint(-a);
+        }
+        else {
+            return uint(a);
+        }
     }
 
     function isSameSign(int a, int b) pure internal returns (bool) {
