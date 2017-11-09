@@ -153,7 +153,22 @@ contract MarketContract is Creatable, usingOraclize  {
     }
 
     function reduceUserNetPosition(UserNetPosition storage userNetPos, int qty, uint price) private {
-        // TODO: determine collateral to return
+        int qtyToReduce = qty;
+        assert(userNetPos.positions.length != 0);  // sanity check
+        while(qtyToReduce != 0) {
+            Position storage position = userNetPos.positions[userNetPos.positions.length - 1];  // get the last pos (LIFO)
+            if(position.qty.abs() <= qtyToReduce.abs()) { // this position is completely consumed!
+                qtyToReduce = qtyToReduce + position.qty;
+                // TODO: work on refunding correct amount of collateral.
+                userNetPos.positions.length--;  // remove this position from our array.
+            }
+            else {  // this position stays, just reduce the qty.
+                position.qty += qtyToReduce;
+                // TODO: return collateral
+                //qtyToReduce = 0; // completely reduced now!
+                break;
+            }
+        }
     }
 
     function queryOracle() private
