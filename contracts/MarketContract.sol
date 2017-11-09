@@ -124,6 +124,10 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
+    function getUserPosition(address userAddress) public view returns (int)  {
+        return addressToUserPosition[userAddress].netPosition;
+    }
+
     function trade(address maker, address taker) {
         require(maker != address(0) && maker != taker);     // do not allow self trade
         // TODO validate orders, etc
@@ -172,13 +176,11 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
-    function commitCollateralToPool(address fromAddress, uint collateralAmount) private
-    {
+    function commitCollateralToPool(address fromAddress, uint collateralAmount) private {
 
     }
 
-    function withdrawCollateralFromPool(address toAddress, uint collateralAmount) private
-    {
+    function withdrawCollateralFromPool(address toAddress, uint collateralAmount) private {
 
     }
 
