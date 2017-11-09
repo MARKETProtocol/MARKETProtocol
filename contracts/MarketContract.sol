@@ -129,9 +129,9 @@ contract MarketContract is Creatable, usingOraclize  {
     }
 
     function updatePositions(address maker, address taker, int qty, uint price) private {
-        updatePosition(addressToUserPosition[maker], qty, price);   // TODO: ensure struct is passed as storage!
+        updatePosition(addressToUserPosition[maker], qty, price);
         // continue process for taker, but qty is opposite sign for taker
-        updatePosition(addressToUserPosition[taker], qty * -1, price);   // TODO: ensure struct is passed as storage!
+        updatePosition(addressToUserPosition[taker], qty * -1, price);
     }
 
     function updatePosition(UserNetPosition storage userNetPosition, int qty, uint price) private {
@@ -169,6 +169,16 @@ contract MarketContract is Creatable, usingOraclize  {
                 break;
             }
         }
+    }
+
+    function commitCollateralToPool(address fromAddress, uint collateralAmount) private
+    {
+
+    }
+
+    function withdrawCollateralFromPool(address toAddress, uint collateralAmount) private
+    {
+
     }
 
     function queryOracle() private
