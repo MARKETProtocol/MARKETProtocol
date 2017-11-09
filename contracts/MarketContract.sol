@@ -79,7 +79,8 @@ contract MarketContract is Creatable, usingOraclize  {
     mapping(address => UserNetPosition) addressToUserPosition;
 
     // events
-    event NewOracleQuery(string description);
+    event OracleQuerySuccess();
+    event OracleQueryFailed();
     event UpdatedLastPrice(string price);
     event ContractSettled();
 
@@ -184,10 +185,10 @@ contract MarketContract is Creatable, usingOraclize  {
     function queryOracle() private
     {
         if (oraclize_getPrice(ORACLE_DATA_SOURCE) > this.balance) {
-            NewOracleQuery("Oraclize query was NOT sent, please add some ETH to cover for the query fee");
+            OracleQueryFailed();
             lastPriceQueryResult = "FAILED"; //TODO: failsafe
         } else {
-            NewOracleQuery("Oraclize query was sent, standing by for the answer..");
+            OracleQuerySuccess();
             bytes32 queryId = oraclize_query(ORACLE_QUERY_REPEAT, ORACLE_DATA_SOURCE, ORACLE_QUERY, QUERY_CALLBACK_GAS);
             validQueryIDs[queryId] = true;
         }
