@@ -158,6 +158,7 @@ contract MarketContract is Creatable, usingOraclize  {
     function withdrawTokens(uint256 withdrawAmount) external {
         require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
         uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
+        userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
         BASE_TOKEN.safeTransfer(msg.sender, withdrawAmount);
         WithdrawCompleted(msg.sender, withdrawAmount, balanceAfterWithdrawal);
     }
