@@ -27,6 +27,7 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 //      add failsafe for pool distribution.
 //      push as much into library as possible
 //      create mappings for deposit tokens and balance of collateral pool
+//      think about circuit breaker in case of issues
 contract MarketContract is Creatable, usingOraclize  {
     using MathLib for uint256;
     using MathLib for int;
@@ -136,16 +137,16 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
-    function getUserPosition(address userAddress) public view returns (int)  {
+    function getUserPosition(address userAddress) external view returns (int)  {
         return addressToUserPosition[userAddress].netPosition;
     }
 
-    function depositEtherForTrading() public payable {
+    function depositEtherForTrading() external payable {
         // should we allow ether or force users to use WETH?
     }
 
     // allows for all ERC20 tokens to be used for collateral and trading.
-    function depositTokensForTrading(uint256 depositAmount) public {
+    function depositTokensForTrading(uint256 depositAmount) external {
         // user must call approve!
         BASE_TOKEN.safeTransferFrom(msg.sender, this, depositAmount);
         uint256 balanceAfterDeposit = userAddressToAccountBalance[msg.sender].add(depositAmount);
@@ -154,14 +155,14 @@ contract MarketContract is Creatable, usingOraclize  {
     }
 
     // allows user to remove token from trading account that have not been allocated to open positions
-    function withdrawTokens(uint256 withdrawAmount) public {
+    function withdrawTokens(uint256 withdrawAmount) external {
         require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
         uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
         BASE_TOKEN.safeTransfer(msg.sender, withdrawAmount);
         WithdrawCompleted(msg.sender, withdrawAmount, balanceAfterWithdrawal);
     }
 
-    function trade(address maker, address taker) public {
+    function trade(address maker, address taker) external {
         require(maker != address(0) && maker != taker);     // do not allow self trade
         // TODO validate orders, etc
     }
