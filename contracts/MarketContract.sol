@@ -102,12 +102,12 @@ contract MarketContract is Creatable, usingOraclize  {
         uint capPrice,
         uint priceDecimalPlaces,
         uint secondsToExpiration
-    ) payable {
+    ) public payable {
 
         require(capPrice > floorPrice);
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
         CONTRACT_NAME = contractName;
-        BASE_TOKEN_ADDRESS = baseToken;
+        BASE_TOKEN_ADDRESS = baseTokenAddress;
         BASE_TOKEN = ERC20(baseTokenAddress);
         PRICE_CAP = capPrice;
         PRICE_FLOOR = floorPrice;
@@ -120,7 +120,7 @@ contract MarketContract is Creatable, usingOraclize  {
         queryOracle();  // schedules recursive calls to oracle
     }
 
-    function __callback(bytes32 queryID, string result, bytes proof) {
+    function __callback(bytes32 queryID, string result, bytes proof) public {
         require(validQueryIDs[queryID]);
         require(msg.sender == oraclize_cbAddress());
         lastPriceQueryResult = result;
@@ -153,12 +153,12 @@ contract MarketContract is Creatable, usingOraclize  {
     // allows user to remove token from trading account that have not been allocated to open positions
     function withdrawTokens(uint256 withdrawAmount) public {
         require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
-        uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(depositAmount);
+        uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
         BASE_TOKEN.safeTransfer(msg.sender, withdrawAmount);
         WithdrawCompleted(msg.sender, withdrawAmount, balanceAfterWithdrawal);
     }
 
-    function trade(address maker, address taker) {
+    function trade(address maker, address taker) public {
         require(maker != address(0) && maker != taker);     // do not allow self trade
         // TODO validate orders, etc
     }
@@ -246,7 +246,7 @@ contract MarketContract is Creatable, usingOraclize  {
     }
 
     // for now lets require alot of padding for the settlement,
-    function checkSufficientStartingBalance(uint secondsToExpiration) private returns (bool isSufficient) {
+    function checkSufficientStartingBalance(uint secondsToExpiration) private view returns (bool isSufficient) {
         //uint costPerQuery = oraclize_getPrice(ORACLE_DATA_SOURCE); this doesn't work prior to first query(its free)
         uint expectedNoOfQueries = secondsToExpiration / ORACLE_QUERY_REPEAT;
         uint approxGasRequired = COST_PER_QUERY * expectedNoOfQueries;

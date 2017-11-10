@@ -28,7 +28,7 @@ library HashLib {
         uint price,
         uint8 makerSide,            // 0=Buy 1=Sell
         uint expirationTimeStamp
-    ) public constant returns (bytes32) {
+    ) public pure returns (bytes32) {
         return keccak256(contractAddress, makerAddress, feeRecipient,
         makerFee, takerFee, qty, price, makerSide, expirationTimeStamp);
     }
@@ -39,7 +39,7 @@ library HashLib {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public constant returns (bool) {
+    ) public pure returns (bool) {
         return signerAddress == ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s);
     }
 }
