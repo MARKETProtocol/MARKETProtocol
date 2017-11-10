@@ -195,7 +195,7 @@ contract MarketContract is Creatable, usingOraclize  {
     function reduceUserNetPosition(UserNetPosition storage userNetPos, int qty, uint price) private {
         int qtyToReduce = qty;
         assert(userNetPos.positions.length != 0);  // sanity check
-        while(qtyToReduce != 0) {
+        while(qtyToReduce != 0) {   //TODO: ensure we dont run out of gas here!
             Position storage position = userNetPos.positions[userNetPos.positions.length - 1];  // get the last pos (LIFO)
             if(position.qty.abs() <= qtyToReduce.abs()) { // this position is completely consumed!
                 qtyToReduce = qtyToReduce + position.qty;
