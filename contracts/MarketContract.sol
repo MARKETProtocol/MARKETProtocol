@@ -20,15 +20,18 @@ import "./Creatable.sol";
 import "./oraclize/oraclizeAPI.sol";
 import "./libraries/MathLib.sol";
 import "./libraries/HashLib.sol";
+import "zeppelin-solidity/contracts/token/ERC20.sol";
+import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 
 //TODO: fix style issues
-//      add accounting for users and positions
 //      add failsafe for pool distribution.
 //      push as much into library as possible
+//      create mappings for deposit tokens and balance of collateral pool
 contract MarketContract is Creatable, usingOraclize  {
     using MathLib for uint256;
     using MathLib for int;
     using HashLib for address;
+    using SafeERC20 for ERC20;
 
     struct UserNetPosition {
         address userAddress;
@@ -56,7 +59,8 @@ contract MarketContract is Creatable, usingOraclize  {
 
     // constants
     string public CONTRACT_NAME;
-    address public BASE_TOKEN;
+    address public BASE_TOKEN_ADDRESS;
+    ERC20 public BASE_TOKEN;
     uint public PRICE_CAP;
     uint public PRICE_FLOOR;
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
@@ -77,16 +81,20 @@ contract MarketContract is Creatable, usingOraclize  {
 
     // accounting
     mapping(address => UserNetPosition) addressToUserPosition;
+    mapping(address => uint) userAddressToAccountBalance;   // stores account balances allowed to be allocated to orders
+    uint collateralPoolBalance = 0;                         // current balance of all collateral committed
 
     // events
     event OracleQuerySuccess();
     event OracleQueryFailed();
     event UpdatedLastPrice(string price);
     event ContractSettled();
+    event DepositReceived(address user, uint depositAmount, uint totalBalance);
+    event WithdrawCompleted(address user, uint withdrawAmount, uint totalBalance);
 
     function MarketContract(
         string contractName,
-        address baseToken,
+        address baseTokenAddress,
         string oracleDataSource,
         string oracleQuery,
         uint oracleQueryRepeatSeconds,
@@ -99,7 +107,8 @@ contract MarketContract is Creatable, usingOraclize  {
         require(capPrice > floorPrice);
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
         CONTRACT_NAME = contractName;
-        BASE_TOKEN = baseToken;
+        BASE_TOKEN_ADDRESS = baseToken;
+        BASE_TOKEN = ERC20(baseTokenAddress);
         PRICE_CAP = capPrice;
         PRICE_FLOOR = floorPrice;
         EXPIRATION = now + secondsToExpiration;
@@ -126,6 +135,27 @@ contract MarketContract is Creatable, usingOraclize  {
 
     function getUserPosition(address userAddress) public view returns (int)  {
         return addressToUserPosition[userAddress].netPosition;
+    }
+
+    function depositEtherForTrading() public payable {
+        // should we allow ether or force users to use WETH?
+    }
+
+    // allows for all ERC20 tokens to be used for collateral and trading.
+    function depositTokensForTrading(uint256 depositAmount) public {
+        // user must call approve!
+        BASE_TOKEN.safeTransferFrom(msg.sender, this, depositAmount);
+        uint256 balanceAfterDeposit = userAddressToAccountBalance[msg.sender].add(depositAmount);
+        userAddressToAccountBalance[msg.sender] = balanceAfterDeposit;
+        DepositReceived(msg.sender, depositAmount, balanceAfterDeposit);
+    }
+
+    // allows user to remove token from trading account that have not been allocated to open positions
+    function withdrawTokens(uint256 withdrawAmount) public {
+        require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
+        uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(depositAmount);
+        BASE_TOKEN.safeTransfer(msg.sender, withdrawAmount);
+        WithdrawCompleted(msg.sender, withdrawAmount, balanceAfterWithdrawal);
     }
 
     function trade(address maker, address taker) {
@@ -184,8 +214,7 @@ contract MarketContract is Creatable, usingOraclize  {
 
     }
 
-    function queryOracle() private
-    {
+    function queryOracle() private {
         if (oraclize_getPrice(ORACLE_DATA_SOURCE) > this.balance) {
             OracleQueryFailed();
             lastPriceQueryResult = "FAILED"; //TODO: failsafe
@@ -196,8 +225,7 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
-    function checkSettlement() private
-    {
+    function checkSettlement() private {
         if(isExpired)   // already expired.
             return;
 
@@ -212,8 +240,7 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
-    function settleContract() private
-    {
+    function settleContract() private {
         // TODO: build mechanism for distribution of collateral
         ContractSettled();
     }
