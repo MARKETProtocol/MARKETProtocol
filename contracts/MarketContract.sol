@@ -64,6 +64,7 @@ contract MarketContract is Creatable, usingOraclize  {
     uint public PRICE_CAP;
     uint public PRICE_FLOOR;
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
+    uint public QTY_DECIMAL_PLACES;     // how many tradeable units make up a whole pricing increment
     uint public EXPIRATION;
     string public ORACLE_DATA_SOURCE;
     string public ORACLE_QUERY;
@@ -101,6 +102,7 @@ contract MarketContract is Creatable, usingOraclize  {
         uint floorPrice,
         uint capPrice,
         uint priceDecimalPlaces,
+        uint qtyDecimalPlaces,
         uint secondsToExpiration
     ) public payable {
 
@@ -116,6 +118,7 @@ contract MarketContract is Creatable, usingOraclize  {
         ORACLE_QUERY = oracleQuery;
         ORACLE_QUERY_REPEAT = oracleQueryRepeatSeconds;
         PRICE_DECIMAL_PLACES = priceDecimalPlaces;
+        QTY_DECIMAL_PLACES = qtyDecimalPlaces;
         require(checkSufficientStartingBalance(secondsToExpiration));
         queryOracle();  // schedules recursive calls to oracle
     }
