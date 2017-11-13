@@ -141,21 +141,9 @@ contract MarketContract is Creatable, usingOraclize  {
         queryOracle();  // schedules recursive calls to oracle
     }
 
-    /// @param queryID of the returning query, this should match our own internal mapping
-    /// @param result query to be processed
-    /// @param proof result proof
-    function __callback(bytes32 queryID, string result, bytes proof) public {
-        require(validQueryIDs[queryID]);
-        require(msg.sender == oraclize_cbAddress());
-        lastPriceQueryResult = result;
-        lastPrice = parseInt(result, PRICE_DECIMAL_PLACES);
-        UpdatedLastPrice(result);
-        delete validQueryIDs[queryID];
-        checkSettlement();
-        if (!isExpired) {
-            queryOracle();  // set up our next query
-        }
-    }
+    /*
+   // EXTERNAL METHODS
+   */
 
     // @param userAddress address to return position for
     // @return the users current open position.
@@ -192,6 +180,31 @@ contract MarketContract is Creatable, usingOraclize  {
         require(maker != address(0) && maker != taker);     // do not allow self trade
         // TODO validate orders, etc
     }
+
+    /*
+    // PUBLIC METHODS
+   */
+
+    /// @param queryID of the returning query, this should match our own internal mapping
+    /// @param result query to be processed
+    /// @param proof result proof
+    function __callback(bytes32 queryID, string result, bytes proof) public {
+        require(validQueryIDs[queryID]);
+        require(msg.sender == oraclize_cbAddress());
+        lastPriceQueryResult = result;
+        lastPrice = parseInt(result, PRICE_DECIMAL_PLACES);
+        UpdatedLastPrice(result);
+        delete validQueryIDs[queryID];
+        checkSettlement();
+        if (!isExpired) {
+            queryOracle();  // set up our next query
+        }
+    }
+
+
+    /*
+    // PRIVATE METHODS
+    */
 
     /// @param maker address of the maker in the trade
     /// @param taker address of the taker in the trade
