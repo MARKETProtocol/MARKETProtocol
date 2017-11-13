@@ -24,13 +24,12 @@ library HashLib {
         address feeRecipient,
         uint makerFee,
         uint takerFee,
-        uint qty,
+        int qty,
         uint price,
-        uint8 makerSide,            // 0=Buy 1=Sell
         uint expirationTimeStamp
     ) public pure returns (bytes32) {
         return keccak256(contractAddress, makerAddress, feeRecipient,
-        makerFee, takerFee, qty, price, makerSide, expirationTimeStamp);
+        makerFee, takerFee, qty, price, expirationTimeStamp);
     }
 
     function isValidSignature(
