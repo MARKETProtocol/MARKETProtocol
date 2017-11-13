@@ -23,7 +23,7 @@ contract Creatable {
 
     address public creator;
 
-    function Creatable(){
+    function Creatable() public {
         creator = msg.sender;
     }
 
