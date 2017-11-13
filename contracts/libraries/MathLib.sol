@@ -19,6 +19,9 @@ pragma solidity 0.4.18;
 /// @title Math function library with overflow protection inspired by Open Zeppelin
 library MathLib {
 
+    int256 constant INT256_MIN = int256((uint256(1) << 255));
+    int256 constant INT256_MAX = int256(~((uint256(1) << 255)));
+
     function multiply(uint256 a, uint256 b) pure internal returns (uint256) {
         uint256 c = a * b;
         assert(a == 0 || c / a == b);
@@ -33,6 +36,23 @@ library MathLib {
     function add(uint256 a, uint256 b) pure internal returns (uint256) {
         uint256 c = a + b;
         assert(c >= a);
+        return c;
+    }
+
+    /// @notice safely adds to signed integers ensuring that no wrap occurs
+    /// @param a
+    /// @param b
+    function add(int256 a, int256 b) pure internal returns (int256) {
+        int256 c = a + b;
+        if(!isSameSign(a, b)) { // result will always be smaller than current value, no wrap possible
+            return c;
+        }
+
+        if(a >= 0) { // a is positive, b must be less than MAX - a to prevent wrap
+            assert(b <= INT256_MAX - a);
+        } else { // a is negative, b must be greater than MIN - a to prevent wrap
+            assert(b >= INT256_MIN - a);
+        }
         return c;
     }
 
