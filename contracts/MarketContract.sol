@@ -28,6 +28,10 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 //      push as much into library as possible
 //      create mappings for deposit tokens and balance of collateral pool
 //      think about circuit breaker in case of issues
+//      do we want to use ETH or WETH for ETH based contract?
+
+/// @title MarketContract first example of a MarketProtocol contract using Oraclize services
+/// @author Phil Elsasser
 contract MarketContract is Creatable, usingOraclize  {
     using MathLib for uint256;
     using MathLib for int;
@@ -94,6 +98,19 @@ contract MarketContract is Creatable, usingOraclize  {
     event DepositReceived(address user, uint depositAmount, uint totalBalance);
     event WithdrawCompleted(address user, uint withdrawAmount, uint totalBalance);
 
+    /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
+    /// @param baseTokenAddress address of the ERC20 token that will be used for collateral and pricing
+    /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"
+    /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
+    /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
+    /// @param oracleQueryRepeatSeconds how often to repeat this callback to check for settlement, more frequent
+    /// queries require more gas and may not be needed.
+    /// @param floorPrice minimum tradeable price of this contract, contract enters settlement if breached
+    /// @param capPrice maximum tradeable price of this contract, contract enters settlement if breached
+    /// @param priceDecimalPlaces number of decimal places to convert our queried price from a floating point to
+    /// an integer
+    /// @param qtyDecimalPlaces //TODO explain this better once qty code is in place
+    /// @param secondsToExpiration - second from now that this contract expires and enters settlement
     function MarketContract(
         string contractName,
         address baseTokenAddress,
@@ -124,6 +141,9 @@ contract MarketContract is Creatable, usingOraclize  {
         queryOracle();  // schedules recursive calls to oracle
     }
 
+    /// @param queryID of the returning query, this should match our own internal mapping
+    /// @param result query to be processed
+    /// @param proof
     function __callback(bytes32 queryID, string result, bytes proof) public {
         require(validQueryIDs[queryID]);
         require(msg.sender == oraclize_cbAddress());
@@ -137,6 +157,8 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
+    // @param userAddress address to return position for
+    // @return the users current open position.
     function getUserPosition(address userAddress) external view returns (int)  {
         return addressToUserPosition[userAddress].netPosition;
     }
@@ -145,7 +167,9 @@ contract MarketContract is Creatable, usingOraclize  {
         // should we allow ether or force users to use WETH?
     }
 
-    // allows for all ERC20 tokens to be used for collateral and trading.
+    /// @notice deposits tokens to the smart contract to fund the user account and provide needed tokens for collateral
+    /// pool upon trade matching.
+    /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
     function depositTokensForTrading(uint256 depositAmount) external {
         // user must call approve!
         BASE_TOKEN.safeTransferFrom(msg.sender, this, depositAmount);
@@ -154,7 +178,8 @@ contract MarketContract is Creatable, usingOraclize  {
         DepositReceived(msg.sender, depositAmount, balanceAfterDeposit);
     }
 
-    // allows user to remove token from trading account that have not been allocated to open positions
+    /// @notice removes token from users trading account
+    /// @param withdrawAmount qty of token to attempt to withdraw
     function withdrawTokens(uint256 withdrawAmount) external {
         require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
         uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
@@ -168,12 +193,19 @@ contract MarketContract is Creatable, usingOraclize  {
         // TODO validate orders, etc
     }
 
+    /// @param maker address of the maker in the trade
+    /// @param taker address of the taker in the trade
+    /// @param qty quantity transacted between parties
+    /// @param price agreed price of the matched trade.
     function updatePositions(address maker, address taker, int qty, uint price) private {
         updatePosition(addressToUserPosition[maker], qty, price);
         // continue process for taker, but qty is opposite sign for taker
         updatePosition(addressToUserPosition[taker], qty * -1, price);
     }
 
+    /// @param userNetPosition storage struct containing position information for this user
+    /// @param qty signed quantity this users position is changing by, + for buy and - for sell
+    /// @param price transacted price of the new position / trade
     function updatePosition(UserNetPosition storage userNetPosition, int qty, uint price) private {
         if(userNetPosition.netPosition == 0 ||  userNetPosition.netPosition.isSameSign(qty)) {
             // new position or adding to open pos, no collateral returned
@@ -192,6 +224,9 @@ contract MarketContract is Creatable, usingOraclize  {
         userNetPosition.netPosition += qty;
     }
 
+    /// @param userNetPos storage struct for this users position
+    /// @param qty signed quantity of the qty to reduce this users position by
+    /// @param uint price transacted price
     function reduceUserNetPosition(UserNetPosition storage userNetPos, int qty, uint price) private {
         int qtyToReduce = qty;
         assert(userNetPos.positions.length != 0);  // sanity check
