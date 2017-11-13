@@ -82,7 +82,7 @@ contract MarketContract is Creatable, usingOraclize  {
     // state variables
     string public lastPriceQueryResult;
     uint public lastPrice;
-    bool public isExpired;
+    bool public isSettled;
     mapping(bytes32 => bool) validQueryIDs;
 
     // accounting
@@ -142,7 +142,7 @@ contract MarketContract is Creatable, usingOraclize  {
     }
 
     /*
-   // EXTERNAL METHODS
+    // EXTERNAL METHODS
    */
 
     // @param userAddress address to return position for
@@ -181,6 +181,15 @@ contract MarketContract is Creatable, usingOraclize  {
         // TODO validate orders, etc
     }
 
+    // @notice called by a user after settlement has occured.  This function will finalize all accounting around any
+    // outstanding positions and return all remaining collateral to the caller. This should only be called after
+    // settlement has occurred
+    function settleAndClose() external {
+        require(isSettled);
+        // check to see if user has an positions that need to be marked to the settlement price and then closed
+        // return all collateral
+    }
+
     /*
     // PUBLIC METHODS
    */
@@ -196,7 +205,7 @@ contract MarketContract is Creatable, usingOraclize  {
         UpdatedLastPrice(result);
         delete validQueryIDs[queryID];
         checkSettlement();
-        if (!isExpired) {
+        if (!isSettled) {
             queryOracle();  // set up our next query
         }
     }
@@ -313,22 +322,22 @@ contract MarketContract is Creatable, usingOraclize  {
     }
 
     function checkSettlement() private {
-        if(isExpired)   // already expired.
+        if(isSettled)   // already settled.
             return;
 
         if(now > EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
-            isExpired = true;   // time based expiration has occurred.
+            isSettled = true;   // time based expiration has occurred.
         } else if(lastPrice >= PRICE_CAP || lastPrice <= PRICE_FLOOR) {
-            isExpired = true;   // we have breached/touched our pricing bands
+            isSettled = true;   // we have breached/touched our pricing bands
         }
 
-        if(isExpired) {
+        if(isSettled) {
             settleContract();
         }
     }
 
     function settleContract() private {
-        // TODO: build mechanism for distribution of collateral
+        // TODO: set final settlement price, and allow users at this point to call settleAndClose()
         ContractSettled();
     }
 
