@@ -88,6 +88,8 @@ contract MarketContract is Creatable, usingOraclize  {
     // accounting
     mapping(address => UserNetPosition) addressToUserPosition;
     mapping(address => uint) userAddressToAccountBalance;   // stores account balances allowed to be allocated to orders
+    mapping (bytes32 => int) public filledOrderQty;
+    mapping (bytes32 => int) public cancelledOrderQty;
     uint collateralPoolBalance = 0;                         // current balance of all collateral committed
 
     // events
@@ -176,10 +178,87 @@ contract MarketContract is Creatable, usingOraclize  {
         UpdatedUserBalance(msg.sender, balanceAfterWithdrawal);
     }
 
-    function trade(address maker, address taker) external {
+    // @notice called by a participant wanting to trade a specific order
+    /// @param maker address of the maker of this order
+    /// @param taker address of the designated taker or address(0) if publicly available to be traded
+    /// @param feeRecipient address of a fee recipient, optional
+    /// @param makerFee amount of MKT token for maker fee
+    /// @param takerFee amount of MKT token for taker fee
+    /// @param price of the order
+    /// @param orderQty quantity of the order
+    /// @param qtyToFill quantity taker is willing to fill (max)
+    /// @param expirationTimeStamp last valid timestamp of the order (seconds since epoch)
+    /// @param v order signature
+    /// @param r order signature
+    /// @param s order signature
+    function tradeOrder(
+        address maker,
+        address taker,
+        address feeRecipient,
+        uint makerFee,
+        uint takerFee,
+        uint price,
+        int orderQty,
+        int qtyToFill,
+        uint expirationTimeStamp,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        require(taker == address(0) || taker == msg.sender);// taker can be anyone, or specifically the caller!
         require(maker != address(0) && maker != taker);     // do not allow self trade
-        // TODO validate orders, etc
+        require(orderQty != 0 && qtyToFill != 0);           // no zero trades
+
+        bytes32 orderHash = address(this).createOrderHash(maker, feeRecipient,
+                                makerFee, takerFee, orderQty, price, expirationTimeStamp);
+
+        require(maker.isValidSignature(orderHash, v, r, s));
+
+        if(now >= expirationTimeStamp) {
+            // TODO: order is expired, no trade - log this
+            return;
+        }
+        // TODO finish build out
+
     }
+
+    // @notice called by the maker of an order to attempt to cancel the order before its expiration time stamp
+    /// @param maker address of the maker of this order
+    /// @param taker address of the designated taker or address(0) if publicly available to be traded
+    /// @param feeRecipient address of a fee recipient, optional
+    /// @param makerFee amount of MKT token for maker fee
+    /// @param takerFee amount of MKT token for taker fee
+    /// @param price of the order
+    /// @param orderQty quantity of the order
+    /// @param qtyToCancel quantity maker is attempting to cancel
+    /// @param expirationTimeStamp last valid timestamp of the order (seconds since epoch)
+    function cancelOrder(
+        address maker,
+        address taker,
+        address feeRecipient,
+        uint makerFee,
+        uint takerFee,
+        uint price,
+        int orderQty,
+        int qtyToCancel,
+        uint expirationTimeStamp
+    ) external {
+        require(maker == msg.sender);                                       // only maker can cancel standing order
+        require(qtyToCancel != 0 && qtyToCancel.isSameSign(orderQty));      // cannot cancel 0 and signs must match
+
+        if(now >= expirationTimeStamp) {
+            // TODO: order is expired, no need to cancel - log this
+            return;
+        }
+
+        bytes32 orderHash = address(this).createOrderHash(maker, feeRecipient,
+                                makerFee, takerFee, orderQty, price, expirationTimeStamp);
+        // TODO: check to see if order is fully filled order cancelled
+        //
+        cancelledOrderQty[orderHash] = cancelledOrderQty[orderHash].add(qtyToCancel);
+        // TODO: log
+    }
+
 
     // @notice called by a user after settlement has occured.  This function will finalize all accounting around any
     // outstanding positions and return all remaining collateral to the caller. This should only be called after
@@ -210,6 +289,12 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
+    /// @notice returns the qty that is no longer available to trade for a given order
+    /// @param orderHash hash of order to find filled and cancelled qty
+    /// @return int quantity that is no longer able to filled from the supplied order hash
+    function getQtyFilledOrCancelledFromOrder(bytes32 orderHash) public view returns (int) {
+        return filledOrderQty[orderHash].add(cancelledOrderQty[orderHash]);
+    }
 
     /*
     // PRIVATE METHODS
