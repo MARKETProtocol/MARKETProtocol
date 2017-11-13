@@ -40,8 +40,8 @@ library MathLib {
     }
 
     /// @notice safely adds to signed integers ensuring that no wrap occurs
-    /// @param a
-    /// @param b
+    /// @param a value to add b to
+    /// @param b value to add to a
     function add(int256 a, int256 b) pure internal returns (int256) {
         int256 c = a + b;
         if(!isSameSign(a, b)) { // result will always be smaller than current value, no wrap possible
