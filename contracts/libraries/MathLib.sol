@@ -16,6 +16,7 @@
 pragma solidity 0.4.18;
 
 // TODO BUILD TEST!
+/// @title Math function library with overflow protection inspired by Open Zeppelin
 library MathLib {
 
     function multiply(uint256 a, uint256 b) pure internal returns (uint256) {
@@ -35,6 +36,8 @@ library MathLib {
         return c;
     }
 
+    /// @param a integer to determine sign of
+    /// @return int8 sign of original value, either +1,0,-1
     function sign(int a) pure internal returns (int8) {
         if(a > 0) {
             return 1;
@@ -44,6 +47,15 @@ library MathLib {
         return 0;
     }
 
+    /// @param a integer to compare to b
+    /// @param b integer to compare to a
+    /// @return bool true if a and b are the same sign (+/-)
+    function isSameSign(int a, int b) pure internal returns (bool) {
+        return ( a == b || a * b > 0);
+    }
+
+    /// @param a integer to determine absolute value of
+    /// @return uint non signed representation of a
     function abs(int a) pure internal returns (uint) {
         if(a < 0) {
             return uint(-a);
@@ -53,8 +65,5 @@ library MathLib {
         }
     }
 
-    function isSameSign(int a, int b) pure internal returns (bool) {
-        return ( a == b || a * b > 0);
-    }
 
 }
