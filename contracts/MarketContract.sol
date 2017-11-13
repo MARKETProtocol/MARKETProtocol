@@ -31,7 +31,7 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 //      do we want to use ETH or WETH for ETH based contract?
 
 /// @title MarketContract first example of a MarketProtocol contract using Oraclize services
-/// @author Phil Elsasser
+/// @author Phil Elsasser <phil@marketprotcol.io>
 contract MarketContract is Creatable, usingOraclize  {
     using MathLib for uint256;
     using MathLib for int;
@@ -95,8 +95,8 @@ contract MarketContract is Creatable, usingOraclize  {
     event OracleQueryFailed();
     event UpdatedLastPrice(string price);
     event ContractSettled();
-    event DepositReceived(address user, uint depositAmount, uint totalBalance);
-    event WithdrawCompleted(address user, uint withdrawAmount, uint totalBalance);
+    event UpdatedUserBalance(address user, uint balance);
+    event UpdatedPoolBalance(uint balance);
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
     /// @param baseTokenAddress address of the ERC20 token that will be used for collateral and pricing
@@ -109,7 +109,7 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @param capPrice maximum tradeable price of this contract, contract enters settlement if breached
     /// @param priceDecimalPlaces number of decimal places to convert our queried price from a floating point to
     /// an integer
-    /// @param qtyDecimalPlaces //TODO explain this better once qty code is in place
+    /// @param qtyDecimalPlaces decimal places to multiply traded qty by.
     /// @param secondsToExpiration - second from now that this contract expires and enters settlement
     function MarketContract(
         string contractName,
@@ -143,7 +143,7 @@ contract MarketContract is Creatable, usingOraclize  {
 
     /// @param queryID of the returning query, this should match our own internal mapping
     /// @param result query to be processed
-    /// @param proof
+    /// @param proof result proof
     function __callback(bytes32 queryID, string result, bytes proof) public {
         require(validQueryIDs[queryID]);
         require(msg.sender == oraclize_cbAddress());
@@ -175,7 +175,7 @@ contract MarketContract is Creatable, usingOraclize  {
         BASE_TOKEN.safeTransferFrom(msg.sender, this, depositAmount);
         uint256 balanceAfterDeposit = userAddressToAccountBalance[msg.sender].add(depositAmount);
         userAddressToAccountBalance[msg.sender] = balanceAfterDeposit;
-        DepositReceived(msg.sender, depositAmount, balanceAfterDeposit);
+        UpdatedUserBalance(msg.sender, balanceAfterDeposit);
     }
 
     /// @notice removes token from users trading account
@@ -185,7 +185,7 @@ contract MarketContract is Creatable, usingOraclize  {
         uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
         userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
         BASE_TOKEN.safeTransfer(msg.sender, withdrawAmount);
-        WithdrawCompleted(msg.sender, withdrawAmount, balanceAfterWithdrawal);
+        UpdatedUserBalance(msg.sender, balanceAfterWithdrawal);
     }
 
     function trade(address maker, address taker) external {
@@ -198,18 +198,20 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @param qty quantity transacted between parties
     /// @param price agreed price of the matched trade.
     function updatePositions(address maker, address taker, int qty, uint price) private {
-        updatePosition(addressToUserPosition[maker], qty, price);
+        updatePosition(maker, qty, price);
         // continue process for taker, but qty is opposite sign for taker
-        updatePosition(addressToUserPosition[taker], qty * -1, price);
+        updatePosition(taker, qty * -1, price);
+
     }
 
-    /// @param userNetPosition storage struct containing position information for this user
+    /// @param userAddress storage struct containing position information for this user
     /// @param qty signed quantity this users position is changing by, + for buy and - for sell
     /// @param price transacted price of the new position / trade
-    function updatePosition(UserNetPosition storage userNetPosition, int qty, uint price) private {
+    function updatePosition(address userAddress, int qty, uint price) private {
+        UserNetPosition storage userNetPosition = addressToUserPosition[userAddress];
         if(userNetPosition.netPosition == 0 ||  userNetPosition.netPosition.isSameSign(qty)) {
             // new position or adding to open pos, no collateral returned
-            userNetPosition.positions.push(Position(price, newNetPos)); //append array with new position
+            userNetPosition.positions.push(Position(price, qty)); //append array with new position
         }
         else {
             // opposite side from open position, reduce, flattened, or flipped.
@@ -221,24 +223,40 @@ contract MarketContract is Creatable, usingOraclize  {
                 userNetPosition.positions.push(Position(price, newNetPos));   // append array with new position
             }
         }
-        userNetPosition.netPosition += qty;
+        userNetPosition.netPosition.add(qty);
+    }
+
+    /// @dev calculates the needed collateral for a new position and commits it to the pool removing it from the
+    /// users account
+    /// @param userAddress address of user entering into the position
+    /// @param qty signed quantity of the trade
+    /// @param price agreed price of trade
+    function addUserNetPosition(address userAddress, int qty, uint price) private {
+        uint maxLoss;
+        if(qty > 0) { // this person is long, calculate max loss from entry price to floor
+            maxLoss = price.subtract(PRICE_FLOOR);
+        } else { // this person is short, calculate max loss from entry price to ceiling;
+            maxLoss = price.subtract(PRICE_CAP);
+        }
+        uint neededCollateral = maxLoss * qty.abs() * QTY_DECIMAL_PLACES;
+        commitCollateralToPool(userAddress, neededCollateral);
     }
 
     /// @param userNetPos storage struct for this users position
     /// @param qty signed quantity of the qty to reduce this users position by
-    /// @param uint price transacted price
+    /// @param price transacted price
     function reduceUserNetPosition(UserNetPosition storage userNetPos, int qty, uint price) private {
         int qtyToReduce = qty;
         assert(userNetPos.positions.length != 0);  // sanity check
         while(qtyToReduce != 0) {   //TODO: ensure we dont run out of gas here!
             Position storage position = userNetPos.positions[userNetPos.positions.length - 1];  // get the last pos (LIFO)
             if(position.qty.abs() <= qtyToReduce.abs()) { // this position is completely consumed!
-                qtyToReduce = qtyToReduce + position.qty;
+                qtyToReduce = qtyToReduce.add(position.qty);
                 // TODO: work on refunding correct amount of collateral.
                 userNetPos.positions.length--;  // remove this position from our array.
             }
             else {  // this position stays, just reduce the qty.
-                position.qty += qtyToReduce;
+                position.qty = position.qty.add(qtyToReduce);
                 // TODO: return collateral
                 //qtyToReduce = 0; // completely reduced now!
                 break;
@@ -246,12 +264,28 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
+    /// @notice moves collateral from a user's account to the pool upon trade execution.
+    /// @param fromAddress address of user entering trade
+    /// @param collateralAmount amount of collateral to transfer from user account to collateral pool
     function commitCollateralToPool(address fromAddress, uint collateralAmount) private {
-
+        require(userAddressToAccountBalance[fromAddress] >= collateralAmount);   // ensure sufficient balance
+        uint newBalance = userAddressToAccountBalance[fromAddress].subtract(collateralAmount);
+        userAddressToAccountBalance[fromAddress] = newBalance;
+        collateralPoolBalance = collateralPoolBalance.add(collateralAmount);
+        UpdatedUserBalance(fromAddress, newBalance);
+        UpdatedPoolBalance(collateralPoolBalance);
     }
 
+    /// @notice withdraws collateral from pool to a user account upon exit or trade settlement
+    /// @param toAddress address of user
+    /// @param collateralAmount amount to transfer from pool to user.
     function withdrawCollateralFromPool(address toAddress, uint collateralAmount) private {
-
+        require(collateralPoolBalance >= collateralAmount); // ensure sufficient balance
+        uint newBalance = userAddressToAccountBalance[toAddress].add(collateralAmount);
+        userAddressToAccountBalance[toAddress] = newBalance;
+        collateralPoolBalance = collateralPoolBalance.subtract(collateralAmount);
+        UpdatedUserBalance(toAddress, newBalance);
+        UpdatedPoolBalance(collateralPoolBalance);
     }
 
     function queryOracle() private {
@@ -269,7 +303,7 @@ contract MarketContract is Creatable, usingOraclize  {
         if(isExpired)   // already expired.
             return;
 
-        if(now > EXPIRATION) {
+        if(now > EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
             isExpired = true;   // time based expiration has occurred.
         } else if(lastPrice >= PRICE_CAP || lastPrice <= PRICE_FLOOR) {
             isExpired = true;   // we have breached/touched our pricing bands
