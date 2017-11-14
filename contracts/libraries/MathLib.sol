@@ -41,7 +41,7 @@ library MathLib {
         return c;
     }
 
-    /// @notice safely adds to signed integers ensuring that no wrap occurs
+    /// @notice safely adds two signed integers ensuring that no wrap occurs
     /// @param a value to add b to
     /// @param b value to add to a
     function add(int256 a, int256 b) pure internal returns (int256) {
@@ -56,6 +56,13 @@ library MathLib {
             assert(b >= INT256_MIN - a);
         }
         return c;
+    }
+
+    /// @notice safely subtracts two signed integers ensuring that no wrap occurs
+    /// @param a value to subtract b from
+    /// @param b value to subtract from a
+    function subtract(int256 a, int256 b) pure internal returns (int256) {
+        return add(a, -b); // use inverse add
     }
 
     /// @param a integer to determine sign of
@@ -78,13 +85,29 @@ library MathLib {
 
     /// @param a integer to determine absolute value of
     /// @return uint non signed representation of a
-    function abs(int a) pure internal returns (uint) {
+    function abs(int256 a) pure internal returns (uint256) {
         if(a < 0) {
             return uint(-a);
         }
         else {
             return uint(a);
         }
+    }
+
+    /// @notice finds the value closer to zero regardless of sign
+    /// @param a integer to compare to b
+    /// @param b integer to compare to a
+    /// @return a if a is closer to zero than b
+    function absMin(int256 a, int256 b) pure internal returns (int256) {
+        return abs(a) < abs(b) ?  a : b;
+    }
+
+    /// @notice finds the value further from zero regardless of sign
+    /// @param a integer to compare to b
+    /// @param b integer to compare to a
+    /// @return a if a is further to zero than b
+    function absMax(int256 a, int256 b) pure internal returns (int256) {
+        return abs(a) >= abs(b) ?  a : b;
     }
 
     /// @notice determines the amount of needed collateral for a given position (qty and price)
