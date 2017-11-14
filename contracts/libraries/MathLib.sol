@@ -15,6 +15,8 @@
 */
 pragma solidity 0.4.18;
 
+import "../MarketContract.sol";
+
 // TODO BUILD TEST!
 /// @title Math function library with overflow protection inspired by Open Zeppelin
 library MathLib {
@@ -85,5 +87,31 @@ library MathLib {
         }
     }
 
+    /// @notice determines the amount of needed collateral for a given position (qty and price)
+    /// @param marketContract contract with needed specs for cap, floor and decimalization.
+    /// @param qty signed integer corresponding to the traded quantity
+    /// @param price of the trade
+    function calculateNeededCollateral(
+        MarketContract marketContract,
+        int qty,
+        uint price
+    ) view internal returns (uint neededCollateral) {
 
+        uint maxLoss;
+        if(qty > 0) {   // this qty is long, calculate max loss from entry price to floor
+            if(price <= marketContract.PRICE_FLOOR()) {
+                maxLoss = 0;
+            }
+            else {
+                maxLoss = subtract(price, marketContract.PRICE_FLOOR());
+            }
+        } else {        // this qty is short, calculate max loss from entry price to ceiling;
+            if(price >= marketContract.PRICE_CAP()){
+                maxLoss = 0;
+            } else {
+                maxLoss = subtract(price, marketContract.PRICE_CAP());
+            }
+        }
+        neededCollateral = maxLoss * abs(qty) * marketContract.QTY_DECIMAL_PLACES();
+    }
 }
