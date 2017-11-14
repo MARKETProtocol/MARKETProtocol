@@ -1,7 +1,6 @@
 var MarketContract = artifacts.require("./MarketContract.sol");
 var MathLib = artifacts.require("./libraries/MathLib.sol");
 var HashLib = artifacts.require("./libraries/HashLib.sol");
-var ZeppelinERC20 = artifacts.require("zeppelin-solidity/contracts/token/ERC20.sol");
 var ZeppelinSafeERC20 = artifacts.require("zeppelin-solidity/contracts/token/SafeERC20.sol");
 
 
@@ -11,8 +10,6 @@ module.exports = function(deployer) {
   deployer.link(MathLib, MarketContract);
   deployer.deploy(HashLib);
   deployer.link(HashLib, MarketContract);
-  deployer.deploy(ZeppelinERC20);
-  deployer.link(ZeppelinERC20, MarketContract);
   deployer.deploy(ZeppelinSafeERC20);
   deployer.link(ZeppelinSafeERC20, MarketContract);
   deployer.deploy(MarketContract, "ETHXBT",

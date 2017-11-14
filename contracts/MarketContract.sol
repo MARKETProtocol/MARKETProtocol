@@ -29,6 +29,8 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 //      create mappings for deposit tokens and balance of collateral pool
 //      think about circuit breaker in case of issues
 //      do we want to use ETH or WETH for ETH based contract?
+//      add open interest to allow users to see outstanding open positions
+
 
 /// @title MarketContract first example of a MarketProtocol contract using Oraclize services
 /// @author Phil Elsasser <phil@marketprotcol.io>
@@ -145,7 +147,7 @@ contract MarketContract is Creatable, usingOraclize  {
 
     /*
     // EXTERNAL METHODS
-   */
+    */
 
     // @param userAddress address to return position for
     // @return the users current open position.
@@ -271,7 +273,7 @@ contract MarketContract is Creatable, usingOraclize  {
 
     /*
     // PUBLIC METHODS
-   */
+    */
 
     /// @param queryID of the returning query, this should match our own internal mapping
     /// @param result query to be processed
@@ -339,13 +341,7 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @param qty signed quantity of the trade
     /// @param price agreed price of trade
     function addUserNetPosition(address userAddress, int qty, uint price) private {
-        uint maxLoss;
-        if(qty > 0) { // this person is long, calculate max loss from entry price to floor
-            maxLoss = price.subtract(PRICE_FLOOR);
-        } else { // this person is short, calculate max loss from entry price to ceiling;
-            maxLoss = price.subtract(PRICE_CAP);
-        }
-        uint neededCollateral = maxLoss * qty.abs() * QTY_DECIMAL_PLACES;
+        uint neededCollateral = MathLib.calculateNeededCollateral(this, qty, price);
         commitCollateralToPool(userAddress, neededCollateral);
     }
 
@@ -353,21 +349,27 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @param qty signed quantity of the qty to reduce this users position by
     /// @param price transacted price
     function reduceUserNetPosition(UserNetPosition storage userNetPos, int qty, uint price) private {
-        int qtyToReduce = qty;
-        assert(userNetPos.positions.length != 0);  // sanity check
+        uint collateralToReturnToUserAccount = 0;
+        int qtyToReduce = qty;                      // note: this sign is opposite of our users position
+        assert(userNetPos.positions.length != 0);   // sanity check
         while(qtyToReduce != 0) {   //TODO: ensure we dont run out of gas here!
             Position storage position = userNetPos.positions[userNetPos.positions.length - 1];  // get the last pos (LIFO)
-            if(position.qty.abs() <= qtyToReduce.abs()) { // this position is completely consumed!
+            if(position.qty.abs() <= qtyToReduce.abs()) {   // this position is completely consumed!
+                collateralToReturnToUserAccount.add(MathLib.calculateNeededCollateral(this, position.qty, price));
                 qtyToReduce = qtyToReduce.add(position.qty);
-                // TODO: work on refunding correct amount of collateral.
                 userNetPos.positions.length--;  // remove this position from our array.
             }
             else {  // this position stays, just reduce the qty.
                 position.qty = position.qty.add(qtyToReduce);
-                // TODO: return collateral
+                // pos is opp sign of qty we are reducing here!
+                collateralToReturnToUserAccount.add(MathLib.calculateNeededCollateral(this, qtyToReduce * -1, price));
                 //qtyToReduce = 0; // completely reduced now!
                 break;
             }
+        }
+
+        if(collateralToReturnToUserAccount != 0) {
+
         }
     }
 
