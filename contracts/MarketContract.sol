@@ -345,10 +345,11 @@ contract MarketContract is Creatable, usingOraclize  {
         commitCollateralToPool(userAddress, neededCollateral);
     }
 
+    /// @param userAddress address of user who is reducing their pos
     /// @param userNetPos storage struct for this users position
     /// @param qty signed quantity of the qty to reduce this users position by
     /// @param price transacted price
-    function reduceUserNetPosition(UserNetPosition storage userNetPos, int qty, uint price) private {
+    function reduceUserNetPosition(address userAddress, UserNetPosition storage userNetPos, int qty, uint price) private {
         uint collateralToReturnToUserAccount = 0;
         int qtyToReduce = qty;                      // note: this sign is opposite of our users position
         assert(userNetPos.positions.length != 0);   // sanity check
@@ -368,8 +369,8 @@ contract MarketContract is Creatable, usingOraclize  {
             }
         }
 
-        if(collateralToReturnToUserAccount != 0) {
-
+        if(collateralToReturnToUserAccount != 0) {  // allocate funds back to user acct.
+            withdrawCollateralFromPool(userAddress, collateralToReturnToUserAccount);
         }
     }
 
