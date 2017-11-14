@@ -26,7 +26,6 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 //TODO: fix style issues
 //      add failsafe for pool distribution.
 //      push as much into library as possible
-//      create mappings for deposit tokens and balance of collateral pool
 //      think about circuit breaker in case of issues
 //      do we want to use ETH or WETH for ETH based contract?
 //      add open interest to allow users to see outstanding open positions
