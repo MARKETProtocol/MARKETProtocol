@@ -63,6 +63,11 @@ contract MarketContract is Creatable, usingOraclize  {
         bytes32 orderHash;
     }
 
+    enum ErrorCodes {
+        ORDER_EXPIRED,              // past designated timestamp
+        ORDER_DEAD                  // order if fully filled or fully cancelled
+    }
+
     // constants
     string public CONTRACT_NAME;
     address public BASE_TOKEN_ADDRESS;
@@ -99,8 +104,15 @@ contract MarketContract is Creatable, usingOraclize  {
     event OracleQueryFailed();
     event UpdatedLastPrice(string price);
     event ContractSettled(uint settlePrice);
-    event UpdatedUserBalance(address user, uint balance);
+    event UpdatedUserBalance(address indexed user, uint balance);
     event UpdatedPoolBalance(uint balance);
+    event Error(ErrorCodes indexed errorCode, bytes32 indexed orderHash);
+    event OrderCancelled(
+        address indexed maker,
+        address indexed feeRecipient,
+        int cancelledQty,
+        bytes32 indexed orderHash
+    );
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
     /// @param baseTokenAddress address of the ERC20 token that will be used for collateral and pricing
@@ -204,7 +216,7 @@ contract MarketContract is Creatable, usingOraclize  {
         require(maker.isValidSignature(orderHash, v, r, s));
 
         if(now >= expirationTimeStamp) {
-            // TODO: order is expired, no trade - log this
+            Error(ErrorCodes.ORDER_EXPIRED, orderHash);
             return;
         }
         // TODO finish build out
@@ -221,6 +233,7 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @param orderQty quantity of the order
     /// @param qtyToCancel quantity maker is attempting to cancel
     /// @param expirationTimeStamp last valid timestamp of the order (seconds since epoch)
+    /// @return qty that was successfully cancelled of order.
     function cancelOrder(
         address maker,
         address taker,
@@ -231,21 +244,29 @@ contract MarketContract is Creatable, usingOraclize  {
         int orderQty,
         int qtyToCancel,
         uint expirationTimeStamp
-    ) external {
+    ) external returns (int){
         require(maker == msg.sender);                                       // only maker can cancel standing order
         require(qtyToCancel != 0 && qtyToCancel.isSameSign(orderQty));      // cannot cancel 0 and signs must match
-
-        if(now >= expirationTimeStamp || isSettled) {
-            // TODO: order or contract is expired, no need to cancel - log this
-            return;
-        }
+        require(!isSettled);
 
         bytes32 orderHash = address(this).createOrderHash(maker, feeRecipient,
-                                makerFee, takerFee, orderQty, price, expirationTimeStamp);
-        // TODO: check to see if order is fully filled order cancelled
-        //
-        cancelledOrderQty[orderHash] = cancelledOrderQty[orderHash].add(qtyToCancel);
-        // TODO: log
+            makerFee, takerFee, orderQty, price, expirationTimeStamp);
+
+        if(now >= expirationTimeStamp) {
+            Error(ErrorCodes.ORDER_EXPIRED, orderHash);
+            return 0;
+        }
+
+        int remainingQty = orderQty.subtract(getQtyFilledOrCancelledFromOrder(orderHash));
+        if(remainingQty == 0) { // there is no qty remaining to cancel order is dead
+            Error(ErrorCodes.ORDER_DEAD, orderHash);
+            return 0;
+        }
+
+        int qtyCancelled = MathLib.absMin(qtyToCancel, remainingQty);   // we can only cancel what remains
+        cancelledOrderQty[orderHash] = cancelledOrderQty[orderHash].add(qtyCancelled);
+        OrderCancelled(maker, feeRecipient, cancelledQty, orderHash);
+        return qtyCancelled;
     }
 
 
