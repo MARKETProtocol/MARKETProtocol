@@ -29,7 +29,7 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 //      think about circuit breaker in case of issues
 //      discuss build out ability to use ETH vs only ERC20? - WETH?
 //      add open interest to allow users to see outstanding open positions
-
+//      add function to allow user to pay for an extra query right now that could trigger settlement.
 
 /// @title MarketContract first example of a MarketProtocol contract using Oraclize services
 /// @author Phil Elsasser <phil@marketprotcol.io>
@@ -98,7 +98,7 @@ contract MarketContract is Creatable, usingOraclize  {
     event OracleQuerySuccess();
     event OracleQueryFailed();
     event UpdatedLastPrice(string price);
-    event ContractSettled();
+    event ContractSettled(uint settlePrice);
     event UpdatedUserBalance(address user, uint balance);
     event UpdatedPoolBalance(uint balance);
 
@@ -404,6 +404,7 @@ contract MarketContract is Creatable, usingOraclize  {
         UpdatedPoolBalance(collateralPoolBalance);
     }
 
+    /// @dev call to oraclize to set up our query and record its hash.
     function queryOracle() private {
         if (oraclize_getPrice(ORACLE_DATA_SOURCE) > this.balance) {
             OracleQueryFailed();
@@ -415,6 +416,8 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
+    /// @dev checks our last query price to see if our contract should enter settlement due to it being past our
+    //  expiration date or outside of our tradeable ranges.
     function checkSettlement() private {
         if(isSettled)   // already settled.
             return;
@@ -430,12 +433,19 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
+    /// @dev records our final settlement price and fires needed events.
+    /// @param finalSettlementPrice final query price at time of settlement
     function settleContract(uint finalSettlementPrice) private {
         settlementPrice = finalSettlementPrice;
-        ContractSettled();
+        ContractSettled(finalSettlementPrice);
+        // TODO: return any remaining ether balance to creator of this contract (no longer needs gas for queries)
     }
 
-    // for now lets require alot of padding for the settlement,
+    /// @dev over estimates needed gas to power queries until expiration and determines if provided contract
+    /// contains enough.
+    /// @param secondsToExpiration seconds from now that expiration is scheduled.
+    /// @returns true if sufficient gas is present to create queries at the designated
+    /// frequency from now until expiration
     function checkSufficientStartingBalance(uint secondsToExpiration) private view returns (bool isSufficient) {
         //uint costPerQuery = oraclize_getPrice(ORACLE_DATA_SOURCE); this doesn't work prior to first query(its free)
         uint expectedNoOfQueries = secondsToExpiration / ORACLE_QUERY_REPEAT;
