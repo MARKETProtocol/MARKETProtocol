@@ -30,6 +30,8 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 //      discuss build out ability to use ETH vs only ERC20? - WETH?
 //      add open interest to allow users to see outstanding open positions
 //      add function to allow user to pay for an extra query right now that could trigger settlement.
+//      require creator to own arbitrary amount of MEM
+//      add in fee functionality needed for nodes and the reduced fees for holders of mem.
 
 /// @title MarketContract first example of a MarketProtocol contract using Oraclize services
 /// @author Phil Elsasser <phil@marketprotcol.io>
@@ -58,7 +60,6 @@ contract MarketContract is Creatable, usingOraclize  {
         uint takerFee;
         uint qty;
         uint price;
-        uint8 makerSide;            // 0=Buy 1=Sell
         uint expirationTimeStamp;
         bytes32 orderHash;
     }
@@ -107,12 +108,24 @@ contract MarketContract is Creatable, usingOraclize  {
     event UpdatedUserBalance(address indexed user, uint balance);
     event UpdatedPoolBalance(uint balance);
     event Error(ErrorCodes indexed errorCode, bytes32 indexed orderHash);
+
+    // order events
+    event OrderFilled(
+        address indexed maker,
+        address indexed taker,
+        address indexed feeRecipient,
+        int filledQty,
+        uint paidMakerFee,
+        uint paidTakerFee,
+        bytes32 indexed orderHash
+    );
     event OrderCancelled(
         address indexed maker,
         address indexed feeRecipient,
         int cancelledQty,
         bytes32 indexed orderHash
     );
+
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
     /// @param baseTokenAddress address of the ERC20 token that will be used for collateral and pricing
@@ -204,7 +217,7 @@ contract MarketContract is Creatable, usingOraclize  {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external {
+    ) external returns (int filledQty) {
         require(!isSettled);                                // no trading past settlement
         require(taker == address(0) || taker == msg.sender);// taker can be anyone, or specifically the caller!
         require(maker != address(0) && maker != taker);     // do not allow self trade
@@ -217,10 +230,22 @@ contract MarketContract is Creatable, usingOraclize  {
 
         if(now >= expirationTimeStamp) {
             Error(ErrorCodes.ORDER_EXPIRED, orderHash);
-            return;
+            return 0;
         }
-        // TODO finish build out
 
+        int remainingQty = orderQty.subtract(getQtyFilledOrCancelledFromOrder(orderHash));
+        if(remainingQty == 0) { // there is no qty remaining  - cannot fill!
+            Error(ErrorCodes.ORDER_DEAD, orderHash);
+            return 0;
+        }
+
+        filledQty = MathLib.absMin(remainingQty, qtyToFill);
+        //TODO: finish build out and allocation of positions.
+
+        uint paidMakerFee = 0;
+        uint paidTakerFee = 0;
+        OrderFilled(maker, taker, feeRecipient, filledQty, paidMakerFee, paidTakerFee, orderHash);
+        return filledQty;
     }
 
     // @notice called by the maker of an order to attempt to cancel the order before its expiration time stamp
@@ -244,7 +269,7 @@ contract MarketContract is Creatable, usingOraclize  {
         int orderQty,
         int qtyToCancel,
         uint expirationTimeStamp
-    ) external returns (int){
+    ) external returns (int qtyCancelled){
         require(maker == msg.sender);                                       // only maker can cancel standing order
         require(qtyToCancel != 0 && qtyToCancel.isSameSign(orderQty));      // cannot cancel 0 and signs must match
         require(!isSettled);
@@ -263,7 +288,7 @@ contract MarketContract is Creatable, usingOraclize  {
             return 0;
         }
 
-        int qtyCancelled = MathLib.absMin(qtyToCancel, remainingQty);   // we can only cancel what remains
+        qtyCancelled = MathLib.absMin(qtyToCancel, remainingQty);   // we can only cancel what remains
         cancelledOrderQty[orderHash] = cancelledOrderQty[orderHash].add(qtyCancelled);
         OrderCancelled(maker, feeRecipient, cancelledQty, orderHash);
         return qtyCancelled;
