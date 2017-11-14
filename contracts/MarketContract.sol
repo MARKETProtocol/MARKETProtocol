@@ -84,6 +84,7 @@ contract MarketContract is Creatable, usingOraclize  {
     // state variables
     string public lastPriceQueryResult;
     uint public lastPrice;
+    uint public settlementPrice;
     bool public isSettled;
     mapping(bytes32 => bool) validQueryIDs;
 
@@ -170,16 +171,6 @@ contract MarketContract is Creatable, usingOraclize  {
         UpdatedUserBalance(msg.sender, balanceAfterDeposit);
     }
 
-    /// @notice removes token from users trading account
-    /// @param withdrawAmount qty of token to attempt to withdraw
-    function withdrawTokens(uint256 withdrawAmount) external {
-        require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
-        uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
-        userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
-        BASE_TOKEN.safeTransfer(msg.sender, withdrawAmount);
-        UpdatedUserBalance(msg.sender, balanceAfterWithdrawal);
-    }
-
     // @notice called by a participant wanting to trade a specific order
     /// @param maker address of the maker of this order
     /// @param taker address of the designated taker or address(0) if publicly available to be traded
@@ -207,6 +198,7 @@ contract MarketContract is Creatable, usingOraclize  {
         bytes32 r,
         bytes32 s
     ) external {
+        require(!isSettled);                                // no trading past settlement
         require(taker == address(0) || taker == msg.sender);// taker can be anyone, or specifically the caller!
         require(maker != address(0) && maker != taker);     // do not allow self trade
         require(orderQty != 0 && qtyToFill != 0);           // no zero trades
@@ -248,8 +240,8 @@ contract MarketContract is Creatable, usingOraclize  {
         require(maker == msg.sender);                                       // only maker can cancel standing order
         require(qtyToCancel != 0 && qtyToCancel.isSameSign(orderQty));      // cannot cancel 0 and signs must match
 
-        if(now >= expirationTimeStamp) {
-            // TODO: order is expired, no need to cancel - log this
+        if(now >= expirationTimeStamp || isSettled) {
+            // TODO: order or contract is expired, no need to cancel - log this
             return;
         }
 
@@ -262,13 +254,17 @@ contract MarketContract is Creatable, usingOraclize  {
     }
 
 
-    // @notice called by a user after settlement has occured.  This function will finalize all accounting around any
+    // @notice called by a user after settlement has occurred.  This function will finalize all accounting around any
     // outstanding positions and return all remaining collateral to the caller. This should only be called after
-    // settlement has occurred
+    // settlement has occurred.
     function settleAndClose() external {
         require(isSettled);
-        // check to see if user has an positions that need to be marked to the settlement price and then closed
-        // return all collateral
+        UserNetPosition storage userNetPos = addressToUserPosition[msg.sender];
+        if(userNetPos.netPosition != 0) {
+            // this user has a position that we need to settle based upon the settlement price of the contract
+            reduceUserNetPosition(msg.sender, userNetPos.netPosition * - 1, settlementPrice);
+        }
+        withdrawTokens(userAddressToAccountBalance[msg.sender]);   // transfer all balances back to user.
     }
 
     /*
@@ -296,6 +292,16 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @return int quantity that is no longer able to filled from the supplied order hash
     function getQtyFilledOrCancelledFromOrder(bytes32 orderHash) public view returns (int) {
         return filledOrderQty[orderHash].add(cancelledOrderQty[orderHash]);
+    }
+
+    /// @notice removes token from users trading account
+    /// @param withdrawAmount qty of token to attempt to withdraw
+    function withdrawTokens(uint256 withdrawAmount) public {
+        require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
+        uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
+        userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
+        BASE_TOKEN.safeTransfer(msg.sender, withdrawAmount);
+        UpdatedUserBalance(msg.sender, balanceAfterWithdrawal);
     }
 
     /*
@@ -349,7 +355,12 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @param userNetPos storage struct for this users position
     /// @param qty signed quantity of the qty to reduce this users position by
     /// @param price transacted price
-    function reduceUserNetPosition(address userAddress, UserNetPosition storage userNetPos, int qty, uint price) private {
+    function reduceUserNetPosition(
+        address userAddress,
+        UserNetPosition storage userNetPos,
+        int qty,
+        uint price
+    ) private {
         uint collateralToReturnToUserAccount = 0;
         int qtyToReduce = qty;                      // note: this sign is opposite of our users position
         assert(userNetPos.positions.length != 0);   // sanity check
@@ -424,8 +435,8 @@ contract MarketContract is Creatable, usingOraclize  {
         }
     }
 
-    function settleContract() private {
-        // TODO: set final settlement price, and allow users at this point to call settleAndClose()
+    function settleContract(uint finalSettlementPrice) private {
+        settlementPrice = finalSettlementPrice;
         ContractSettled();
     }
 
