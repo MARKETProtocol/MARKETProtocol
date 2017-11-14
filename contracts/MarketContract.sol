@@ -23,11 +23,11 @@ import "./libraries/HashLib.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
 import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 
-//TODO: fix style issues
+// TODO:
 //      add failsafe for pool distribution.
 //      push as much into library as possible
 //      think about circuit breaker in case of issues
-//      do we want to use ETH or WETH for ETH based contract?
+//      discuss build out ability to use ETH vs only ERC20? - WETH?
 //      add open interest to allow users to see outstanding open positions
 
 
@@ -153,10 +153,6 @@ contract MarketContract is Creatable, usingOraclize  {
     // @return the users current open position.
     function getUserPosition(address userAddress) external view returns (int)  {
         return addressToUserPosition[userAddress].netPosition;
-    }
-
-    function depositEtherForTrading() external payable {
-        // should we allow ether or force users to use WETH?
     }
 
     /// @notice deposits tokens to the smart contract to fund the user account and provide needed tokens for collateral
