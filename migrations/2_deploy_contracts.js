@@ -17,5 +17,5 @@ module.exports = function(deployer) {
   deployer.link(ZeppelinSafeERC20, MarketContract);
   deployer.deploy(MarketContract, "ETHXBT",
   "0x0", "URL", "json(https://api.kraken.com/0/public/Ticker?pair=ETHXBT).result.XETHXXBT.c.0", 30,
-   20155, 60465,  6, 60 * 15, {gas:5000000 ,  value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]});
+   20155, 60465,  6, 1000, 60 * 15, {gas:5000000 ,  value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]});
 };
