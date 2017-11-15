@@ -15,9 +15,6 @@
 */
 pragma solidity 0.4.18;
 
-import "../MarketContract.sol";
-
-// TODO BUILD TEST!
 /// @title Math function library with overflow protection inspired by Open Zeppelin
 library MathLib {
 
@@ -111,30 +108,34 @@ library MathLib {
     }
 
     /// @notice determines the amount of needed collateral for a given position (qty and price)
-    /// @param marketContract contract with needed specs for cap, floor and decimalization.
+    /// @param priceFloor lowest price the contract is allowed to trade before expiration
+    /// @param priceCap highest price the contract is allowed to trade before expiration
+    /// @param qtyDecimalPlaces number of decimal places in traded quantity.
     /// @param qty signed integer corresponding to the traded quantity
     /// @param price of the trade
     function calculateNeededCollateral(
-        MarketContract marketContract,
+        uint priceFloor,
+        uint priceCap,
+        uint qtyDecimalPlaces,
         int qty,
         uint price
-    ) view internal returns (uint neededCollateral) {
+    ) pure internal returns (uint neededCollateral) {
 
         uint maxLoss;
         if(qty > 0) {   // this qty is long, calculate max loss from entry price to floor
-            if(price <= marketContract.PRICE_FLOOR()) {
+            if(price <= priceFloor) {
                 maxLoss = 0;
             }
             else {
-                maxLoss = subtract(price, marketContract.PRICE_FLOOR());
+                maxLoss = subtract(price, priceFloor);
             }
         } else {        // this qty is short, calculate max loss from entry price to ceiling;
-            if(price >= marketContract.PRICE_CAP()){
+            if(price >= priceCap){
                 maxLoss = 0;
             } else {
-                maxLoss = subtract(price, marketContract.PRICE_CAP());
+                maxLoss = subtract(price, priceCap);
             }
         }
-        neededCollateral = maxLoss * abs(qty) * marketContract.QTY_DECIMAL_PLACES();
+        neededCollateral = maxLoss * abs(qty) * qtyDecimalPlaces;
     }
 }

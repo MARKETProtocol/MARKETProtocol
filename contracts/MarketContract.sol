@@ -383,7 +383,12 @@ contract MarketContract is Creatable, usingOraclize  {
         int qty,
         uint price
     ) private {
-        uint neededCollateral = MathLib.calculateNeededCollateral(this, qty, price);
+        uint neededCollateral = MathLib.calculateNeededCollateral(
+            PRICE_FLOOR,
+            PRICE_CAP,
+            QTY_DECIMAL_PLACES,
+            qty,
+            price);
         commitCollateralToPool(userAddress, neededCollateral);
         userNetPosition.positions.push(Position(price, qty));   // append array with new position
     }
@@ -404,14 +409,26 @@ contract MarketContract is Creatable, usingOraclize  {
         while(qtyToReduce != 0) {   //TODO: ensure we dont run out of gas here!
             Position storage position = userNetPos.positions[userNetPos.positions.length - 1];  // get the last pos (LIFO)
             if(position.qty.abs() <= qtyToReduce.abs()) {   // this position is completely consumed!
-                collateralToReturnToUserAccount.add(MathLib.calculateNeededCollateral(this, position.qty, price));
+                collateralToReturnToUserAccount.add(MathLib.calculateNeededCollateral(
+                    PRICE_FLOOR,
+                    PRICE_CAP,
+                    QTY_DECIMAL_PLACES,
+                    position.qty,
+                    price
+                ));
                 qtyToReduce = qtyToReduce.add(position.qty);
                 userNetPos.positions.length--;  // remove this position from our array.
             }
             else {  // this position stays, just reduce the qty.
                 position.qty = position.qty.add(qtyToReduce);
                 // pos is opp sign of qty we are reducing here!
-                collateralToReturnToUserAccount.add(MathLib.calculateNeededCollateral(this, qtyToReduce * -1, price));
+                collateralToReturnToUserAccount.add(MathLib.calculateNeededCollateral(
+                    PRICE_FLOOR,
+                    PRICE_CAP,
+                    QTY_DECIMAL_PLACES,
+                    qtyToReduce * -1,
+                    price
+                ));
                 //qtyToReduce = 0; // completely reduced now!
                 break;
             }

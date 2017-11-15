@@ -17,7 +17,7 @@
 pragma solidity 0.4.18;
 
 import "truffle/Assert.sol";
-import "../../libraries/MathLib.sol";
+import "../../contracts/libraries/MathLib.sol";
 
 contract TestMathLib {
 
@@ -26,5 +26,4 @@ contract TestMathLib {
         Assert.equal(MathLib.sign(-50), -1, "Sign of a negative should be -1");
         Assert.equal(MathLib.sign(50), 1, "Sign of a positive should be 1");
     }
-
 }
