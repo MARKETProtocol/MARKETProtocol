@@ -15,6 +15,8 @@
 */
 pragma solidity 0.4.18;
 
+/// @title OrderLib
+/// @author Phil Elsasser <phil@marketprotcol.io>
 library OrderLib {
 
     struct Order {
@@ -29,34 +31,44 @@ library OrderLib {
         bytes32 orderHash;
     }
 
+    /// @dev factory for orders to be created with needed hash.
+    /// @param contractAddress address of the calling contract, orders are unique to each contract
+    /// @param orderAddresses array of 3 address. maker, taker, and feeRecipient
+    /// @param unsignedOrderValues array of 4 unsigned integers. makerFee, takerFee, price, and expirationTimeStamp
+    /// @param orderQty signed qty of the original order.
     function createOrder(address contractAddress,
-        address[3] orderAddressesArray,
+        address[3] orderAddresses,
         uint[4] unsignedOrderValues,
         int orderQty
     ) internal pure returns (Order order) {
-        order.maker = orderAddressesArray[0];
-        order.taker = orderAddressesArray[1];
-        order.feeRecipient = orderAddressesArray[2];
+        order.maker = orderAddresses[0];
+        order.taker = orderAddresses[1];
+        order.feeRecipient = orderAddresses[2];
         order.makerFee = unsignedOrderValues[0];
         order.takerFee = unsignedOrderValues[1];
         order.price = unsignedOrderValues[2];
         order.expirationTimeStamp = unsignedOrderValues[3];
         order.qty = orderQty;
-        order.orderHash = createOrderHash(contractAddress, orderAddressesArray, unsignedOrderValues, orderQty);
+        order.orderHash = createOrderHash(contractAddress, orderAddresses, unsignedOrderValues, orderQty);
         return order;
     }
 
+    /// @notice creates the hash for the given order parameters.
+    /// @param contractAddress address of the calling contract, orders are unique to each contract
+    /// @param orderAddresses array of 3 address. maker, taker, and feeRecipient
+    /// @param unsignedOrderValues array of 4 unsigned integers. makerFee, takerFee, price, and expirationTimeStamp
+    /// @param orderQty signed qty of the original order.
     function createOrderHash(
         address contractAddress,
-        address[3] orderAddressesArray,
+        address[3] orderAddresses,
         uint[4] unsignedOrderValues,
         int orderQty
     ) public pure returns (bytes32) {
         return keccak256(
             contractAddress,
-            orderAddressesArray[0],
-            orderAddressesArray[1],
-            orderAddressesArray[2],
+            orderAddresses[0],
+            orderAddresses[1],
+            orderAddresses[2],
             unsignedOrderValues[0],
             unsignedOrderValues[1],
             unsignedOrderValues[2],
@@ -65,6 +77,12 @@ library OrderLib {
         );
     }
 
+    /// @notice confirms hash originated from signer
+    /// @param signerAddress - address of order originator
+    /// @param hash - original order hash
+    /// @param v order signature
+    /// @param r order signature
+    /// @param s order signature
     function isValidSignature(
         address signerAddress,
         bytes32 hash,
