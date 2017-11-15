@@ -304,7 +304,7 @@ contract MarketContract is Creatable, usingOraclize  {
 
         qtyCancelled = MathLib.absMin(qtyToCancel, remainingQty);   // we can only cancel what remains
         cancelledOrderQty[orderHash] = cancelledOrderQty[orderHash].add(qtyCancelled);
-        OrderCancelled(maker, feeRecipient, cancelledQty, orderHash);
+        OrderCancelled(maker, feeRecipient, qtyCancelled, orderHash);
         return qtyCancelled;
     }
 
@@ -511,7 +511,7 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @dev over estimates needed gas to power queries until expiration and determines if provided contract
     /// contains enough.
     /// @param secondsToExpiration seconds from now that expiration is scheduled.
-    /// @returns true if sufficient gas is present to create queries at the designated
+    /// @return true if sufficient gas is present to create queries at the designated
     /// frequency from now until expiration
     function checkSufficientStartingBalance(uint secondsToExpiration) private view returns (bool isSufficient) {
         //uint costPerQuery = oraclize_getPrice(ORACLE_DATA_SOURCE); this doesn't work prior to first query(its free)
