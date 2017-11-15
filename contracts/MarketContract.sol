@@ -29,9 +29,9 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 //      think about circuit breaker in case of issues
 //      discuss build out ability to use ETH vs only ERC20? - WETH?
 //      add open interest to allow users to see outstanding open positions
-//      add function to allow user to pay for an extra query right now that could trigger settlement.
-//      require creator to own arbitrary amount of MEM
-//      add in fee functionality needed for nodes and the reduced fees for holders of mem.
+//      add function to allow user to pay for an extra query that could trigger settlement
+//      require creator to own arbitrary amount of MEM token
+//      add in fee functionality needed for nodes and the reduced fees for holders of MEM.
 
 /// @title MarketContract first example of a MarketProtocol contract using Oraclize services
 /// @author Phil Elsasser <phil@marketprotcol.io>
@@ -154,6 +154,7 @@ contract MarketContract is Creatable, usingOraclize  {
     ) public payable {
 
         require(capPrice > floorPrice);
+        // TODO: check for minimum MEM token balance of caller.
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
         CONTRACT_NAME = contractName;
         BASE_TOKEN_ADDRESS = baseTokenAddress;
@@ -199,7 +200,7 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @param takerFee amount of MKT token for taker fee
     /// @param price of the order
     /// @param orderQty quantity of the order
-    /// @param qtyToFill quantity taker is willing to fill (max)
+    /// @param qtyToFill quantity taker is willing to fill of original order(max)
     /// @param expirationTimeStamp last valid timestamp of the order (seconds since epoch)
     /// @param v order signature
     /// @param r order signature
@@ -222,6 +223,7 @@ contract MarketContract is Creatable, usingOraclize  {
         require(taker == address(0) || taker == msg.sender);// taker can be anyone, or specifically the caller!
         require(maker != address(0) && maker != taker);     // do not allow self trade
         require(orderQty != 0 && qtyToFill != 0);           // no zero trades
+        require(orderQty.isSameSign(qtyToFill));            // signs should match
 
         bytes32 orderHash = address(this).createOrderHash(maker, feeRecipient,
                                 makerFee, takerFee, orderQty, price, expirationTimeStamp);
@@ -240,10 +242,22 @@ contract MarketContract is Creatable, usingOraclize  {
         }
 
         filledQty = MathLib.absMin(remainingQty, qtyToFill);
-        //TODO: finish build out and allocation of positions.
+        updatePositions(maker, taker, filledQty, price);    // this will fail if any of the balances are insufficient
 
         uint paidMakerFee = 0;
         uint paidTakerFee = 0;
+
+        if(feeRecipient != address(0)) { // we need to transfer fees to recipient
+
+            if(makerFee > 0) {
+
+            }
+
+            if(takerFee > 0) {
+
+            }
+        }
+
         OrderFilled(maker, taker, feeRecipient, filledQty, paidMakerFee, paidTakerFee, orderHash);
         return filledQty;
     }
@@ -366,8 +380,8 @@ contract MarketContract is Creatable, usingOraclize  {
     function updatePosition(address userAddress, int qty, uint price) private {
         UserNetPosition storage userNetPosition = addressToUserPosition[userAddress];
         if(userNetPosition.netPosition == 0 ||  userNetPosition.netPosition.isSameSign(qty)) {
-            // new position or adding to open pos, no collateral returned
-            userNetPosition.positions.push(Position(price, qty)); //append array with new position
+            // new position or adding to open pos
+            addUserNetPosition(userNetPosition, userAddress, qty, price);
         }
         else {
             // opposite side from open position, reduce, flattened, or flipped.
@@ -376,20 +390,27 @@ contract MarketContract is Creatable, usingOraclize  {
             } else {    // pos is flipped, reduce and then create new open pos!
                 reduceUserNetPosition(userNetPosition, userNetPosition.netPosition * -1, price); // flatten completely
                 int newNetPos = userNetPosition.netPosition + qty;            // the portion remaining after flattening
-                userNetPosition.positions.push(Position(price, newNetPos));   // append array with new position
+                addUserNetPosition(userNetPosition, userAddress, newNetPos, price);
             }
         }
-        userNetPosition.netPosition.add(qty);
+        userNetPosition.netPosition.add(qty);   // keep track of total net pos across all prices for user.
     }
 
     /// @dev calculates the needed collateral for a new position and commits it to the pool removing it from the
-    /// users account
+    /// users account and creates the needed Position struct to record the new position.
+    /// @param userNetPosition current positions held by user
     /// @param userAddress address of user entering into the position
     /// @param qty signed quantity of the trade
     /// @param price agreed price of trade
-    function addUserNetPosition(address userAddress, int qty, uint price) private {
+    function addUserNetPosition(
+        UserNetPosition storage userNetPosition,
+        address userAddress,
+        int qty,
+        uint price
+    ) private {
         uint neededCollateral = MathLib.calculateNeededCollateral(this, qty, price);
         commitCollateralToPool(userAddress, neededCollateral);
+        userNetPosition.positions.push(Position(price, qty));   // append array with new position
     }
 
     /// @param userAddress address of user who is reducing their pos
