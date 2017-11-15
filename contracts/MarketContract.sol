@@ -19,7 +19,7 @@ pragma solidity 0.4.18;
 import "./Creatable.sol";
 import "./oraclize/oraclizeAPI.sol";
 import "./libraries/MathLib.sol";
-import "./libraries/HashLib.sol";
+import "./libraries/OrderLib.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
 import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 
@@ -38,7 +38,8 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 contract MarketContract is Creatable, usingOraclize  {
     using MathLib for uint256;
     using MathLib for int;
-    using HashLib for address;
+    using OrderLib for address;
+    using OrderLib for OrderLib.Order;
     using SafeERC20 for ERC20;
 
     struct UserNetPosition {
@@ -50,18 +51,6 @@ contract MarketContract is Creatable, usingOraclize  {
     struct Position {
         uint price;
         int qty;
-    }
-
-    struct Order {
-        address maker;
-        address taker;
-        address feeRecipient;
-        uint makerFee;
-        uint takerFee;
-        uint qty;
-        uint price;
-        uint expirationTimeStamp;
-        bytes32 orderHash;
     }
 
     enum ErrorCodes {
@@ -117,7 +106,7 @@ contract MarketContract is Creatable, usingOraclize  {
         int filledQty,
         uint paidMakerFee,
         uint paidTakerFee,
-        bytes32 indexed orderHash
+        bytes32 orderHash // should this be indexed?
     );
     event OrderCancelled(
         address indexed maker,
@@ -193,118 +182,104 @@ contract MarketContract is Creatable, usingOraclize  {
     }
 
     // @notice called by a participant wanting to trade a specific order
-    /// @param maker address of the maker of this order
-    /// @param taker address of the designated taker or address(0) if publicly available to be traded
-    /// @param feeRecipient address of a fee recipient, optional
-    /// @param makerFee amount of MKT token for maker fee
-    /// @param takerFee amount of MKT token for taker fee
-    /// @param price of the order
+    /// @param orderAddresses - maker, taker and feeRecipient addresses
+    /// @param unsignedOrderValues makerFee, takerFree, price, expirationTimeStamp
     /// @param orderQty quantity of the order
     /// @param qtyToFill quantity taker is willing to fill of original order(max)
-    /// @param expirationTimeStamp last valid timestamp of the order (seconds since epoch)
     /// @param v order signature
     /// @param r order signature
     /// @param s order signature
     function tradeOrder(
-        address maker,
-        address taker,
-        address feeRecipient,
-        uint makerFee,
-        uint takerFee,
-        uint price,
+        address[3] orderAddresses,
+        uint[4] unsignedOrderValues,
         int orderQty,
         int qtyToFill,
-        uint expirationTimeStamp,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) external returns (int filledQty) {
         require(!isSettled);                                // no trading past settlement
-        require(taker == address(0) || taker == msg.sender);// taker can be anyone, or specifically the caller!
-        require(maker != address(0) && maker != taker);     // do not allow self trade
         require(orderQty != 0 && qtyToFill != 0);           // no zero trades
         require(orderQty.isSameSign(qtyToFill));            // signs should match
+        OrderLib.Order memory order = address(this).createOrder(orderAddresses, unsignedOrderValues, orderQty);
 
-        bytes32 orderHash = address(this).createOrderHash(maker, feeRecipient,
-                                makerFee, takerFee, orderQty, price, expirationTimeStamp);
+        // taker can be anyone, or specifically the caller!
+        require(order.taker == address(0) || order.taker == msg.sender);
+        // do not allow self trade
+        require(order.maker != address(0) && order.maker != order.taker);
+        require(order.maker.isValidSignature(order.orderHash, v, r, s));
 
-        require(maker.isValidSignature(orderHash, v, r, s));
-
-        if(now >= expirationTimeStamp) {
-            Error(ErrorCodes.ORDER_EXPIRED, orderHash);
+        if(now >= order.expirationTimeStamp) {
+            Error(ErrorCodes.ORDER_EXPIRED, order.orderHash);
             return 0;
         }
 
-        int remainingQty = orderQty.subtract(getQtyFilledOrCancelledFromOrder(orderHash));
+        int remainingQty = orderQty.subtract(getQtyFilledOrCancelledFromOrder(order.orderHash));
         if(remainingQty == 0) { // there is no qty remaining  - cannot fill!
-            Error(ErrorCodes.ORDER_DEAD, orderHash);
+            Error(ErrorCodes.ORDER_DEAD, order.orderHash);
             return 0;
         }
 
         filledQty = MathLib.absMin(remainingQty, qtyToFill);
-        updatePositions(maker, taker, filledQty, price);    // this will fail if any of the balances are insufficient
+        updatePositions(order.maker, order.taker, filledQty, order.price);
 
         uint paidMakerFee = 0;
         uint paidTakerFee = 0;
 
-        if(feeRecipient != address(0)) { // we need to transfer fees to recipient
+        if(order.feeRecipient != address(0)) { // we need to transfer fees to recipient
 
-            if(makerFee > 0) {
+            if(order.makerFee > 0) {
 
             }
 
-            if(takerFee > 0) {
+            if(order.takerFee > 0) {
 
             }
         }
 
-        OrderFilled(maker, taker, feeRecipient, filledQty, paidMakerFee, paidTakerFee, orderHash);
+        OrderFilled(
+            order.maker,
+            order.taker,
+            order.feeRecipient,
+            filledQty,
+            paidMakerFee,
+            paidTakerFee,
+            order.orderHash
+        );
+
         return filledQty;
     }
 
-    // @notice called by the maker of an order to attempt to cancel the order before its expiration time stamp
-    /// @param maker address of the maker of this order
-    /// @param taker address of the designated taker or address(0) if publicly available to be traded
-    /// @param feeRecipient address of a fee recipient, optional
-    /// @param makerFee amount of MKT token for maker fee
-    /// @param takerFee amount of MKT token for taker fee
-    /// @param price of the order
+    /// @notice called by the maker of an order to attempt to cancel the order before its expiration time stamp
+    /// @param orderAddresses - maker, taker and feeRecipient addresses
+    /// @param unsignedOrderValues makerFee, takerFree, price, expirationTimeStamp
     /// @param orderQty quantity of the order
     /// @param qtyToCancel quantity maker is attempting to cancel
-    /// @param expirationTimeStamp last valid timestamp of the order (seconds since epoch)
     /// @return qty that was successfully cancelled of order.
     function cancelOrder(
-        address maker,
-        address taker,
-        address feeRecipient,
-        uint makerFee,
-        uint takerFee,
-        uint price,
+        address[3] orderAddresses,
+        uint[4] unsignedOrderValues,
         int orderQty,
-        int qtyToCancel,
-        uint expirationTimeStamp
+        int qtyToCancel
     ) external returns (int qtyCancelled){
-        require(maker == msg.sender);                                       // only maker can cancel standing order
         require(qtyToCancel != 0 && qtyToCancel.isSameSign(orderQty));      // cannot cancel 0 and signs must match
         require(!isSettled);
-
-        bytes32 orderHash = address(this).createOrderHash(maker, feeRecipient,
-            makerFee, takerFee, orderQty, price, expirationTimeStamp);
-
-        if(now >= expirationTimeStamp) {
-            Error(ErrorCodes.ORDER_EXPIRED, orderHash);
+        OrderLib.Order memory order = address(this).createOrder(orderAddresses, unsignedOrderValues, orderQty);
+        require(order.maker == msg.sender);                                // only maker can cancel standing order
+        if(now >= order.expirationTimeStamp) {
+            Error(ErrorCodes.ORDER_EXPIRED, order.orderHash);
             return 0;
         }
 
-        int remainingQty = orderQty.subtract(getQtyFilledOrCancelledFromOrder(orderHash));
+        int remainingQty = orderQty.subtract(getQtyFilledOrCancelledFromOrder(order.orderHash));
         if(remainingQty == 0) { // there is no qty remaining to cancel order is dead
-            Error(ErrorCodes.ORDER_DEAD, orderHash);
+            Error(ErrorCodes.ORDER_DEAD, order.orderHash);
             return 0;
         }
 
         qtyCancelled = MathLib.absMin(qtyToCancel, remainingQty);   // we can only cancel what remains
-        cancelledOrderQty[orderHash] = cancelledOrderQty[orderHash].add(qtyCancelled);
-        OrderCancelled(maker, feeRecipient, qtyCancelled, orderHash);
+        cancelledOrderQty[order.orderHash] = cancelledOrderQty[order.orderHash].add(qtyCancelled);
+        OrderCancelled(order.maker, order.feeRecipient, qtyCancelled, order.orderHash);
         return qtyCancelled;
     }
 
@@ -317,7 +292,7 @@ contract MarketContract is Creatable, usingOraclize  {
         UserNetPosition storage userNetPos = addressToUserPosition[msg.sender];
         if(userNetPos.netPosition != 0) {
             // this user has a position that we need to settle based upon the settlement price of the contract
-            reduceUserNetPosition(msg.sender, userNetPos.netPosition * - 1, settlementPrice);
+            reduceUserNetPosition(msg.sender, userNetPos, userNetPos.netPosition * - 1, settlementPrice);
         }
         withdrawTokens(userAddressToAccountBalance[msg.sender]);   // transfer all balances back to user.
     }
@@ -386,9 +361,9 @@ contract MarketContract is Creatable, usingOraclize  {
         else {
             // opposite side from open position, reduce, flattened, or flipped.
             if(userNetPosition.netPosition >= qty * -1) { // pos is reduced of flattened
-                reduceUserNetPosition(userNetPosition, qty, price);
+                reduceUserNetPosition(userAddress, userNetPosition, qty, price);
             } else {    // pos is flipped, reduce and then create new open pos!
-                reduceUserNetPosition(userNetPosition, userNetPosition.netPosition * -1, price); // flatten completely
+                reduceUserNetPosition(userAddress, userNetPosition, userNetPosition.netPosition * -1, price); // flatten completely
                 int newNetPos = userNetPosition.netPosition + qty;            // the portion remaining after flattening
                 addUserNetPosition(userNetPosition, userAddress, newNetPos, price);
             }
@@ -496,7 +471,7 @@ contract MarketContract is Creatable, usingOraclize  {
         }
 
         if(isSettled) {
-            settleContract();
+            settleContract(lastPrice);
         }
     }
 
