@@ -27,7 +27,6 @@ contract TestOrderLib {
     address private TAKER = 0xf17f52151EbEF6C7334FAD080c5704D77216b732;
     address private FEE_RECIPIENT = 0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef;
     address private BAD_MAKER_ADDRESS = 0x2191eF87E392377ec08E7c08Eb105Ef5448eCED5;     //used to check against
-    address private BAD_CONTRACT_ADDRESS = 0x5AEDA56215b167893e80B4fE645BA6d5Bab767DE;  //used to check against
 
     function testCreateOrder() public {
         address contractAddress = address(this);
@@ -52,5 +51,13 @@ contract TestOrderLib {
 
         bytes32 orderHash = OrderLib.createOrderHash(contractAddress, orderAddresses, unsignedValues, orderQty);
         Assert.equal(order.orderHash, orderHash, "orderHash of order should match orderHash created on instantiation");
+
+        unsignedValues[4] = salt + 1;
+        bytes32 orderHashNewSalt = OrderLib.createOrderHash(contractAddress, orderAddresses, unsignedValues, orderQty);
+        Assert.isTrue(order.orderHash != orderHashNewSalt, "orderHash of order should not match orderHash with a new salt");
+
+        orderAddresses[0] = BAD_MAKER_ADDRESS;
+        bytes32 orderHashDiffMaker = OrderLib.createOrderHash(contractAddress, orderAddresses, unsignedValues, orderQty);
+        Assert.isTrue(order.orderHash != orderHashDiffMaker, "orderHash of order should not match orderHash with a diff maker");
     }
 }
