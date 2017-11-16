@@ -133,7 +133,7 @@ library MathLib {
             if(price >= priceCap){
                 maxLoss = 0;
             } else {
-                maxLoss = subtract(price, priceCap);
+                maxLoss = subtract(priceCap, price);
             }
         }
         neededCollateral = maxLoss * abs(qty) * qtyDecimalPlaces;
