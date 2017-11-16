@@ -87,7 +87,7 @@ contract TestMathLib {
             price
         );
         // for a short position we need to look at the priceCeiling from the price, this represents a shorts max loss
-        // so 350 - 275 = 125 max loss per unit * 5 units * 100 decimal places = 62500 collateral units
-        Assert.equal(neededCollateralForShortPos, 62500, "max loss of 125 and qty of 5 with 100 decimals should be 62500 units");
+        // so 350 - 275 = 75 max loss per unit * 5 units * 100 decimal places = 62500 collateral units
+        Assert.equal(neededCollateralForShortPos, 37500, "max loss of 75 and qty of 5 with 100 decimals should be 37500 units");
     }
 }
