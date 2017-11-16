@@ -183,7 +183,7 @@ contract MarketContract is Creatable, usingOraclize  {
 
     // @notice called by a participant wanting to trade a specific order
     /// @param orderAddresses - maker, taker and feeRecipient addresses
-    /// @param unsignedOrderValues makerFee, takerFree, price, expirationTimeStamp
+    /// @param unsignedOrderValues makerFee, takerFree, price, expirationTimeStamp, and salt (for hashing)
     /// @param orderQty quantity of the order
     /// @param qtyToFill quantity taker is willing to fill of original order(max)
     /// @param v order signature
@@ -191,7 +191,7 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @param s order signature
     function tradeOrder(
         address[3] orderAddresses,
-        uint[4] unsignedOrderValues,
+        uint[5] unsignedOrderValues,
         int orderQty,
         int qtyToFill,
         uint8 v,
@@ -252,13 +252,13 @@ contract MarketContract is Creatable, usingOraclize  {
 
     /// @notice called by the maker of an order to attempt to cancel the order before its expiration time stamp
     /// @param orderAddresses - maker, taker and feeRecipient addresses
-    /// @param unsignedOrderValues makerFee, takerFree, price, expirationTimeStamp
+    /// @param unsignedOrderValues makerFee, takerFree, price, expirationTimeStamp, and salt (for hashing)
     /// @param orderQty quantity of the order
     /// @param qtyToCancel quantity maker is attempting to cancel
     /// @return qty that was successfully cancelled of order.
     function cancelOrder(
         address[3] orderAddresses,
-        uint[4] unsignedOrderValues,
+        uint[5] unsignedOrderValues,
         int orderQty,
         int qtyToCancel
     ) external returns (int qtyCancelled){

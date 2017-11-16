@@ -34,11 +34,11 @@ library OrderLib {
     /// @dev factory for orders to be created with needed hash.
     /// @param contractAddress address of the calling contract, orders are unique to each contract
     /// @param orderAddresses array of 3 address. maker, taker, and feeRecipient
-    /// @param unsignedOrderValues array of 4 unsigned integers. makerFee, takerFee, price, and expirationTimeStamp
+    /// @param unsignedOrderValues array of 5 unsigned integers. makerFee, takerFee, price, expirationTimeStamp and salt
     /// @param orderQty signed qty of the original order.
     function createOrder(address contractAddress,
         address[3] orderAddresses,
-        uint[4] unsignedOrderValues,
+        uint[5] unsignedOrderValues,
         int orderQty
     ) internal pure returns (Order order) {
         order.maker = orderAddresses[0];
@@ -56,12 +56,12 @@ library OrderLib {
     /// @notice creates the hash for the given order parameters.
     /// @param contractAddress address of the calling contract, orders are unique to each contract
     /// @param orderAddresses array of 3 address. maker, taker, and feeRecipient
-    /// @param unsignedOrderValues array of 4 unsigned integers. makerFee, takerFee, price, and expirationTimeStamp
+    /// @param unsignedOrderValues array of 5 unsigned integers. makerFee, takerFee, price, expirationTimeStamp and salt
     /// @param orderQty signed qty of the original order.
     function createOrderHash(
         address contractAddress,
         address[3] orderAddresses,
-        uint[4] unsignedOrderValues,
+        uint[5] unsignedOrderValues,
         int orderQty
     ) public pure returns (bytes32) {
         return keccak256(
@@ -73,6 +73,7 @@ library OrderLib {
             unsignedOrderValues[1],
             unsignedOrderValues[2],
             unsignedOrderValues[3],
+            unsignedOrderValues[4],
             orderQty
         );
     }
