@@ -94,7 +94,7 @@ library MathLib {
     /// @notice finds the value closer to zero regardless of sign
     /// @param a integer to compare to b
     /// @param b integer to compare to a
-    /// @return a if a is closer to zero than b
+    /// @return a if a is closer to zero than b - does not return abs value!
     function absMin(int256 a, int256 b) pure internal returns (int256) {
         return abs(a) < abs(b) ?  a : b;
     }
@@ -102,7 +102,7 @@ library MathLib {
     /// @notice finds the value further from zero regardless of sign
     /// @param a integer to compare to b
     /// @param b integer to compare to a
-    /// @return a if a is further to zero than b
+    /// @return a if a is further to zero than b - does not return abs value!
     function absMax(int256 a, int256 b) pure internal returns (int256) {
         return abs(a) >= abs(b) ?  a : b;
     }
