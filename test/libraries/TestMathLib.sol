@@ -54,7 +54,7 @@ contract TestMathLib {
     function testAbsMax() public {
         Assert.equal(MathLib.absMax(0, 250), 250, "250 further than 0");
         Assert.equal(MathLib.absMax(250, 0), 250, "250 further than 0");
-        Assert.equal(MathLib.absMax(-250, 0), 250, "-250 further than 0");
+        Assert.equal(MathLib.absMax(-250, 0), -250, "-250 further than 0");
         Assert.equal(MathLib.absMax(15, -20), -20, "-20 further from 0 than 15");
         Assert.equal(MathLib.absMax(-15, 20), 20, "+20 further from 0 than -15");
         Assert.equal(MathLib.absMax(-15, -20), -20, "-20 further from 0 than -15");
