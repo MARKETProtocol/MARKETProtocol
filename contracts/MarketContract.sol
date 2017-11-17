@@ -164,10 +164,16 @@ contract MarketContract is Creatable, usingOraclize  {
     // EXTERNAL METHODS
     */
 
-    // @param userAddress address to return position for
-    // @return the users current open position.
+    /// @param userAddress address to return position for
+    /// @return the users current open position.
     function getUserPosition(address userAddress) external view returns (int)  {
         return addressToUserPosition[userAddress].netPosition;
+    }
+
+    /// @param userAddress address of user
+    /// @return the users currently unallocated token balance
+    function getUserAccountBalance(address userAddress) external view returns (uint) {
+        return userAddressToAccountBalance[userAddress];
     }
 
     /// @notice deposits tokens to the smart contract to fund the user account and provide needed tokens for collateral
