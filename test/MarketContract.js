@@ -114,7 +114,81 @@ contract('MarketContract', function(accounts) {
         );
     });
 
-//    it("Trade occurs, balances transferred, positions updated", async function() {
-//
-//    });
+    it("Trade occurs, cancel occurs, balances transferred, positions updated", async function() {
+        var timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
+        var accountMaker = accounts[0];
+        var accountTaker = accounts[1];
+        var orderAddresses = [accountMaker, accountTaker, accounts[2]];
+        var orderPrice = 33025;
+        var unsignedOrderValues = [0, 0, orderPrice, timeStamp, 1];
+        var orderQty = 5;   // user is attempting to buy 5
+        var orderHash = await orderLib.createOrderHash.call(
+            MarketContract.address,
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty
+        );
+
+        var makerAccountBalanceBeforeTrade = await collateralToken.balanceOf.call(accounts[0]);
+        var takerAccountBalanceBeforeTrade = await collateralToken.balanceOf.call(accounts[1]);
+
+        // Execute trade between maker and taker for partial amount of order.
+        var qtyToFill = 1;
+        var orderSignature = utility.signMessage(web3, accountMaker, orderHash)
+        await marketContract.tradeOrder(
+            orderAddresses,
+            unsignedOrderValues,
+            5,                  // qty is five
+            qtyToFill,          // let us fill a one lot
+            orderSignature[0],  // v
+            orderSignature[1],  // r
+            orderSignature[2],  // s
+            {from: accountTaker}
+        );
+
+        var makerNetPos = await marketContract.getUserPosition.call(accountMaker);
+        var takerNetPos = await marketContract.getUserPosition.call(accountTaker);
+        assert.equal(makerNetPos.toNumber(), 1, "Maker should be long 1");
+        assert.equal(takerNetPos.toNumber(), -1, "Taker should be short 1");
+
+        var qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+        assert.equal(qtyFilledOrCancelled.toNumber(), 1, "Fill Qty doesn't match expected");
+
+        await marketContract.cancelOrder(orderAddresses, unsignedOrderValues, 5, 1); //cancel part of order
+        qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+        assert.equal(qtyFilledOrCancelled.toNumber(), 2, "Fill Or Cancelled Qty doesn't match expected");
+
+        // after the execution we should have collateral transferred from users to the pool, check all balances
+        // here.
+        var priceFloor = await marketContract.PRICE_FLOOR.call();
+        var priceCap = await marketContract.PRICE_CAP.call();
+        var decimalPlaces = await marketContract.QTY_DECIMAL_PLACES();
+        var actualCollateralPoolBalance = await marketContract.collateralPoolBalance.call();
+
+        var longCollateral = (orderPrice - priceFloor) * decimalPlaces * qtyToFill;
+        var shortCollateral = (priceCap - orderPrice) * decimalPlaces * qtyToFill;
+        var totalExpectedCollateralBalance = longCollateral + shortCollateral;
+
+        assert.equal(
+            totalExpectedCollateralBalance,
+            actualCollateralPoolBalance,
+            "Collateral pool isn't funded correctly"
+        );
+
+        var makerAccountBalanceAfterTrade = await collateralToken.balanceOf.call(accounts[0]);
+        var takerAccountBalanceAfterTrade = await collateralToken.balanceOf.call(accounts[1]);
+
+        assert.equal(
+            makerAccountBalanceAfterTrade,
+            makerAccountBalanceBeforeTrade - longCollateral,
+            "Maker balance is wrong"
+        );
+        assert.equal(
+            takerAccountBalanceAfterTrade,
+            takerAccountBalanceBeforeTrade - shortCollateral,
+            "Taker balance is wrong"
+        );
+
+
+    });
 });
