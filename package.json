@@ -18,7 +18,11 @@
     "url": "git+https://github.com/MarketProject/MarketProtocol.git"
   },
   "keywords": [
-    "solidity"
+    "solidity",
+    "ethereum",
+    "smart",
+    "contracts",
+    "protocol"
   ],
   "author": "Phil Elsasser <phil@marketprotocol.io>",
   "license": "Apache-2.0",
