@@ -85,9 +85,9 @@ contract MarketContract is Creatable, usingOraclize  {
     // accounting
     mapping(address => UserNetPosition) addressToUserPosition;
     mapping(address => uint) userAddressToAccountBalance;   // stores account balances allowed to be allocated to orders
-    mapping (bytes32 => int) public filledOrderQty;
-    mapping (bytes32 => int) public cancelledOrderQty;
-    uint collateralPoolBalance = 0;                         // current balance of all collateral committed
+    mapping (bytes32 => int) filledOrderQty;
+    mapping (bytes32 => int) cancelledOrderQty;
+    uint public collateralPoolBalance = 0;                         // current balance of all collateral committed
 
     // events
     event OracleQuerySuccess();
