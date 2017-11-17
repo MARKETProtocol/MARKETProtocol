@@ -1,6 +1,8 @@
-var MarketContract = artifacts.require("MarketContract");
-var CollateralToken = artifacts.require("CollateralToken");
-var OrderLib = artifacts.require("OrderLib");
+const MarketContract = artifacts.require("MarketContract");
+const CollateralToken = artifacts.require("CollateralToken");
+const OrderLib = artifacts.require("OrderLib");
+const utility = require('./utility.js')();
+
 
 // basic tests for interacting with market contract.
 contract('MarketContract', function(accounts) {
@@ -17,7 +19,11 @@ contract('MarketContract', function(accounts) {
 
     it("Main account should have entire balance", async function() {
         let mainAcctBalance = await collateralToken.balanceOf.call(accounts[0]).valueOf();
-        assert.equal(mainAcctBalance.toNumber(), initBalance.toNumber(), "Entire coin balance should be in primary account");
+        assert.equal(
+            mainAcctBalance.toNumber(),
+            initBalance.toNumber(),
+            "Entire coin balance should be in primary account"
+        );
     });
 
     it("Main account should be able to transfer balance", async function() {
@@ -25,7 +31,11 @@ contract('MarketContract', function(accounts) {
         balancePerAcct = balanceToTransfer;
         await collateralToken.transfer(accounts[1], balanceToTransfer, {from: accounts[0]});
         let secondAcctBalance = await collateralToken.balanceOf.call(accounts[1]).valueOf();
-        assert.equal(secondAcctBalance.toNumber(), balanceToTransfer, "Transfer didn't register correctly");
+        assert.equal(
+            secondAcctBalance.toNumber(),
+            balanceToTransfer,
+            "Transfer didn't register correctly"
+        );
     });
 
     // now we have two accounts with equal balances, begin testing market contract functionality
@@ -54,8 +64,18 @@ contract('MarketContract', function(accounts) {
         // ensure balances are now correct inside the contract.
         let tradingBalanceAcctOne = await marketContract.getUserAccountBalance.call(accounts[0]);
         let tradingBalanceAcctTwo = await marketContract.getUserAccountBalance.call(accounts[1]);
-        assert.equal(tradingBalanceAcctOne, amountToWithdraw, "Balance doesn't equal tokens deposited - withdraw");
-        assert.equal(tradingBalanceAcctTwo, amountToWithdraw, "Balance doesn't equal tokens deposited - withdraw");
+
+        assert.equal(
+            tradingBalanceAcctOne,
+            amountToWithdraw,
+            "Balance doesn't equal tokens deposited - withdraw"
+        );
+        assert.equal(
+            tradingBalanceAcctTwo,
+            amountToWithdraw,
+            "Balance doesn't equal tokens deposited - withdraw"
+        );
+
         // ensure balances are now correct inside the arbitrary token
         var expectedTokenBalances = balancePerAcct - tradingBalanceAcctOne;
         let secondAcctTokenBalance = await collateralToken.balanceOf.call(accounts[1]).valueOf();
@@ -75,12 +95,26 @@ contract('MarketContract', function(accounts) {
             unsignedOrderValues,
             orderQty
         );
-        var orderSignature = await web3.eth.sign(accounts[0], orderHash);
-        var r = orderSignature.slice(0, 66);
-        var s = `0x${orderSignature.slice(66, 130)}`;
-        var v = web3.toDecimal(`0x${orderSignature.slice(130, 132)}`);
-        if (v !== 27 && v !== 28) v += 27;
-        assert.isTrue(await orderLib.isValidSignature.call(accounts[0], orderHash, v,r,s), "Order hash doesn't match signer");
-        assert.isTrue(!await orderLib.isValidSignature.call(accounts[1], orderHash, v,r,s), "Order has matches a non signer");
+        var orderSignature = utility.signMessage(web3, accounts[0], orderHash)
+        assert.isTrue(await orderLib.isValidSignature.call(
+            accounts[0],
+            orderHash,
+            orderSignature[0],
+            orderSignature[1],
+            orderSignature[2]),
+            "Order hash doesn't match signer"
+        );
+        assert.isTrue(!await orderLib.isValidSignature.call(
+            accounts[1],
+            orderHash,
+            orderSignature[0],
+            orderSignature[1],
+            orderSignature[2]),
+            "Order hash matches a non signer"
+        );
     });
+
+//    it("Trade occurs, balances transferred, positions updated", async function() {
+//
+//    });
 });
