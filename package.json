@@ -1,0 +1,29 @@
+{
+  "name": "marketprotocol",
+  "version": "1.0.0",
+  "description": "Decentralized and trust-less ERC20 Trading Protocol",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "zeppelin-solidity": "^1.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "truffle test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarketProject/MarketProtocol.git"
+  },
+  "keywords": [
+    "solidity"
+  ],
+  "author": "Phil Elsasser <phil@marketprotocol.io>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/MarketProject/MarketProtocol/issues"
+  },
+  "homepage": "https://github.com/MarketProject/MarketProtocol#readme"
+}
