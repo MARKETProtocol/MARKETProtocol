@@ -228,6 +228,7 @@ contract MarketContract is Creatable, usingOraclize  {
 
         filledQty = MathLib.absMin(remainingQty, qtyToFill);
         updatePositions(order.maker, order.taker, filledQty, order.price);
+        filledOrderQty[order.orderHash] = filledOrderQty[order.orderHash].add(filledQty);
 
         uint paidMakerFee = 0;
         uint paidTakerFee = 0;
@@ -374,7 +375,7 @@ contract MarketContract is Creatable, usingOraclize  {
                 addUserNetPosition(userNetPosition, userAddress, newNetPos, price);
             }
         }
-        userNetPosition.netPosition.add(qty);   // keep track of total net pos across all prices for user.
+        userNetPosition.netPosition = userNetPosition.netPosition.add(qty);   // keep track of total net pos across all prices for user.
     }
 
     /// @dev calculates the needed collateral for a new position and commits it to the pool removing it from the
