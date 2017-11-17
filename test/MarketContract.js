@@ -1,9 +1,11 @@
 var MarketContract = artifacts.require("MarketContract");
 var CollateralToken = artifacts.require("CollateralToken");
+var OrderLib = artifacts.require("OrderLib");
 
+// basic tests for interacting with market contract.
 contract('MarketContract', function(accounts) {
 
-    // test setup of basic token for collateral
+    // test setup of token for collateral
     var initBalance;
     var collateralToken;
     var balancePerAcct;
@@ -45,9 +47,7 @@ contract('MarketContract', function(accounts) {
     });
 
     it("Both accounts should be able to withdraw from main contract", async function() {
-        marketContract = await MarketContract.deployed();
         var amountToWithdraw = 2500000;
-
         // move tokens to the MarketContract
         await marketContract.withdrawTokens(amountToWithdraw, {from: accounts[0]})
         await marketContract.withdrawTokens(amountToWithdraw, {from: accounts[1]})
@@ -62,5 +62,25 @@ contract('MarketContract', function(accounts) {
         assert.equal(secondAcctTokenBalance, expectedTokenBalances, "Token didn't get transferred back to user");
     });
 
-    //TODO: being creating test for trading.
+//     it("Order signed correctly", async function() {
+//            let orderLib = await OrderLib.deployed();
+//            var timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
+//            var orderAddresses = [accounts[0], accounts[1], accounts[2]];
+//            var unsignedOrderValues = [0, 0, 33025, timeStamp, 0];
+//            var orderQty = 5;   // user is attempting to buy 5
+//            var orderHash = await orderLib.createOrderHash.call(
+//                MarketContract.address,
+//                orderAddresses,
+//                unsignedOrderValues,
+//                orderQty
+//            );
+//            var orderSignature = web3.eth.sign(accounts[0], orderHash);
+//            var r = orderSignature.substring(0, 64)
+//            var s = orderSignature.substring(64, 128)
+//            var v = parseInt(orderSignature.substring(128, 130));
+//            console.log(r);
+//            console.log(s);
+//            console.log(v);
+//            console.log(await orderLib.isValidSignature.call(accounts[0], orderHash, v,r,s))
+//    });
 });
