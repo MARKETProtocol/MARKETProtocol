@@ -114,13 +114,15 @@ contract('MarketContract', function(accounts) {
         );
     });
 
+    var makerAccountBalanceBeforeTrade;
+    var takerAccountBalanceBeforeTrade;
+    var entryOrderPrice = 33025;
     it("Trade occurs, cancel occurs, balances transferred, positions updated", async function() {
         var timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
         var accountMaker = accounts[0];
         var accountTaker = accounts[1];
         var orderAddresses = [accountMaker, accountTaker, accounts[2]];
-        var orderPrice = 33025;
-        var unsignedOrderValues = [0, 0, orderPrice, timeStamp, 1];
+        var unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
         var orderQty = 5;   // user is attempting to buy 5
         var orderHash = await orderLib.createOrderHash.call(
             MarketContract.address,
@@ -129,8 +131,8 @@ contract('MarketContract', function(accounts) {
             orderQty
         );
 
-        var makerAccountBalanceBeforeTrade = await collateralToken.balanceOf.call(accounts[0]);
-        var takerAccountBalanceBeforeTrade = await collateralToken.balanceOf.call(accounts[1]);
+        makerAccountBalanceBeforeTrade = await marketContract.getUserAccountBalance.call(accounts[0]);
+        takerAccountBalanceBeforeTrade = await marketContract.getUserAccountBalance.call(accounts[1]);
 
         // Execute trade between maker and taker for partial amount of order.
         var qtyToFill = 1;
@@ -165,8 +167,8 @@ contract('MarketContract', function(accounts) {
         var decimalPlaces = await marketContract.QTY_DECIMAL_PLACES();
         var actualCollateralPoolBalance = await marketContract.collateralPoolBalance.call();
 
-        var longCollateral = (orderPrice - priceFloor) * decimalPlaces * qtyToFill;
-        var shortCollateral = (priceCap - orderPrice) * decimalPlaces * qtyToFill;
+        var longCollateral = (entryOrderPrice - priceFloor) * decimalPlaces * qtyToFill;
+        var shortCollateral = (priceCap - entryOrderPrice) * decimalPlaces * qtyToFill;
         var totalExpectedCollateralBalance = longCollateral + shortCollateral;
 
         assert.equal(
@@ -175,8 +177,8 @@ contract('MarketContract', function(accounts) {
             "Collateral pool isn't funded correctly"
         );
 
-        var makerAccountBalanceAfterTrade = await collateralToken.balanceOf.call(accounts[0]);
-        var takerAccountBalanceAfterTrade = await collateralToken.balanceOf.call(accounts[1]);
+        var makerAccountBalanceAfterTrade = await marketContract.getUserAccountBalance.call(accounts[0]);
+        var takerAccountBalanceAfterTrade = await marketContract.getUserAccountBalance.call(accounts[1]);
 
         assert.equal(
             makerAccountBalanceAfterTrade,
@@ -188,7 +190,85 @@ contract('MarketContract', function(accounts) {
             takerAccountBalanceBeforeTrade - shortCollateral,
             "Taker balance is wrong"
         );
-
-
     });
+
+    var exitOrderPrice = 36025;
+    it("Trade is unwound, correct collateral amount returns to user balances", async function() {
+        var timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
+        var accountMaker = accounts[0];
+        var accountTaker = accounts[1];
+        var orderAddresses = [accountMaker, accountTaker, accounts[2]];
+        var orderPrice = 36025;
+        var unsignedOrderValues = [0, 0, orderPrice, timeStamp, 1];
+        var orderQty = -5;   // user is attempting to sell -5
+        var orderHash = await orderLib.createOrderHash.call(
+            MarketContract.address,
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty
+        );
+
+
+        // Execute trade between maker and taker for partial amount of order.
+        var qtyToFill = -1;
+        var orderSignature = utility.signMessage(web3, accountMaker, orderHash)
+        await marketContract.tradeOrder(
+            orderAddresses,
+            unsignedOrderValues,
+            -5,                 // qty is five
+            qtyToFill,          // let us fill a one lot
+            orderSignature[0],  // v
+            orderSignature[1],  // r
+            orderSignature[2],  // s
+            {from: accountTaker}
+        );
+
+        var makerNetPos = await marketContract.getUserPosition.call(accountMaker);
+        var takerNetPos = await marketContract.getUserPosition.call(accountTaker);
+        assert.equal(makerNetPos.toNumber(), 0, "Maker should be flat");
+        assert.equal(takerNetPos.toNumber(), 0, "Taker should be flat");
+
+        var qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+        assert.equal(qtyFilledOrCancelled.toNumber(), -1, "Fill Qty doesn't match expected");
+
+        await marketContract.cancelOrder(orderAddresses, unsignedOrderValues, -5, -1); //cancel part of order
+        qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+        assert.equal(qtyFilledOrCancelled.toNumber(), -2, "Fill Or Cancelled Qty doesn't match expected");
+
+        // after the execution we should have collateral transferred from pool to the users since they are now flat!
+        var actualCollateralPoolBalance = await marketContract.collateralPoolBalance.call();
+        assert.equal(
+            actualCollateralPoolBalance.toNumber(),
+            0,
+            "Collateral pool should be completely empty"
+        );
+
+        var makerAccountBalanceAfterTrade = await marketContract.getUserAccountBalance.call(accounts[0]);
+        var takerAccountBalanceAfterTrade = await marketContract.getUserAccountBalance.call(accounts[1]);
+        var decimalPlaces = await marketContract.QTY_DECIMAL_PLACES();
+        var profitForMaker = (exitOrderPrice - entryOrderPrice) * decimalPlaces;
+
+        assert.equal(
+            makerAccountBalanceAfterTrade - makerAccountBalanceBeforeTrade,
+            profitForMaker,
+            "Maker balance is wrong - profit amount doesn't make sense"
+        );
+        assert.equal(
+            takerAccountBalanceAfterTrade - takerAccountBalanceBeforeTrade,
+            profitForMaker * -1,
+            "Taker balance is wrong - loss amount doesn't make sense"
+        );
+    });
+
+        // TODO:
+        //      - attempt to overfill
+        //      - attempt to over cancel
+        //      - attempt to fill expired order
+        //      - attempt to trade zero qty
+        //      - order with zero qty
+        //      - order with values manipulated
+        //      - fees get transferred to recipient correctly.
+        //      - attempt to trade / cancel post expiration
+        //      - expiration methods
+        //      - settleAndClose()
 });
