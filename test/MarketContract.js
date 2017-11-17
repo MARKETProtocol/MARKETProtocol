@@ -62,25 +62,25 @@ contract('MarketContract', function(accounts) {
         assert.equal(secondAcctTokenBalance, expectedTokenBalances, "Token didn't get transferred back to user");
     });
 
-//     it("Order signed correctly", async function() {
-//            let orderLib = await OrderLib.deployed();
-//            var timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
-//            var orderAddresses = [accounts[0], accounts[1], accounts[2]];
-//            var unsignedOrderValues = [0, 0, 33025, timeStamp, 0];
-//            var orderQty = 5;   // user is attempting to buy 5
-//            var orderHash = await orderLib.createOrderHash.call(
-//                MarketContract.address,
-//                orderAddresses,
-//                unsignedOrderValues,
-//                orderQty
-//            );
-//            var orderSignature = web3.eth.sign(accounts[0], orderHash);
-//            var r = orderSignature.substring(0, 64)
-//            var s = orderSignature.substring(64, 128)
-//            var v = parseInt(orderSignature.substring(128, 130));
-//            console.log(r);
-//            console.log(s);
-//            console.log(v);
-//            console.log(await orderLib.isValidSignature.call(accounts[0], orderHash, v,r,s))
-//    });
+    var orderLib;
+    it("Orders are signed correctly", async function() {
+        orderLib = await OrderLib.deployed();
+        var timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
+        var orderAddresses = [accounts[0], accounts[1], accounts[2]];
+        var unsignedOrderValues = [0, 0, 33025, timeStamp, 0];
+        var orderQty = 5;   // user is attempting to buy 5
+        var orderHash = await orderLib.createOrderHash.call(
+            MarketContract.address,
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty
+        );
+        var orderSignature = await web3.eth.sign(accounts[0], orderHash);
+        var r = orderSignature.slice(0, 66);
+        var s = `0x${orderSignature.slice(66, 130)}`;
+        var v = web3.toDecimal(`0x${orderSignature.slice(130, 132)}`);
+        if (v !== 27 && v !== 28) v += 27;
+        assert.isTrue(await orderLib.isValidSignature.call(accounts[0], orderHash, v,r,s), "Order hash doesn't match signer");
+        assert.isTrue(!await orderLib.isValidSignature.call(accounts[1], orderHash, v,r,s), "Order has matches a non signer");
+    });
 });
