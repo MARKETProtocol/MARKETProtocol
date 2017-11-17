@@ -365,9 +365,8 @@ contract MarketContract is Creatable, usingOraclize  {
             // new position or adding to open pos
             addUserNetPosition(userNetPosition, userAddress, qty, price);
         }
-        else {
-            // opposite side from open position, reduce, flattened, or flipped.
-            if(userNetPosition.netPosition >= qty * -1) { // pos is reduced of flattened
+        else {  // opposite side from open position, reduce, flattened, or flipped.
+            if(userNetPosition.netPosition >= qty * -1) { // pos is reduced or flattened
                 reduceUserNetPosition(userAddress, userNetPosition, qty, price);
             } else {    // pos is flipped, reduce and then create new open pos!
                 reduceUserNetPosition(userAddress, userNetPosition, userNetPosition.netPosition * -1, price); // flatten completely
@@ -416,26 +415,30 @@ contract MarketContract is Creatable, usingOraclize  {
         while(qtyToReduce != 0) {   //TODO: ensure we dont run out of gas here!
             Position storage position = userNetPos.positions[userNetPos.positions.length - 1];  // get the last pos (LIFO)
             if(position.qty.abs() <= qtyToReduce.abs()) {   // this position is completely consumed!
-                collateralToReturnToUserAccount.add(MathLib.calculateNeededCollateral(
-                    PRICE_FLOOR,
-                    PRICE_CAP,
-                    QTY_DECIMAL_PLACES,
-                    position.qty,
-                    price
-                ));
+                collateralToReturnToUserAccount = collateralToReturnToUserAccount.add(
+                    MathLib.calculateNeededCollateral(
+                        PRICE_FLOOR,
+                        PRICE_CAP,
+                        QTY_DECIMAL_PLACES,
+                        position.qty,
+                        price
+                    )
+                );
                 qtyToReduce = qtyToReduce.add(position.qty);
                 userNetPos.positions.length--;  // remove this position from our array.
             }
             else {  // this position stays, just reduce the qty.
                 position.qty = position.qty.add(qtyToReduce);
                 // pos is opp sign of qty we are reducing here!
-                collateralToReturnToUserAccount.add(MathLib.calculateNeededCollateral(
-                    PRICE_FLOOR,
-                    PRICE_CAP,
-                    QTY_DECIMAL_PLACES,
-                    qtyToReduce * -1,
-                    price
-                ));
+                collateralToReturnToUserAccount = collateralToReturnToUserAccount.add(
+                    MathLib.calculateNeededCollateral(
+                        PRICE_FLOOR,
+                        PRICE_CAP,
+                        QTY_DECIMAL_PLACES,
+                        qtyToReduce * -1,
+                        price
+                    )
+                );
                 //qtyToReduce = 0; // completely reduced now!
                 break;
             }
