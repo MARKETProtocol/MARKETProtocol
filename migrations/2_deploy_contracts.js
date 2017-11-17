@@ -25,7 +25,7 @@ module.exports = function(deployer) {
                         20155,
                         60465,
                         2,
-                        1000,
+                        10,
                         60 * 15,
                         {gas:6000000 ,  value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]})
   })
