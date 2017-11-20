@@ -15,6 +15,7 @@
 */
 pragma solidity 0.4.18;
 
+
 /// @title Math function library with overflow protection inspired by Open Zeppelin
 library MathLib {
 
@@ -43,11 +44,11 @@ library MathLib {
     /// @param b value to add to a
     function add(int256 a, int256 b) pure internal returns (int256) {
         int256 c = a + b;
-        if(!isSameSign(a, b)) { // result will always be smaller than current value, no wrap possible
+        if (!isSameSign(a, b)) { // result will always be smaller than current value, no wrap possible
             return c;
         }
 
-        if(a >= 0) { // a is positive, b must be less than MAX - a to prevent wrap
+        if (a >= 0) { // a is positive, b must be less than MAX - a to prevent wrap
             assert(b <= INT256_MAX - a);
         } else { // a is negative, b must be greater than MIN - a to prevent wrap
             assert(b >= INT256_MIN - a);
@@ -65,7 +66,7 @@ library MathLib {
     /// @param a integer to determine sign of
     /// @return int8 sign of original value, either +1,0,-1
     function sign(int a) pure internal returns (int8) {
-        if(a > 0) {
+        if (a > 0) {
             return 1;
         } else if (a < 0) {
             return -1;
@@ -83,10 +84,9 @@ library MathLib {
     /// @param a integer to determine absolute value of
     /// @return uint non signed representation of a
     function abs(int256 a) pure internal returns (uint256) {
-        if(a < 0) {
+        if (a < 0) {
             return uint(-a);
-        }
-        else {
+        } else {
             return uint(a);
         }
     }
@@ -119,18 +119,18 @@ library MathLib {
         uint qtyDecimalPlaces,
         int qty,
         uint price
-    ) pure internal returns (uint neededCollateral) {
+    ) pure internal returns (uint neededCollateral)
+    {
 
         uint maxLoss;
-        if(qty > 0) {   // this qty is long, calculate max loss from entry price to floor
-            if(price <= priceFloor) {
+        if (qty > 0) {   // this qty is long, calculate max loss from entry price to floor
+            if (price <= priceFloor) {
                 maxLoss = 0;
-            }
-            else {
+            } else {
                 maxLoss = subtract(price, priceFloor);
             }
-        } else {        // this qty is short, calculate max loss from entry price to ceiling;
-            if(price >= priceCap){
+        } else { // this qty is short, calculate max loss from entry price to ceiling;
+            if (price >= priceCap) {
                 maxLoss = 0;
             } else {
                 maxLoss = subtract(priceCap, price);

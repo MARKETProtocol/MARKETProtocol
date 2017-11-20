@@ -15,6 +15,7 @@
 */
 pragma solidity 0.4.18;
 
+
 /// @title OrderLib
 /// @author Phil Elsasser <phil@marketprotcol.io>
 library OrderLib {
@@ -36,11 +37,13 @@ library OrderLib {
     /// @param orderAddresses array of 3 address. maker, taker, and feeRecipient
     /// @param unsignedOrderValues array of 5 unsigned integers. makerFee, takerFee, price, expirationTimeStamp and salt
     /// @param orderQty signed qty of the original order.
-    function createOrder(address contractAddress,
+    function createOrder(
+        address contractAddress,
         address[3] orderAddresses,
         uint[5] unsignedOrderValues,
         int orderQty
-    ) internal pure returns (Order order) {
+    ) internal pure returns (Order order)
+    {
         order.maker = orderAddresses[0];
         order.taker = orderAddresses[1];
         order.feeRecipient = orderAddresses[2];
@@ -49,7 +52,12 @@ library OrderLib {
         order.price = unsignedOrderValues[2];
         order.expirationTimeStamp = unsignedOrderValues[3];
         order.qty = orderQty;
-        order.orderHash = createOrderHash(contractAddress, orderAddresses, unsignedOrderValues, orderQty);
+        order.orderHash = createOrderHash(
+            contractAddress,
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty
+        );
         return order;
     }
 
@@ -63,7 +71,8 @@ library OrderLib {
         address[3] orderAddresses,
         uint[5] unsignedOrderValues,
         int orderQty
-    ) public pure returns (bytes32) {
+    ) public pure returns (bytes32)
+    {
         return keccak256(
             contractAddress,
             orderAddresses[0],
@@ -90,8 +99,14 @@ library OrderLib {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public pure returns (bool) {
-        return signerAddress == ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s);
+    ) public pure returns (bool)
+    {
+        return signerAddress == ecrecover(
+            keccak256("\x19Ethereum Signed Message:\n32", hash),
+            v,
+            r,
+            s
+        );
     }
 }
 
