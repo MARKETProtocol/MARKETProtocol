@@ -41,6 +41,7 @@ contract MarketContract is Creatable, usingOraclize {
     using MathLib for int;
     using OrderLib for address;
     using OrderLib for OrderLib.Order;
+    using OrderLib for OrderLib.OrderMappings;
     using SafeERC20 for ERC20;
 
     struct UserNetPosition {
@@ -86,9 +87,8 @@ contract MarketContract is Creatable, usingOraclize {
     // accounting
     mapping(address => UserNetPosition) addressToUserPosition;
     mapping(address => uint) userAddressToAccountBalance;   // stores account balances allowed to be allocated to orders
-    mapping (bytes32 => int) filledOrderQty;
-    mapping (bytes32 => int) cancelledOrderQty;
-    uint public collateralPoolBalance = 0;                         // current balance of all collateral committed
+    uint public collateralPoolBalance = 0;                  // current balance of all collateral committed
+    OrderLib.OrderMappings orderMappings;
 
     // events
     event OracleQuerySuccess();
@@ -242,7 +242,7 @@ contract MarketContract is Creatable, usingOraclize {
             filledQty,
             order.price
         );
-        filledOrderQty[order.orderHash] = filledOrderQty[order.orderHash].add(filledQty);
+        orderMappings.addFilledQtyToOrder(order.orderHash, filledQty);
 
         uint paidMakerFee = 0;
         uint paidTakerFee = 0;
@@ -300,7 +300,7 @@ contract MarketContract is Creatable, usingOraclize {
         }
 
         qtyCancelled = MathLib.absMin(qtyToCancel, remainingQty);   // we can only cancel what remains
-        cancelledOrderQty[order.orderHash] = cancelledOrderQty[order.orderHash].add(qtyCancelled);
+        orderMappings.addCancelledQtyToOrder(order.orderHash, qtyCancelled);
         OrderCancelled(
             order.maker,
             order.feeRecipient,
@@ -353,7 +353,7 @@ contract MarketContract is Creatable, usingOraclize {
     /// @param orderHash hash of order to find filled and cancelled qty
     /// @return int quantity that is no longer able to filled from the supplied order hash
     function getQtyFilledOrCancelledFromOrder(bytes32 orderHash) public view returns (int) {
-        return filledOrderQty[orderHash].add(cancelledOrderQty[orderHash]);
+        return orderMappings.getQtyFilledOrCancelledFromOrder(orderHash);
     }
 
     /// @notice removes token from users trading account
