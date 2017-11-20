@@ -124,10 +124,10 @@ library OrderLib {
         order.expirationTimeStamp = unsignedOrderValues[3];
         order.qty = orderQty;
         order.orderHash = createOrderHash(
-        contractAddress,
-        orderAddresses,
-        unsignedOrderValues,
-        orderQty
+            contractAddress,
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty
         );
         return order;
     }

@@ -177,9 +177,20 @@ library AccountLib {
         uint price
     ) internal
     {
-        updatePosition(accountMappings, contractSpecs, maker, qty, price);
+        updatePosition(
+            accountMappings,
+            contractSpecs,
+            maker,
+            qty,
+            price
+        );
         // continue process for taker, but qty is opposite sign for taker
-        updatePosition(accountMappings, contractSpecs, taker, qty * -1, price);
+        updatePosition(
+            accountMappings,
+            contractSpecs,
+            taker, qty * -1,
+            price
+        );
     }
 
     /// @dev handles all needed internal accounting when a user enters into a new trade

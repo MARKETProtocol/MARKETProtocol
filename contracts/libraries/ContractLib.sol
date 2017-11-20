@@ -17,6 +17,7 @@ pragma solidity 0.4.18;
 
 import "zeppelin-solidity/contracts/token/ERC20.sol";
 
+
 /// @title Constant values defining all market contracts.
 library ContractLib {
 
