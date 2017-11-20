@@ -17,12 +17,11 @@
 pragma solidity 0.4.18;
 
 import "./Creatable.sol";
-import "./oraclize/oraclizeAPI.sol";
 import "./libraries/MathLib.sol";
 import "./libraries/OrderLib.sol";
 import "./libraries/AccountLib.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
-
+import "./oraclize/oraclizeAPI.sol";
 
 // TODO:
 //      add failsafe for pool distribution.
