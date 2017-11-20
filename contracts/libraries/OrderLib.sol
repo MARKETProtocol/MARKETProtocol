@@ -109,10 +109,10 @@ library OrderLib {
     /// @param unsignedOrderValues array of 5 unsigned integers. makerFee, takerFee, price, expirationTimeStamp and salt
     /// @param orderQty signed qty of the original order.
     function createOrder(
-    address contractAddress,
-    address[3] orderAddresses,
-    uint[5] unsignedOrderValues,
-    int orderQty
+        address contractAddress,
+        address[3] orderAddresses,
+        uint[5] unsignedOrderValues,
+        int orderQty
     ) internal pure returns (Order order)
     {
         order.maker = orderAddresses[0];
