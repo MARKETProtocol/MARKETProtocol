@@ -36,13 +36,11 @@ import "./oraclize/oraclizeAPI.sol";
 /// @title MarketContract first example of a MarketProtocol contract using Oraclize services
 /// @author Phil Elsasser <phil@marketprotcol.io>
 contract MarketContract is Creatable, usingOraclize {
-    using MathLib for uint256;
     using MathLib for int;
     using OrderLib for address;
     using OrderLib for OrderLib.Order;
     using OrderLib for OrderLib.OrderMappings;
     using AccountLib for AccountLib.AccountMappings;
-    using ContractLib for ContractLib.ContractSpecs;
 
     enum ErrorCodes {
         ORDER_EXPIRED,              // past designated timestamp
