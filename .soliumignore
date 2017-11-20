@@ -1,2 +1,4 @@
 node_modules
 contracts/oraclize/oraclizeAPI.sol
+test
+contracts/Migrations.sol

@@ -19,6 +19,7 @@ pragma solidity 0.4.18;
 import "truffle/Assert.sol";
 import "../../contracts/libraries/OrderLib.sol";
 
+
 /// @title TestOrderLib tests for all of our order helper functions
 /// @author Phil Elsasser <phil@marketprotcol.io>
 contract TestOrderLib {
