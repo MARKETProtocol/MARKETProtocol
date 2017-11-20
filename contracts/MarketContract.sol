@@ -23,6 +23,7 @@ import "./libraries/OrderLib.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
 import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 
+
 // TODO:
 //      add failsafe for pool distribution.
 //      push as much into library as possible
@@ -35,7 +36,7 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 
 /// @title MarketContract first example of a MarketProtocol contract using Oraclize services
 /// @author Phil Elsasser <phil@marketprotcol.io>
-contract MarketContract is Creatable, usingOraclize  {
+contract MarketContract is Creatable, usingOraclize {
     using MathLib for uint256;
     using MathLib for int;
     using OrderLib for address;
@@ -140,8 +141,8 @@ contract MarketContract is Creatable, usingOraclize  {
         uint priceDecimalPlaces,
         uint qtyDecimalPlaces,
         uint secondsToExpiration
-    ) public payable {
-
+    ) public payable
+    {
         require(capPrice > floorPrice);
         // TODO: check for minimum MEM token balance of caller.
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
@@ -166,7 +167,7 @@ contract MarketContract is Creatable, usingOraclize  {
 
     /// @param userAddress address to return position for
     /// @return the users current open position.
-    function getUserPosition(address userAddress) external view returns (int)  {
+    function getUserPosition(address userAddress) external view returns (int) {
         return addressToUserPosition[userAddress].netPosition;
     }
 
@@ -203,7 +204,8 @@ contract MarketContract is Creatable, usingOraclize  {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external returns (int filledQty) {
+    ) external returns (int filledQty)
+    {
         require(!isSettled);                                // no trading past settlement
         require(orderQty != 0 && qtyToFill != 0);           // no zero trades
         require(orderQty.isSameSign(qtyToFill));            // signs should match
@@ -213,33 +215,45 @@ contract MarketContract is Creatable, usingOraclize  {
         require(order.taker == address(0) || order.taker == msg.sender);
         // do not allow self trade
         require(order.maker != address(0) && order.maker != order.taker);
-        require(order.maker.isValidSignature(order.orderHash, v, r, s));
+        require(
+            order.maker.isValidSignature(
+                order.orderHash,
+                v,
+                r,
+                s
+        ));
 
-        if(now >= order.expirationTimeStamp) {
+
+        if (now >= order.expirationTimeStamp) {
             Error(ErrorCodes.ORDER_EXPIRED, order.orderHash);
             return 0;
         }
 
         int remainingQty = orderQty.subtract(getQtyFilledOrCancelledFromOrder(order.orderHash));
-        if(remainingQty == 0) { // there is no qty remaining  - cannot fill!
+        if (remainingQty == 0) { // there is no qty remaining  - cannot fill!
             Error(ErrorCodes.ORDER_DEAD, order.orderHash);
             return 0;
         }
 
         filledQty = MathLib.absMin(remainingQty, qtyToFill);
-        updatePositions(order.maker, order.taker, filledQty, order.price);
+        updatePositions(
+            order.maker,
+            order.taker,
+            filledQty,
+            order.price
+        );
         filledOrderQty[order.orderHash] = filledOrderQty[order.orderHash].add(filledQty);
 
         uint paidMakerFee = 0;
         uint paidTakerFee = 0;
 
-        if(order.feeRecipient != address(0)) { // we need to transfer fees to recipient
+        if (order.feeRecipient != address(0)) { // we need to transfer fees to recipient
 
-            if(order.makerFee > 0) {
+            if (order.makerFee > 0) {
 
             }
 
-            if(order.takerFee > 0) {
+            if (order.takerFee > 0) {
 
             }
         }
@@ -268,28 +282,34 @@ contract MarketContract is Creatable, usingOraclize  {
         uint[5] unsignedOrderValues,
         int orderQty,
         int qtyToCancel
-    ) external returns (int qtyCancelled){
+    ) external returns (int qtyCancelled)
+    {
         require(qtyToCancel != 0 && qtyToCancel.isSameSign(orderQty));      // cannot cancel 0 and signs must match
         require(!isSettled);
         OrderLib.Order memory order = address(this).createOrder(orderAddresses, unsignedOrderValues, orderQty);
         require(order.maker == msg.sender);                                // only maker can cancel standing order
-        if(now >= order.expirationTimeStamp) {
+        if (now >= order.expirationTimeStamp) {
             Error(ErrorCodes.ORDER_EXPIRED, order.orderHash);
             return 0;
         }
 
         int remainingQty = orderQty.subtract(getQtyFilledOrCancelledFromOrder(order.orderHash));
-        if(remainingQty == 0) { // there is no qty remaining to cancel order is dead
+        if (remainingQty == 0) { // there is no qty remaining to cancel order is dead
             Error(ErrorCodes.ORDER_DEAD, order.orderHash);
             return 0;
         }
 
         qtyCancelled = MathLib.absMin(qtyToCancel, remainingQty);   // we can only cancel what remains
         cancelledOrderQty[order.orderHash] = cancelledOrderQty[order.orderHash].add(qtyCancelled);
-        OrderCancelled(order.maker, order.feeRecipient, qtyCancelled, order.orderHash);
+        OrderCancelled(
+            order.maker,
+            order.feeRecipient,
+            qtyCancelled,
+            order.orderHash
+        );
+
         return qtyCancelled;
     }
-
 
     // @notice called by a user after settlement has occurred.  This function will finalize all accounting around any
     // outstanding positions and return all remaining collateral to the caller. This should only be called after
@@ -297,9 +317,14 @@ contract MarketContract is Creatable, usingOraclize  {
     function settleAndClose() external {
         require(isSettled);
         UserNetPosition storage userNetPos = addressToUserPosition[msg.sender];
-        if(userNetPos.netPosition != 0) {
+        if (userNetPos.netPosition != 0) {
             // this user has a position that we need to settle based upon the settlement price of the contract
-            reduceUserNetPosition(msg.sender, userNetPos, userNetPos.netPosition * - 1, settlementPrice);
+            reduceUserNetPosition(
+                msg.sender,
+                userNetPos,
+                userNetPos.netPosition * - 1,
+                settlementPrice
+            );
         }
         withdrawTokens(userAddressToAccountBalance[msg.sender]);   // transfer all balances back to user.
     }
@@ -349,7 +374,13 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @param taker address of the taker in the trade
     /// @param qty quantity transacted between parties
     /// @param price agreed price of the matched trade.
-    function updatePositions(address maker, address taker, int qty, uint price) private {
+    function updatePositions(
+        address maker,
+        address taker,
+        int qty,
+        uint price
+    ) private
+    {
         updatePosition(maker, qty, price);
         // continue process for taker, but qty is opposite sign for taker
         updatePosition(taker, qty * -1, price);
@@ -361,17 +392,36 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @param price transacted price of the new position / trade
     function updatePosition(address userAddress, int qty, uint price) private {
         UserNetPosition storage userNetPosition = addressToUserPosition[userAddress];
-        if(userNetPosition.netPosition == 0 ||  userNetPosition.netPosition.isSameSign(qty)) {
+        if (userNetPosition.netPosition == 0 || userNetPosition.netPosition.isSameSign(qty)) {
             // new position or adding to open pos
-            addUserNetPosition(userNetPosition, userAddress, qty, price);
-        }
-        else {  // opposite side from open position, reduce, flattened, or flipped.
-            if(userNetPosition.netPosition >= qty * -1) { // pos is reduced or flattened
-                reduceUserNetPosition(userAddress, userNetPosition, qty, price);
+            addUserNetPosition(
+                userNetPosition,
+                userAddress,
+                qty,
+                price
+            );
+        } else {  // opposite side from open position, reduce, flattened, or flipped.
+            if (userNetPosition.netPosition >= qty * -1) { // pos is reduced or flattened
+                reduceUserNetPosition(
+                    userAddress,
+                    userNetPosition,
+                    qty,
+                    price
+                );
             } else {    // pos is flipped, reduce and then create new open pos!
-                reduceUserNetPosition(userAddress, userNetPosition, userNetPosition.netPosition * -1, price); // flatten completely
+                reduceUserNetPosition(
+                    userAddress,
+                    userNetPosition,
+                    userNetPosition.netPosition * -1,
+                    price
+                ); // flatten completely
                 int newNetPos = userNetPosition.netPosition + qty;            // the portion remaining after flattening
-                addUserNetPosition(userNetPosition, userAddress, newNetPos, price);
+                addUserNetPosition(
+                    userNetPosition,
+                    userAddress,
+                    newNetPos,
+                    price
+                );
             }
         }
         userNetPosition.netPosition = userNetPosition.netPosition.add(qty);   // keep track of total net pos across all prices for user.
@@ -388,7 +438,8 @@ contract MarketContract is Creatable, usingOraclize  {
         address userAddress,
         int qty,
         uint price
-    ) private {
+    ) private
+    {
         uint neededCollateral = MathLib.calculateNeededCollateral(
             PRICE_FLOOR,
             PRICE_CAP,
@@ -408,13 +459,14 @@ contract MarketContract is Creatable, usingOraclize  {
         UserNetPosition storage userNetPos,
         int qty,
         uint price
-    ) private {
+    ) private
+    {
         uint collateralToReturnToUserAccount = 0;
         int qtyToReduce = qty;                      // note: this sign is opposite of our users position
         assert(userNetPos.positions.length != 0);   // sanity check
-        while(qtyToReduce != 0) {   //TODO: ensure we dont run out of gas here!
+        while (qtyToReduce != 0) {   //TODO: ensure we dont run out of gas here!
             Position storage position = userNetPos.positions[userNetPos.positions.length - 1];  // get the last pos (LIFO)
-            if(position.qty.abs() <= qtyToReduce.abs()) {   // this position is completely consumed!
+            if (position.qty.abs() <= qtyToReduce.abs()) {   // this position is completely consumed!
                 collateralToReturnToUserAccount = collateralToReturnToUserAccount.add(
                     MathLib.calculateNeededCollateral(
                         PRICE_FLOOR,
@@ -426,8 +478,7 @@ contract MarketContract is Creatable, usingOraclize  {
                 );
                 qtyToReduce = qtyToReduce.add(position.qty);
                 userNetPos.positions.length--;  // remove this position from our array.
-            }
-            else {  // this position stays, just reduce the qty.
+            } else {  // this position stays, just reduce the qty.
                 position.qty = position.qty.add(qtyToReduce);
                 // pos is opp sign of qty we are reducing here!
                 collateralToReturnToUserAccount = collateralToReturnToUserAccount.add(
@@ -444,7 +495,7 @@ contract MarketContract is Creatable, usingOraclize  {
             }
         }
 
-        if(collateralToReturnToUserAccount != 0) {  // allocate funds back to user acct.
+        if (collateralToReturnToUserAccount != 0) {  // allocate funds back to user acct.
             withdrawCollateralFromPool(userAddress, collateralToReturnToUserAccount);
         }
     }
@@ -480,7 +531,12 @@ contract MarketContract is Creatable, usingOraclize  {
             lastPriceQueryResult = "FAILED"; //TODO: failsafe
         } else {
             OracleQuerySuccess();
-            bytes32 queryId = oraclize_query(ORACLE_QUERY_REPEAT, ORACLE_DATA_SOURCE, ORACLE_QUERY, QUERY_CALLBACK_GAS);
+            bytes32 queryId = oraclize_query(
+                ORACLE_QUERY_REPEAT,
+                ORACLE_DATA_SOURCE,
+                ORACLE_QUERY,
+                QUERY_CALLBACK_GAS
+            );
             validQueryIDs[queryId] = true;
         }
     }
@@ -488,16 +544,16 @@ contract MarketContract is Creatable, usingOraclize  {
     /// @dev checks our last query price to see if our contract should enter settlement due to it being past our
     //  expiration date or outside of our tradeable ranges.
     function checkSettlement() private {
-        if(isSettled)   // already settled.
+        if (isSettled)   // already settled.
             return;
 
-        if(now > EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
+        if (now > EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
             isSettled = true;   // time based expiration has occurred.
-        } else if(lastPrice >= PRICE_CAP || lastPrice <= PRICE_FLOOR) {
+        } else if (lastPrice >= PRICE_CAP || lastPrice <= PRICE_FLOOR) {
             isSettled = true;   // we have breached/touched our pricing bands
         }
 
-        if(isSettled) {
+        if (isSettled) {
             settleContract(lastPrice);
         }
     }

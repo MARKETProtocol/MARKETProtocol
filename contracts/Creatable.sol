@@ -16,6 +16,7 @@
 
 pragma solidity 0.4.18;
 
+
 // Contract creators may be rewarded in the future with bounties or other special privileges.  Additionally
 // creators may need to supply some needed gas reserves for the contract in order to facilitate settlement
 // which could be recouped from contract participants upon settlement.
