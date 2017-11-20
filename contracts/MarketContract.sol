@@ -146,34 +146,46 @@ contract MarketContract is Creatable, usingOraclize {
     // EXTERNAL METHODS
     */
 
+    /// @return given name for contract
     function getContractName() external view returns (string) {
         return CONTRACT_SPECS.CONTRACT_NAME;
     }
 
+    /// @return address of ERC20 token for collateral
     function getBaseTokenAddress() external view returns (address) {
         return CONTRACT_SPECS.BASE_TOKEN_ADDRESS;
     }
 
+    /// @return maximum price the underlying instrument can trade before
+    /// this contract goes into settlement
     function getPriceCap() external view returns (uint) {
         return CONTRACT_SPECS.PRICE_CAP;
     }
 
+    /// @return minimum price the underlying instrument can trade before
+    /// this contract goes into settlement
     function getPriceFloor() external view returns (uint) {
         return CONTRACT_SPECS.PRICE_FLOOR;
     }
 
+    /// @return number of decimal places expected in the price query string
+    /// to convert into an integer price
     function getPriceDecimalPlaces() external view returns (uint) {
         return CONTRACT_SPECS.PRICE_DECIMAL_PLACES;
     }
 
+    /// @return number of decimal places to convert from trading qty of 1
+    /// to number of tokens of collateral
     function getQtyDecimalPlaces() external view returns (uint) {
         return CONTRACT_SPECS.QTY_DECIMAL_PLACES;
     }
 
+    /// @return seconds from epoch timestamp of the expiration of this contract
     function getExpirationTimeStamp() external view returns (uint) {
         return CONTRACT_SPECS.EXPIRATION;
     }
 
+    /// @return current balance of collateral pool in ERC20 base tokens
     function getCollateralPoolBalance() external view returns (uint) {
         return accountMappings.collateralPoolBalance;
     }
