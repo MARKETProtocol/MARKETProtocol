@@ -20,8 +20,8 @@ import "./Creatable.sol";
 import "./oraclize/oraclizeAPI.sol";
 import "./libraries/MathLib.sol";
 import "./libraries/OrderLib.sol";
+import "./libraries/AccountLib.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
-import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 
 
 // TODO:
@@ -42,18 +42,8 @@ contract MarketContract is Creatable, usingOraclize {
     using OrderLib for address;
     using OrderLib for OrderLib.Order;
     using OrderLib for OrderLib.OrderMappings;
-    using SafeERC20 for ERC20;
-
-    struct UserNetPosition {
-        address userAddress;
-        Position[] positions;   // all open positions (lifo upon exit - allows us to not reindex array!)
-        int netPosition;        // net position across all prices / executions
-    }
-
-    struct Position {
-        uint price;
-        int qty;
-    }
+    using AccountLib for AccountLib.AccountMappings;
+    using ContractLib for ContractLib.ContractSpecs;
 
     enum ErrorCodes {
         ORDER_EXPIRED,              // past designated timestamp
@@ -61,19 +51,10 @@ contract MarketContract is Creatable, usingOraclize {
     }
 
     // constants
-    string public CONTRACT_NAME;
-    address public BASE_TOKEN_ADDRESS;
-    ERC20 public BASE_TOKEN;
-    uint public PRICE_CAP;
-    uint public PRICE_FLOOR;
-    uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
-    uint public QTY_DECIMAL_PLACES;     // how many tradeable units make up a whole pricing increment
-    uint public EXPIRATION;
+    ContractLib.ContractSpecs CONTRACT_SPECS;
     string public ORACLE_DATA_SOURCE;
     string public ORACLE_QUERY;
     uint public ORACLE_QUERY_REPEAT;
-    uint8 constant public BUY_SIDE = 0;
-    uint8 constant public SELL_SIDE = 1;
     uint constant public COST_PER_QUERY = 2 finney;    // leave static for now, price of first query from oraclize is 0
     uint constant public QUERY_CALLBACK_GAS = 300000;
 
@@ -85,9 +66,7 @@ contract MarketContract is Creatable, usingOraclize {
     mapping(bytes32 => bool) validQueryIDs;
 
     // accounting
-    mapping(address => UserNetPosition) addressToUserPosition;
-    mapping(address => uint) userAddressToAccountBalance;   // stores account balances allowed to be allocated to orders
-    uint public collateralPoolBalance = 0;                  // current balance of all collateral committed
+    AccountLib.AccountMappings accountMappings;
     OrderLib.OrderMappings orderMappings;
 
     // events
@@ -109,6 +88,7 @@ contract MarketContract is Creatable, usingOraclize {
         uint paidTakerFee,
         bytes32 orderHash // should this be indexed?
     );
+
     event OrderCancelled(
         address indexed maker,
         address indexed feeRecipient,
@@ -146,17 +126,19 @@ contract MarketContract is Creatable, usingOraclize {
         require(capPrice > floorPrice);
         // TODO: check for minimum MEM token balance of caller.
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
-        CONTRACT_NAME = contractName;
-        BASE_TOKEN_ADDRESS = baseTokenAddress;
-        BASE_TOKEN = ERC20(baseTokenAddress);
-        PRICE_CAP = capPrice;
-        PRICE_FLOOR = floorPrice;
-        EXPIRATION = now + secondsToExpiration;
+        CONTRACT_SPECS.CONTRACT_NAME = contractName;
+        CONTRACT_SPECS.BASE_TOKEN_ADDRESS = baseTokenAddress;
+        CONTRACT_SPECS.BASE_TOKEN = ERC20(baseTokenAddress);
+        CONTRACT_SPECS.PRICE_CAP = capPrice;
+        CONTRACT_SPECS.PRICE_FLOOR = floorPrice;
+        CONTRACT_SPECS.EXPIRATION = now + secondsToExpiration;
+        CONTRACT_SPECS.PRICE_DECIMAL_PLACES = priceDecimalPlaces;
+        CONTRACT_SPECS.QTY_DECIMAL_PLACES = qtyDecimalPlaces;
+
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
         ORACLE_QUERY_REPEAT = oracleQueryRepeatSeconds;
-        PRICE_DECIMAL_PLACES = priceDecimalPlaces;
-        QTY_DECIMAL_PLACES = qtyDecimalPlaces;
+
         require(checkSufficientStartingBalance(secondsToExpiration));
         queryOracle();  // schedules recursive calls to oracle
     }
@@ -165,27 +147,55 @@ contract MarketContract is Creatable, usingOraclize {
     // EXTERNAL METHODS
     */
 
+    function getContractName() external view returns (string) {
+        return CONTRACT_SPECS.CONTRACT_NAME;
+    }
+
+    function getBaseTokenAddress() external view returns (address) {
+        return CONTRACT_SPECS.BASE_TOKEN_ADDRESS;
+    }
+
+    function getPriceCap() external view returns (uint) {
+        return CONTRACT_SPECS.PRICE_CAP;
+    }
+
+    function getPriceFloor() external view returns (uint) {
+        return CONTRACT_SPECS.PRICE_FLOOR;
+    }
+
+    function getPriceDecimalPlaces() external view returns (uint) {
+        return CONTRACT_SPECS.PRICE_DECIMAL_PLACES;
+    }
+
+    function getQtyDecimalPlaces() external view returns (uint) {
+        return CONTRACT_SPECS.QTY_DECIMAL_PLACES;
+    }
+
+    function getExpirationTimeStamp() external view returns (uint) {
+        return CONTRACT_SPECS.EXPIRATION;
+    }
+
+    function getCollateralPoolBalance() external view returns (uint) {
+        return accountMappings.collateralPoolBalance;
+    }
+
     /// @param userAddress address to return position for
     /// @return the users current open position.
     function getUserPosition(address userAddress) external view returns (int) {
-        return addressToUserPosition[userAddress].netPosition;
+        return accountMappings.getUserPosition(userAddress);
     }
 
     /// @param userAddress address of user
     /// @return the users currently unallocated token balance
     function getUserAccountBalance(address userAddress) external view returns (uint) {
-        return userAddressToAccountBalance[userAddress];
+        return accountMappings.userAddressToAccountBalance[userAddress];
     }
 
     /// @notice deposits tokens to the smart contract to fund the user account and provide needed tokens for collateral
     /// pool upon trade matching.
     /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
     function depositTokensForTrading(uint256 depositAmount) external {
-        // user must call approve!
-        BASE_TOKEN.safeTransferFrom(msg.sender, this, depositAmount);
-        uint256 balanceAfterDeposit = userAddressToAccountBalance[msg.sender].add(depositAmount);
-        userAddressToAccountBalance[msg.sender] = balanceAfterDeposit;
-        UpdatedUserBalance(msg.sender, balanceAfterDeposit);
+        accountMappings.depositTokensForTrading(CONTRACT_SPECS.BASE_TOKEN, depositAmount);
     }
 
     // @notice called by a participant wanting to trade a specific order
@@ -236,7 +246,8 @@ contract MarketContract is Creatable, usingOraclize {
         }
 
         filledQty = MathLib.absMin(remainingQty, qtyToFill);
-        updatePositions(
+        accountMappings.updatePositions(
+            CONTRACT_SPECS,
             order.maker,
             order.taker,
             filledQty,
@@ -316,17 +327,7 @@ contract MarketContract is Creatable, usingOraclize {
     // settlement has occurred.
     function settleAndClose() external {
         require(isSettled);
-        UserNetPosition storage userNetPos = addressToUserPosition[msg.sender];
-        if (userNetPos.netPosition != 0) {
-            // this user has a position that we need to settle based upon the settlement price of the contract
-            reduceUserNetPosition(
-                msg.sender,
-                userNetPos,
-                userNetPos.netPosition * - 1,
-                settlementPrice
-            );
-        }
-        withdrawTokens(userAddressToAccountBalance[msg.sender]);   // transfer all balances back to user.
+        accountMappings.settleAndClose(CONTRACT_SPECS, settlementPrice);
     }
 
     /*
@@ -340,7 +341,7 @@ contract MarketContract is Creatable, usingOraclize {
         require(validQueryIDs[queryID]);
         require(msg.sender == oraclize_cbAddress());
         lastPriceQueryResult = result;
-        lastPrice = parseInt(result, PRICE_DECIMAL_PLACES);
+        lastPrice = parseInt(result, CONTRACT_SPECS.PRICE_DECIMAL_PLACES);
         UpdatedLastPrice(result);
         delete validQueryIDs[queryID];
         checkSettlement();
@@ -359,170 +360,12 @@ contract MarketContract is Creatable, usingOraclize {
     /// @notice removes token from users trading account
     /// @param withdrawAmount qty of token to attempt to withdraw
     function withdrawTokens(uint256 withdrawAmount) public {
-        require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
-        uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
-        userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
-        BASE_TOKEN.safeTransfer(msg.sender, withdrawAmount);
-        UpdatedUserBalance(msg.sender, balanceAfterWithdrawal);
+        accountMappings.withdrawTokens(CONTRACT_SPECS.BASE_TOKEN, withdrawAmount);
     }
 
     /*
     // PRIVATE METHODS
     */
-
-    /// @param maker address of the maker in the trade
-    /// @param taker address of the taker in the trade
-    /// @param qty quantity transacted between parties
-    /// @param price agreed price of the matched trade.
-    function updatePositions(
-        address maker,
-        address taker,
-        int qty,
-        uint price
-    ) private
-    {
-        updatePosition(maker, qty, price);
-        // continue process for taker, but qty is opposite sign for taker
-        updatePosition(taker, qty * -1, price);
-
-    }
-
-    /// @param userAddress storage struct containing position information for this user
-    /// @param qty signed quantity this users position is changing by, + for buy and - for sell
-    /// @param price transacted price of the new position / trade
-    function updatePosition(address userAddress, int qty, uint price) private {
-        UserNetPosition storage userNetPosition = addressToUserPosition[userAddress];
-        if (userNetPosition.netPosition == 0 || userNetPosition.netPosition.isSameSign(qty)) {
-            // new position or adding to open pos
-            addUserNetPosition(
-                userNetPosition,
-                userAddress,
-                qty,
-                price
-            );
-        } else {  // opposite side from open position, reduce, flattened, or flipped.
-            if (userNetPosition.netPosition >= qty * -1) { // pos is reduced or flattened
-                reduceUserNetPosition(
-                    userAddress,
-                    userNetPosition,
-                    qty,
-                    price
-                );
-            } else {    // pos is flipped, reduce and then create new open pos!
-                reduceUserNetPosition(
-                    userAddress,
-                    userNetPosition,
-                    userNetPosition.netPosition * -1,
-                    price
-                ); // flatten completely
-                int newNetPos = userNetPosition.netPosition + qty;            // the portion remaining after flattening
-                addUserNetPosition(
-                    userNetPosition,
-                    userAddress,
-                    newNetPos,
-                    price
-                );
-            }
-        }
-        userNetPosition.netPosition = userNetPosition.netPosition.add(qty);   // keep track of total net pos across all prices for user.
-    }
-
-    /// @dev calculates the needed collateral for a new position and commits it to the pool removing it from the
-    /// users account and creates the needed Position struct to record the new position.
-    /// @param userNetPosition current positions held by user
-    /// @param userAddress address of user entering into the position
-    /// @param qty signed quantity of the trade
-    /// @param price agreed price of trade
-    function addUserNetPosition(
-        UserNetPosition storage userNetPosition,
-        address userAddress,
-        int qty,
-        uint price
-    ) private
-    {
-        uint neededCollateral = MathLib.calculateNeededCollateral(
-            PRICE_FLOOR,
-            PRICE_CAP,
-            QTY_DECIMAL_PLACES,
-            qty,
-            price);
-        commitCollateralToPool(userAddress, neededCollateral);
-        userNetPosition.positions.push(Position(price, qty));   // append array with new position
-    }
-
-    /// @param userAddress address of user who is reducing their pos
-    /// @param userNetPos storage struct for this users position
-    /// @param qty signed quantity of the qty to reduce this users position by
-    /// @param price transacted price
-    function reduceUserNetPosition(
-        address userAddress,
-        UserNetPosition storage userNetPos,
-        int qty,
-        uint price
-    ) private
-    {
-        uint collateralToReturnToUserAccount = 0;
-        int qtyToReduce = qty;                      // note: this sign is opposite of our users position
-        assert(userNetPos.positions.length != 0);   // sanity check
-        while (qtyToReduce != 0) {   //TODO: ensure we dont run out of gas here!
-            Position storage position = userNetPos.positions[userNetPos.positions.length - 1];  // get the last pos (LIFO)
-            if (position.qty.abs() <= qtyToReduce.abs()) {   // this position is completely consumed!
-                collateralToReturnToUserAccount = collateralToReturnToUserAccount.add(
-                    MathLib.calculateNeededCollateral(
-                        PRICE_FLOOR,
-                        PRICE_CAP,
-                        QTY_DECIMAL_PLACES,
-                        position.qty,
-                        price
-                    )
-                );
-                qtyToReduce = qtyToReduce.add(position.qty);
-                userNetPos.positions.length--;  // remove this position from our array.
-            } else {  // this position stays, just reduce the qty.
-                position.qty = position.qty.add(qtyToReduce);
-                // pos is opp sign of qty we are reducing here!
-                collateralToReturnToUserAccount = collateralToReturnToUserAccount.add(
-                    MathLib.calculateNeededCollateral(
-                        PRICE_FLOOR,
-                        PRICE_CAP,
-                        QTY_DECIMAL_PLACES,
-                        qtyToReduce * -1,
-                        price
-                    )
-                );
-                //qtyToReduce = 0; // completely reduced now!
-                break;
-            }
-        }
-
-        if (collateralToReturnToUserAccount != 0) {  // allocate funds back to user acct.
-            withdrawCollateralFromPool(userAddress, collateralToReturnToUserAccount);
-        }
-    }
-
-    /// @notice moves collateral from a user's account to the pool upon trade execution.
-    /// @param fromAddress address of user entering trade
-    /// @param collateralAmount amount of collateral to transfer from user account to collateral pool
-    function commitCollateralToPool(address fromAddress, uint collateralAmount) private {
-        require(userAddressToAccountBalance[fromAddress] >= collateralAmount);   // ensure sufficient balance
-        uint newBalance = userAddressToAccountBalance[fromAddress].subtract(collateralAmount);
-        userAddressToAccountBalance[fromAddress] = newBalance;
-        collateralPoolBalance = collateralPoolBalance.add(collateralAmount);
-        UpdatedUserBalance(fromAddress, newBalance);
-        UpdatedPoolBalance(collateralPoolBalance);
-    }
-
-    /// @notice withdraws collateral from pool to a user account upon exit or trade settlement
-    /// @param toAddress address of user
-    /// @param collateralAmount amount to transfer from pool to user.
-    function withdrawCollateralFromPool(address toAddress, uint collateralAmount) private {
-        require(collateralPoolBalance >= collateralAmount); // ensure sufficient balance
-        uint newBalance = userAddressToAccountBalance[toAddress].add(collateralAmount);
-        userAddressToAccountBalance[toAddress] = newBalance;
-        collateralPoolBalance = collateralPoolBalance.subtract(collateralAmount);
-        UpdatedUserBalance(toAddress, newBalance);
-        UpdatedPoolBalance(collateralPoolBalance);
-    }
 
     /// @dev call to oraclize to set up our query and record its hash.
     function queryOracle() private {
@@ -547,9 +390,9 @@ contract MarketContract is Creatable, usingOraclize {
         if (isSettled)   // already settled.
             return;
 
-        if (now > EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
+        if (now > CONTRACT_SPECS.EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
             isSettled = true;   // time based expiration has occurred.
-        } else if (lastPrice >= PRICE_CAP || lastPrice <= PRICE_FLOOR) {
+        } else if (lastPrice >= CONTRACT_SPECS.PRICE_CAP || lastPrice <= CONTRACT_SPECS.PRICE_FLOOR) {
             isSettled = true;   // we have breached/touched our pricing bands
         }
 
@@ -578,4 +421,3 @@ contract MarketContract is Creatable, usingOraclize {
         return this.balance > (approxGasRequired * 2);
     }
 }
-

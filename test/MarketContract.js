@@ -162,10 +162,10 @@ contract('MarketContract', function(accounts) {
 
         // after the execution we should have collateral transferred from users to the pool, check all balances
         // here.
-        var priceFloor = await marketContract.PRICE_FLOOR.call();
-        var priceCap = await marketContract.PRICE_CAP.call();
-        var decimalPlaces = await marketContract.QTY_DECIMAL_PLACES();
-        var actualCollateralPoolBalance = await marketContract.collateralPoolBalance.call();
+        var priceFloor = await marketContract.getPriceFloor.call();
+        var priceCap = await marketContract.getPriceCap.call();
+        var decimalPlaces = await marketContract.getQtyDecimalPlaces();
+        var actualCollateralPoolBalance = await marketContract.getCollateralPoolBalance.call();
 
         var longCollateral = (entryOrderPrice - priceFloor) * decimalPlaces * qtyToFill;
         var shortCollateral = (priceCap - entryOrderPrice) * decimalPlaces * qtyToFill;
@@ -236,7 +236,7 @@ contract('MarketContract', function(accounts) {
         assert.equal(qtyFilledOrCancelled.toNumber(), -2, "Fill Or Cancelled Qty doesn't match expected");
 
         // after the execution we should have collateral transferred from pool to the users since they are now flat!
-        var actualCollateralPoolBalance = await marketContract.collateralPoolBalance.call();
+        var actualCollateralPoolBalance = await marketContract.getCollateralPoolBalance.call();
         assert.equal(
             actualCollateralPoolBalance.toNumber(),
             0,
@@ -245,7 +245,7 @@ contract('MarketContract', function(accounts) {
 
         var makerAccountBalanceAfterTrade = await marketContract.getUserAccountBalance.call(accounts[0]);
         var takerAccountBalanceAfterTrade = await marketContract.getUserAccountBalance.call(accounts[1]);
-        var decimalPlaces = await marketContract.QTY_DECIMAL_PLACES();
+        var decimalPlaces = await marketContract.getQtyDecimalPlaces.call();
         var profitForMaker = (exitOrderPrice - entryOrderPrice) * decimalPlaces;
 
         assert.equal(

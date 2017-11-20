@@ -15,6 +15,8 @@
 */
 pragma solidity 0.4.18;
 
+import "./ContractLib.sol";
+
 
 /// @title Math function library with overflow protection inspired by Open Zeppelin
 library MathLib {
@@ -137,5 +139,24 @@ library MathLib {
             }
         }
         neededCollateral = maxLoss * abs(qty) * qtyDecimalPlaces;
+    }
+
+    /// @notice determines the amount of needed collateral for a given position (qty and price)
+    /// @param contractSpecs constant values defining contract.
+    /// @param qty signed integer corresponding to the traded quantity
+    /// @param price of the trade
+    function calculateNeededCollateral(
+        ContractLib.ContractSpecs contractSpecs,
+        int qty,
+        uint price
+    ) pure internal returns (uint neededCollateral)
+    {
+        return calculateNeededCollateral(
+            contractSpecs.PRICE_FLOOR,
+            contractSpecs.PRICE_CAP,
+            contractSpecs.QTY_DECIMAL_PLACES,
+            qty,
+            price
+        );
     }
 }
