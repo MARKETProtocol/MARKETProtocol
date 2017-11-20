@@ -7,10 +7,12 @@
     "test": "test"
   },
   "dependencies": {
-    "solium": "^1.0.5",
     "zeppelin-solidity": "^1.3.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "solidity-coverage": "^0.4.1",
+    "solium": "^1.0.5"
+  },
   "scripts": {
     "test": "truffle test"
   },
