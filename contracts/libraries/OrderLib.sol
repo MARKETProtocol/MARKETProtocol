@@ -47,7 +47,7 @@ library OrderLib {
     /// @notice returns the qty that is no longer available to trade for a given order
     /// @param orderHash hash of order to find filled and cancelled qty
     /// @return int quantity that is no longer able to filled from the supplied order hash
-    function getQtyFilledOrCancelledFromOrder(OrderMappings storage self, bytes32 orderHash) public view returns (int) {
+    function getQtyFilledOrCancelledFromOrder(OrderMappings storage self, bytes32 orderHash) internal view returns (int) {
         return self.filledOrderQty[orderHash].add(self.cancelledOrderQty[orderHash]);
     }
 

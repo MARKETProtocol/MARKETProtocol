@@ -50,7 +50,11 @@ library AccountLib {
     /// @param accountMappings struct to modify
     /// @param userAddress address to return position for
     /// @return the users current open position.
-    function getUserPosition(AccountMappings storage accountMappings, address userAddress) internal view returns (int) {
+    function getUserPosition(
+        AccountMappings storage accountMappings,
+        address userAddress
+    ) internal view returns (int)
+    {
         return accountMappings.addressToUserPosition[userAddress].netPosition;
     }
 
@@ -58,7 +62,12 @@ library AccountLib {
     /// @param accountMappings struct to modify
     /// @param fromAddress address of user entering trade
     /// @param collateralAmount amount of collateral to transfer from user account to collateral pool
-    function commitCollateralToPool(AccountMappings storage accountMappings, address fromAddress, uint collateralAmount) internal {
+    function commitCollateralToPool(
+        AccountMappings storage accountMappings,
+        address fromAddress,
+        uint collateralAmount
+    ) internal
+    {
         require(accountMappings.userAddressToAccountBalance[fromAddress] >= collateralAmount);   // ensure sufficient balance
         uint newBalance = accountMappings.userAddressToAccountBalance[fromAddress].subtract(collateralAmount);
         accountMappings.userAddressToAccountBalance[fromAddress] = newBalance;
@@ -83,6 +92,72 @@ library AccountLib {
         accountMappings.collateralPoolBalance = accountMappings.collateralPoolBalance.subtract(collateralAmount);
         UpdatedUserBalance(toAddress, newBalance);
         UpdatedPoolBalance(accountMappings.collateralPoolBalance);
+    }
+
+    /// @notice removes token from users trading account
+    /// @param accountMappings storage mappings from contract
+    /// @param baseToken ERC20 token used for collateral in the calling contract
+    /// @param withdrawAmount qty of token to attempt to withdraw
+    function withdrawTokens(
+        AccountMappings storage accountMappings,
+        ERC20 baseToken,
+        uint256 withdrawAmount
+    ) internal
+    {
+        require(accountMappings.userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
+        uint256 balanceAfterWithdrawal = accountMappings.userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
+        accountMappings.userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
+        baseToken.safeTransfer(msg.sender, withdrawAmount);
+        UpdatedUserBalance(msg.sender, balanceAfterWithdrawal);
+    }
+
+    /// @notice deposits tokens to the smart contract to fund the user account and provide needed tokens for collateral
+    /// pool upon trade matching.
+    /// @param accountMappings storage mappings from contract
+    /// @param baseToken ERC20 token used for collateral in the calling contract
+    /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
+    function depositTokensForTrading(
+        AccountMappings storage accountMappings,
+        ERC20 baseToken,
+        uint256 depositAmount
+    ) internal
+    {
+        // user must call approve!
+        baseToken.safeTransferFrom(msg.sender, this, depositAmount);
+        uint256 balanceAfterDeposit = accountMappings.userAddressToAccountBalance[msg.sender].add(depositAmount);
+        accountMappings.userAddressToAccountBalance[msg.sender] = balanceAfterDeposit;
+        UpdatedUserBalance(msg.sender, balanceAfterDeposit);
+    }
+
+    // @notice called by a user after settlement has occurred.  This function will finalize all accounting around any
+    /// @param accountMappings storage mappings from contract
+    /// @param contractSpecs constant values defining contract.
+    // outstanding positions and return all remaining collateral to the caller. This should only be called after
+    // settlement has occurred.
+    function settleAndClose(
+        AccountMappings storage accountMappings,
+        ContractLib.ContractSpecs contractSpecs,
+        uint settlementPrice
+    ) internal
+    {
+        UserNetPosition storage userNetPos = accountMappings.addressToUserPosition[msg.sender];
+        if (userNetPos.netPosition != 0) {
+            // this user has a position that we need to settle based upon the settlement price of the contract
+            reduceUserNetPosition(
+                accountMappings,
+                contractSpecs,
+                userNetPos,
+                msg.sender,
+                userNetPos.netPosition * - 1,
+                settlementPrice
+            );
+        }
+        // transfer all balances back to user.
+        withdrawTokens(
+            accountMappings,
+            contractSpecs.BASE_TOKEN,
+            accountMappings.userAddressToAccountBalance[msg.sender]
+        );
     }
 
     /// @dev calculates the needed collateral for a new position and commits it to the pool removing it from the
@@ -249,71 +324,5 @@ library AccountLib {
             }
         }
         userNetPosition.netPosition = userNetPosition.netPosition.add(qty);   // keep track of total net pos across all prices for user.
-    }
-
-    /// @notice removes token from users trading account
-    /// @param accountMappings storage mappings from contract
-    /// @param baseToken ERC20 token used for collateral in the calling contract
-    /// @param withdrawAmount qty of token to attempt to withdraw
-    function withdrawTokens(
-        AccountMappings storage accountMappings,
-        ERC20 baseToken,
-        uint256 withdrawAmount
-    ) internal
-    {
-        require(accountMappings.userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
-        uint256 balanceAfterWithdrawal = accountMappings.userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
-        accountMappings.userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
-        baseToken.safeTransfer(msg.sender, withdrawAmount);
-        UpdatedUserBalance(msg.sender, balanceAfterWithdrawal);
-    }
-
-    /// @notice deposits tokens to the smart contract to fund the user account and provide needed tokens for collateral
-    /// pool upon trade matching.
-    /// @param accountMappings storage mappings from contract
-    /// @param baseToken ERC20 token used for collateral in the calling contract
-    /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
-    function depositTokensForTrading(
-        AccountMappings storage accountMappings,
-        ERC20 baseToken,
-        uint256 depositAmount
-    ) internal
-    {
-        // user must call approve!
-        baseToken.safeTransferFrom(msg.sender, this, depositAmount);
-        uint256 balanceAfterDeposit = accountMappings.userAddressToAccountBalance[msg.sender].add(depositAmount);
-        accountMappings.userAddressToAccountBalance[msg.sender] = balanceAfterDeposit;
-        UpdatedUserBalance(msg.sender, balanceAfterDeposit);
-    }
-
-    // @notice called by a user after settlement has occurred.  This function will finalize all accounting around any
-    /// @param accountMappings storage mappings from contract
-    /// @param contractSpecs constant values defining contract.
-    // outstanding positions and return all remaining collateral to the caller. This should only be called after
-    // settlement has occurred.
-    function settleAndClose(
-        AccountMappings storage accountMappings,
-        ContractLib.ContractSpecs contractSpecs,
-        uint settlementPrice
-    ) internal
-    {
-        UserNetPosition storage userNetPos = accountMappings.addressToUserPosition[msg.sender];
-        if (userNetPos.netPosition != 0) {
-            // this user has a position that we need to settle based upon the settlement price of the contract
-            reduceUserNetPosition(
-                accountMappings,
-                contractSpecs,
-                userNetPos,
-                msg.sender,
-                userNetPos.netPosition * - 1,
-                settlementPrice
-            );
-        }
-        // transfer all balances back to user.
-        withdrawTokens(
-            accountMappings,
-            contractSpecs.BASE_TOKEN,
-            accountMappings.userAddressToAccountBalance[msg.sender]
-        );
     }
 }
