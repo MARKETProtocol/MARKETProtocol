@@ -7,6 +7,7 @@
     "test": "test"
   },
   "dependencies": {
+    "solium": "^1.0.5",
     "zeppelin-solidity": "^1.3.0"
   },
   "devDependencies": {},
