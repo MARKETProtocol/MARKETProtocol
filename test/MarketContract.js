@@ -1,7 +1,7 @@
 const MarketContract = artifacts.require("MarketContract");
 const CollateralToken = artifacts.require("CollateralToken");
 const OrderLib = artifacts.require("OrderLib");
-const utility = require('./utility.js')();
+const utility = require('./utility.js');
 
 
 // basic tests for interacting with market contract.
