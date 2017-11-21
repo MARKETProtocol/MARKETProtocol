@@ -29,7 +29,7 @@ contract MarketContractRegistry is Ownable {
     }
 
     /// @notice determines if an address is a valid MarketContract
-    /// @returns false if the address has not been deployed by this factory, or is no longer white listed.
+    /// @return false if the address has not been deployed by this factory, or is no longer white listed.
     function isAddressWhiteListed(address contractAddress) external view returns (bool) {
         return isWhiteListed[contractAddress];
     }
@@ -41,7 +41,7 @@ contract MarketContractRegistry is Ownable {
 
     /// @notice allows user to get all addresses currently available from this factory
     /// @param index of the deployed contract to return the address
-    /// @returns address of a white listed contract, or if contract is no longer valid address(0) is returned.
+    /// @return address of a white listed contract, or if contract is no longer valid address(0) is returned.
     function getAddressByIndex(uint index) external view returns (address) {
         address deployedAddress = deployedAddresses[index];
         if(isWhiteListed[deployedAddress]) {
