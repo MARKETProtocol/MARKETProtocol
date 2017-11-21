@@ -20,7 +20,8 @@ import "./MarketContract.sol";
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 /// @title MarketFactory that creates market contracts and collects white listed addresses of contracts it has
-/// deployed
+/// deployed.  Currently this idea is pretty limited by deployment gas, so leave this as place holder for future
+/// ideas.
 /// @author Phil Elsasser <phil@marketprotcol.io>
 contract MarketFactory is Ownable {
 
