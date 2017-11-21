@@ -24,7 +24,7 @@ contract MarketContractRegistry is Ownable {
     mapping(address => bool) isWhiteListed; // by default currently all contracts are whitelisted
     address[] deployedAddresses;            // record of all deployed addresses;
 
-    function MarketContractRegistry(){
+    function MarketContractRegistry() public {
 
     }
 
@@ -44,7 +44,7 @@ contract MarketContractRegistry is Ownable {
     /// @return address of a white listed contract, or if contract is no longer valid address(0) is returned.
     function getAddressByIndex(uint index) external view returns (address) {
         address deployedAddress = deployedAddresses[index];
-        if(isWhiteListed[deployedAddress]) {
+        if (isWhiteListed[deployedAddress]) {
             return deployedAddress;
         } else {
             return address(0);
@@ -54,14 +54,14 @@ contract MarketContractRegistry is Ownable {
     /// @dev allows for the owner to remove a white listed contract, eventually ownership could transition to
     /// a decentralized smart contract of community members to vote
     /// @param contractAddress contract to removed from white list
-    function removeContractFromWhiteList(address contractAddress) onlyOwner returns (bool) {
+    function removeContractFromWhiteList(address contractAddress) external onlyOwner returns (bool) {
         isWhiteListed[contractAddress] = false;
     }
 
     /// @dev allows for the owner to add a white listed contract, eventually ownership could transition to
     /// a decentralized smart contract of community members to vote
     /// @param contractAddress contract to removed from white list
-    function addAddressToWhiteList(address contractAddress) onlyOwner {
+    function addAddressToWhiteList(address contractAddress) external onlyOwner {
         require(!isWhiteListed[contractAddress]);
         isWhiteListed[contractAddress] = true;
         deployedAddresses.push(contractAddress);
