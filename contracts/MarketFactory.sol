@@ -64,17 +64,17 @@ contract MarketFactory is Ownable {
         // not that msg.sender in market contract will now be our address, so we need to
         // ammend constructor to accept the address of the caller of THIS function as the creator
         // of the contract.
-        MarketContract marketContract = new MarketContract.value(msg.value)(
-         contractName,
-         baseTokenAddress,
-         oracleDataSource,
-         oracleQuery,
-         oracleQueryRepeatSeconds,
-         floorPrice,
-         capPrice,
-         priceDecimalPlaces,
-         qtyDecimalPlaces,
-         secondsToExpiration
+        MarketContract marketContract = (new MarketContract).value(msg.value)(
+             contractName,
+             baseTokenAddress,
+             oracleDataSource,
+             oracleQuery,
+             oracleQueryRepeatSeconds,
+             floorPrice,
+             capPrice,
+             priceDecimalPlaces,
+             qtyDecimalPlaces,
+             secondsToExpiration
         );
         isWhiteListed[address(marketContract)] = true;
         deployedAddresses.push(address(marketContract));
