@@ -41,3 +41,6 @@ as the accompanying tests inside the truffle console
 truffle(develop)> migrate
 truffle(develop)> test
 ```
+## Contact us
+We would love to hear your feedback and suggestions. We are also actively seeking community members who want to get involved in the project.  Please reach out to us at info@marketprotocol.io
+
