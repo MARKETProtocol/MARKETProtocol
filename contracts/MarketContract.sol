@@ -21,6 +21,7 @@ import "./libraries/MathLib.sol";
 import "./libraries/OrderLib.sol";
 import "./libraries/AccountLib.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
+import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 import "./oraclize/oraclizeAPI.sol";
 
 // TODO:
@@ -37,10 +38,12 @@ import "./oraclize/oraclizeAPI.sol";
 /// @author Phil Elsasser <phil@marketprotcol.io>
 contract MarketContract is Creatable, usingOraclize {
     using MathLib for int;
+    using MathLib for uint;
     using OrderLib for address;
     using OrderLib for OrderLib.Order;
     using OrderLib for OrderLib.OrderMappings;
     using AccountLib for AccountLib.AccountMappings;
+    using SafeERC20 for ERC20;
 
     enum ErrorCodes {
         ORDER_EXPIRED,              // past designated timestamp
@@ -49,6 +52,7 @@ contract MarketContract is Creatable, usingOraclize {
 
     // constants
     ContractLib.ContractSpecs CONTRACT_SPECS;
+    ERC20 constant public MEM_TOKEN = ERC20(0x123); // placeholder for our token
     string public ORACLE_DATA_SOURCE;
     string public ORACLE_QUERY;
     uint public ORACLE_QUERY_REPEAT;
@@ -269,14 +273,26 @@ contract MarketContract is Creatable, usingOraclize {
         uint paidMakerFee = 0;
         uint paidTakerFee = 0;
 
-        if (order.feeRecipient != address(0)) { // we need to transfer fees to recipient
-
+        if (order.feeRecipient != address(0)) {
+            // we need to transfer fees to recipient
+            uint filledAbsQty = filledQty.abs();
+            uint orderAbsQty = filledQty.abs();
             if (order.makerFee > 0) {
-
+                paidMakerFee = order.makerFee.divideFractional(filledAbsQty, orderAbsQty);
+                MEM_TOKEN.safeTransferFrom(
+                    order.maker,
+                    order.feeRecipient,
+                    paidMakerFee
+                );
             }
 
             if (order.takerFee > 0) {
-
+                paidTakerFee = order.takerFee.divideFractional(filledAbsQty, orderAbsQty);
+                MEM_TOKEN.safeTransferFrom(
+                    order.taker,
+                    order.feeRecipient,
+                    paidTakerFee
+                );
             }
         }
 

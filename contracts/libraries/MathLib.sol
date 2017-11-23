@@ -30,6 +30,16 @@ library MathLib {
         return c;
     }
 
+    function divideFractional(
+        uint256 a,
+        uint256 numerator,
+        uint256 denominator
+    ) pure internal returns (uint256)
+    {
+        // TODO: fix me
+        return (a * numerator) / denominator;
+    }
+
     function subtract(uint256 a, uint256 b) pure internal returns (uint256) {
         assert(b <= a);
         return a - b;

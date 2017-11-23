@@ -27,7 +27,7 @@ module.exports = function(deployer) {
                         2,
                         10,
                         60 * 15,
-                        {gas:6700000 ,  value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]})
+                        {gas:6600000 ,  value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]})
     })
 
     // add deployed contract to whitelist.
