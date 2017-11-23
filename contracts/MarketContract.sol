@@ -60,7 +60,9 @@ contract MarketContract is Creatable, usingOraclize {
     uint public lastPrice;
     uint public settlementPrice;
     bool public isSettled;
-    mapping(bytes32 => bool) validQueryIDs;
+    mapping(bytes32 => bool) validScheduledQueryIDs;
+    mapping(bytes32 => bool) validUserRequestedQueryIDs;
+
 
     // accounting
     AccountLib.AccountMappings accountMappings;
@@ -339,23 +341,44 @@ contract MarketContract is Creatable, usingOraclize {
         accountMappings.settleAndClose(CONTRACT_SPECS, settlementPrice);
     }
 
+    /// @notice allows a user to request an extra query to oracle in order to push the contract into
+    /// settlement.  A user may call this as many times as they like, since they are the ones paying for
+    /// the call to our oracle and post processing. This is useful for both a failsafe and as a way to
+    /// settle a contract early if a price cap or floor has been breached.
+    function requestEarlySettlement() external payable {
+        uint cost = oraclize_getPrice(ORACLE_DATA_SOURCE) + QUERY_CALLBACK_GAS;
+        require(msg.value >= cost); // user must pay enough to cover query and callback
+        // create immediate query, we must make sure to store this one separately, so
+        // we do not schedule recursive callbacks when the query completes.
+        bytes32 queryId = oraclize_query(
+            ORACLE_DATA_SOURCE,
+            ORACLE_QUERY,
+            QUERY_CALLBACK_GAS
+        );
+        validUserRequestedQueryIDs[queryId] = true;
+    }
+
     /*
     // PUBLIC METHODS
     */
 
+    /// @notice only public for callbacks from oraclize, do not call
     /// @param queryID of the returning query, this should match our own internal mapping
     /// @param result query to be processed
     /// @param proof result proof
     function __callback(bytes32 queryID, string result, bytes proof) public {
-        require(validQueryIDs[queryID]);
         require(msg.sender == oraclize_cbAddress());
+        bool isScheduled = validScheduledQueryIDs[queryID];
+        require(isScheduled || validUserRequestedQueryIDs[queryID]);
         lastPriceQueryResult = result;
         lastPrice = parseInt(result, CONTRACT_SPECS.PRICE_DECIMAL_PLACES);
         UpdatedLastPrice(result);
-        delete validQueryIDs[queryID];
+        delete validScheduledQueryIDs[queryID];
         checkSettlement();
-        if (!isSettled) {
-            queryOracle();  // set up our next query
+        if (isScheduled && !isSettled) {
+            // this was a scheduled query, and we have not entered a settlement state
+            // so we want to schedule a new query.
+            queryOracle();
         }
     }
 
@@ -389,7 +412,7 @@ contract MarketContract is Creatable, usingOraclize {
                 ORACLE_QUERY,
                 QUERY_CALLBACK_GAS
             );
-            validQueryIDs[queryId] = true;
+            validScheduledQueryIDs[queryId] = true;
         }
     }
 
