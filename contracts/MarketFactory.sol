@@ -16,7 +16,7 @@
 
 pragma solidity 0.4.18;
 
-import "./MarketContract.sol";
+//import "./MarketContract.sol";
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 /// @title MarketFactory that creates market contracts and collects white listed addresses of contracts it has
