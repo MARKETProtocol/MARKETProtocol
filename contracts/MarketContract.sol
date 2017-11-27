@@ -389,12 +389,17 @@ contract MarketContract is Creatable, usingOraclize {
         lastPriceQueryResult = result;
         lastPrice = parseInt(result, CONTRACT_SPECS.PRICE_DECIMAL_PLACES);
         UpdatedLastPrice(result);
-        delete validScheduledQueryIDs[queryID];
         checkSettlement();
-        if (isScheduled && !isSettled) {
-            // this was a scheduled query, and we have not entered a settlement state
-            // so we want to schedule a new query.
-            queryOracle();
+
+        if (isScheduled) {
+            delete validScheduledQueryIDs[queryID];
+            if (!isSettled) {
+                // this was a scheduled query, and we have not entered a settlement state
+                // so we want to schedule a new query.
+                queryOracle();
+            }
+        } else {
+            validUserRequestedQueryIDs[queryID];
         }
     }
 
