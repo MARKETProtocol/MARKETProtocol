@@ -36,8 +36,7 @@ library MathLib {
         uint256 denominator
     ) pure internal returns (uint256)
     {
-        // TODO: fix me
-        return (a * numerator) / denominator;
+        return multiply(a, numerator) / denominator;
     }
 
     function subtract(uint256 a, uint256 b) pure internal returns (uint256) {
