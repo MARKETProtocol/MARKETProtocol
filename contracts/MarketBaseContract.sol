@@ -43,7 +43,9 @@ contract MarketBaseContract is Creatable {
 
     // constants
     ContractLib.ContractSpecs CONTRACT_SPECS;
-    ERC20 constant MEM_TOKEN = ERC20(0x123); // placeholder for our token
+    ERC20 constant MKT_TOKEN = ERC20(0x123);                    // placeholder for our token
+    uint public constant MKT_MIN_CONTRACT_CREATOR = 50 ether;
+    uint public constant MKT_USER_REQUIRED_LOCK = 25 ether;
 
     // state variables
     uint public lastPrice;
@@ -53,6 +55,7 @@ contract MarketBaseContract is Creatable {
     // accounting
     AccountLib.AccountMappings accountMappings;
     OrderLib.OrderMappings orderMappings;
+    mapping(address => bool) userAddressToMEMLocked;
 
     // events
     event UpdatedLastPrice(string price);
@@ -95,7 +98,7 @@ contract MarketBaseContract is Creatable {
         uint[5] contractSpecs
     ) public payable
     {
-        // TODO: check for minimum MEM token balance of caller.
+        //require(MKT_TOKEN.balanceOf(msg.sender) > MKT_MIN_CONTRACT_CREATOR);    // creator must be MKT holder
         CONTRACT_SPECS.PRICE_FLOOR = contractSpecs[0];
         CONTRACT_SPECS.PRICE_CAP = contractSpecs[1];
         CONTRACT_SPECS.PRICE_DECIMAL_PLACES = contractSpecs[2];
@@ -169,10 +172,15 @@ contract MarketBaseContract is Creatable {
         return accountMappings.userAddressToAccountBalance[userAddress];
     }
 
+    function getIsUserMKTLocked(address userAddress) external view returns (bool) {
+        return userAddressToMEMLocked[userAddress];
+    }
+
     /// @notice deposits tokens to the smart contract to fund the user account and provide needed tokens for collateral
     /// pool upon trade matching.
     /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
     function depositTokensForTrading(uint256 depositAmount) external {
+        require(userAddressToMEMLocked[msg.sender]);
         accountMappings.depositTokensForTrading(CONTRACT_SPECS.BASE_TOKEN, depositAmount);
     }
 
@@ -197,7 +205,9 @@ contract MarketBaseContract is Creatable {
         require(!isSettled);                                // no trading past settlement
         require(orderQty != 0 && qtyToFill != 0);           // no zero trades
         require(orderQty.isSameSign(qtyToFill));            // signs should match
+        require(userAddressToMEMLocked[msg.sender]);
         OrderLib.Order memory order = address(this).createOrder(orderAddresses, unsignedOrderValues, orderQty);
+        require(userAddressToMEMLocked[order.maker]);
 
         // taker can be anyone, or specifically the caller!
         require(order.taker == address(0) || order.taker == msg.sender);
@@ -242,7 +252,7 @@ contract MarketBaseContract is Creatable {
             uint orderAbsQty = filledQty.abs();
             if (order.makerFee > 0) {
                 paidMakerFee = order.makerFee.divideFractional(filledAbsQty, orderAbsQty);
-                MEM_TOKEN.safeTransferFrom(
+                MKT_TOKEN.safeTransferFrom(
                     order.maker,
                     order.feeRecipient,
                     paidMakerFee
@@ -251,7 +261,7 @@ contract MarketBaseContract is Creatable {
 
             if (order.takerFee > 0) {
                 paidTakerFee = order.takerFee.divideFractional(filledAbsQty, orderAbsQty);
-                MEM_TOKEN.safeTransferFrom(
+                MKT_TOKEN.safeTransferFrom(
                     order.taker,
                     order.feeRecipient,
                     paidTakerFee
@@ -317,7 +327,9 @@ contract MarketBaseContract is Creatable {
     // settlement has occurred.
     function settleAndClose() external {
         require(isSettled);
+        require(userAddressToMEMLocked[msg.sender]);
         accountMappings.settleAndClose(CONTRACT_SPECS, settlementPrice);
+        unlockMKTTokens();
     }
 
     /// @notice allows a user to request an extra query to oracle in order to push the contract into
@@ -325,6 +337,12 @@ contract MarketBaseContract is Creatable {
     /// the call to our oracle and post processing. This is useful for both a failsafe and as a way to
     /// settle a contract early if a price cap or floor has been breached.
     function requestEarlySettlement() external payable;
+
+    function lockMKTTokensToEnableTrading() external {
+        require(!userAddressToMEMLocked[msg.sender]);
+        userAddressToMEMLocked[msg.sender] = true;
+        MKT_TOKEN.safeTransferFrom(msg.sender, this, MKT_USER_REQUIRED_LOCK);
+    }
 
     /*
     // PUBLIC METHODS
@@ -341,6 +359,12 @@ contract MarketBaseContract is Creatable {
     /// @param withdrawAmount qty of token to attempt to withdraw
     function withdrawTokens(uint256 withdrawAmount) public {
         accountMappings.withdrawTokens(CONTRACT_SPECS.BASE_TOKEN, withdrawAmount);
+    }
+
+    function unlockMKTTokens() public {
+        require(userAddressToMEMLocked[msg.sender]);
+        userAddressToMEMLocked[msg.sender] = false;
+        MKT_TOKEN.safeTransfer(msg.sender, MKT_USER_REQUIRED_LOCK);
     }
 
     /*
