@@ -71,7 +71,7 @@ contract MarketContractOraclize is MarketBaseContract, usingOraclize {
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
         ORACLE_QUERY_REPEAT = oracleQueryRepeatSeconds;
-        require(checkSufficientStartingBalance(CONTRACT_SPECS.EXPIRATION.subtract(now)));
+     //   require(checkSufficientStartingBalance(EXPIRATION.subtract(now)));
         queryOracle();  // schedules recursive calls to oracle
     }
 
@@ -105,7 +105,7 @@ contract MarketContractOraclize is MarketBaseContract, usingOraclize {
         bool isScheduled = validScheduledQueryIDs[queryID];
         require(isScheduled || validUserRequestedQueryIDs[queryID]);
         lastPriceQueryResult = result;
-        lastPrice = parseInt(result, CONTRACT_SPECS.PRICE_DECIMAL_PLACES);
+        lastPrice = parseInt(result, PRICE_DECIMAL_PLACES);
         UpdatedLastPrice(result);
         delete validScheduledQueryIDs[queryID];
         checkSettlement();

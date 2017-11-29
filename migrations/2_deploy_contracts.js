@@ -24,7 +24,7 @@ module.exports = function(deployer) {
                             "URL",
                             "json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0",
                             120,
-                            {gas:6710000 ,  value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]})
+                            {gas:6720000 ,  value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]})
     })
 
     // add deployed contract to whitelist.

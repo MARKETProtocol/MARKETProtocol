@@ -16,7 +16,7 @@
 pragma solidity 0.4.18;
 
 import "./MathLib.sol";
-import "./ContractLib.sol";
+import "../ContractSpecs.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
 import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 
@@ -136,7 +136,7 @@ library AccountLib {
     // settlement has occurred.
     function settleAndClose(
         AccountMappings storage accountMappings,
-        ContractLib.ContractSpecs contractSpecs,
+        ContractSpecs contractSpecs,
         uint settlementPrice
     ) internal
     {
@@ -155,7 +155,7 @@ library AccountLib {
         // transfer all balances back to user.
         withdrawTokens(
             accountMappings,
-            contractSpecs.BASE_TOKEN,
+            contractSpecs.BASE_TOKEN(),
             accountMappings.userAddressToAccountBalance[msg.sender]
         );
     }
@@ -170,7 +170,7 @@ library AccountLib {
     /// @param price agreed price of trade
     function addUserNetPosition(
         AccountMappings storage accountMappings,
-        ContractLib.ContractSpecs contractSpecs,
+        ContractSpecs contractSpecs,
         UserNetPosition storage userNetPosition,
         address userAddress,
         int qty,
@@ -195,7 +195,7 @@ library AccountLib {
     /// @param price transacted price
     function reduceUserNetPosition(
         AccountMappings storage accountMappings,
-        ContractLib.ContractSpecs contractSpecs,
+        ContractSpecs contractSpecs,
         UserNetPosition storage userNetPos,
         address userAddress,
         int qty,
@@ -245,7 +245,7 @@ library AccountLib {
     /// @param price agreed price of the matched trade.
     function updatePositions(
         AccountMappings storage accountMappings,
-        ContractLib.ContractSpecs contractSpecs,
+        ContractSpecs contractSpecs,
         address maker,
         address taker,
         int qty,
@@ -276,7 +276,7 @@ library AccountLib {
     /// @param price transacted price of the new position / trade
     function updatePosition(
         AccountMappings storage accountMappings,
-        ContractLib.ContractSpecs contractSpecs,
+        ContractSpecs contractSpecs,
         address userAddress,
         int qty,
         uint price

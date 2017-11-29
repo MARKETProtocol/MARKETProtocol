@@ -15,7 +15,7 @@
 */
 pragma solidity 0.4.18;
 
-import "./ContractLib.sol";
+import "../ContractSpecs.sol";
 
 
 /// @title Math function library with overflow protection inspired by Open Zeppelin
@@ -156,15 +156,15 @@ library MathLib {
     /// @param qty signed integer corresponding to the traded quantity
     /// @param price of the trade
     function calculateNeededCollateral(
-        ContractLib.ContractSpecs contractSpecs,
+        ContractSpecs contractSpecs,
         int qty,
         uint price
-    ) pure internal returns (uint neededCollateral)
+    ) view internal returns (uint neededCollateral)
     {
         return calculateNeededCollateral(
-            contractSpecs.PRICE_FLOOR,
-            contractSpecs.PRICE_CAP,
-            contractSpecs.QTY_DECIMAL_PLACES,
+            contractSpecs.PRICE_FLOOR(),
+            contractSpecs.PRICE_CAP(),
+            contractSpecs.QTY_DECIMAL_PLACES(),
             qty,
             price
         );

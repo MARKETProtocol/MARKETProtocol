@@ -17,10 +17,12 @@
 pragma solidity 0.4.18;
 
 import "./Creatable.sol";
+import "./ContractSpecs.sol";
 import "./libraries/MathLib.sol";
 import "./libraries/OrderLib.sol";
 import "./libraries/AccountLib.sol";
 import "./tokens/TokenLockerInterface.sol";
+
 import "zeppelin-solidity/contracts/token/ERC20.sol";
 import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 
@@ -28,7 +30,7 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 /// @notice this is the abstract base contract that all contracts should inherit from to
 /// implement different oracle solutions.
 /// @author Phil Elsasser <phil@marketprotcol.io>
-contract MarketBaseContract is Creatable {
+contract MarketBaseContract is Creatable, ContractSpecs {
     using MathLib for int;
     using MathLib for uint;
     using OrderLib for address;
@@ -43,7 +45,14 @@ contract MarketBaseContract is Creatable {
     }
 
     // constants
-    ContractLib.ContractSpecs CONTRACT_SPECS;
+    string public CONTRACT_NAME;
+    address public BASE_TOKEN_ADDRESS;
+    uint public PRICE_CAP;
+    uint public PRICE_FLOOR;
+    uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
+    uint public QTY_DECIMAL_PLACES;     // how many tradeable units make up a whole pricing increment
+    uint public EXPIRATION;
+    ERC20 public BASE_TOKEN;
     ERC20 constant MKT_TOKEN = ERC20(0x123);                    // placeholder for our token
     TokenLockerInterface constant TOKEN_LOCKER = TokenLockerInterface(0x124);
     uint public constant MKT_MIN_CONTRACT_CREATOR = 50 ether;
@@ -96,64 +105,14 @@ contract MarketBaseContract is Creatable {
         string contractName,
         address baseTokenAddress,
         uint[5] contractSpecs
-    ) public payable
+    ) ContractSpecs(contractName, baseTokenAddress, contractSpecs) public payable
     {
         //require(MKT_TOKEN.balanceOf(msg.sender) > MKT_MIN_CONTRACT_CREATOR);    // creator must be MKT holder
-        CONTRACT_SPECS.PRICE_FLOOR = contractSpecs[0];
-        CONTRACT_SPECS.PRICE_CAP = contractSpecs[1];
-        CONTRACT_SPECS.PRICE_DECIMAL_PLACES = contractSpecs[2];
-        CONTRACT_SPECS.QTY_DECIMAL_PLACES = contractSpecs[3];
-        CONTRACT_SPECS.EXPIRATION = contractSpecs[4];
-        CONTRACT_SPECS.CONTRACT_NAME = contractName;
-        CONTRACT_SPECS.BASE_TOKEN_ADDRESS = baseTokenAddress;
-        CONTRACT_SPECS.BASE_TOKEN = ERC20(baseTokenAddress);
-
-        require(CONTRACT_SPECS.PRICE_CAP > CONTRACT_SPECS.PRICE_FLOOR);
-        require(CONTRACT_SPECS.EXPIRATION > now);
     }
 
     /*
     // EXTERNAL METHODS
     */
-
-    /// @return given name for contract
-    function getContractName() external view returns (string) {
-        return CONTRACT_SPECS.CONTRACT_NAME;
-    }
-
-    /// @return address of ERC20 token for collateral
-    function getBaseTokenAddress() external view returns (address) {
-        return CONTRACT_SPECS.BASE_TOKEN_ADDRESS;
-    }
-
-    /// @return maximum price the underlying instrument can trade before
-    /// this contract goes into settlement
-    function getPriceCap() external view returns (uint) {
-        return CONTRACT_SPECS.PRICE_CAP;
-    }
-
-    /// @return minimum price the underlying instrument can trade before
-    /// this contract goes into settlement
-    function getPriceFloor() external view returns (uint) {
-        return CONTRACT_SPECS.PRICE_FLOOR;
-    }
-
-    /// @return number of decimal places expected in the price query string
-    /// to convert into an integer price
-    function getPriceDecimalPlaces() external view returns (uint) {
-        return CONTRACT_SPECS.PRICE_DECIMAL_PLACES;
-    }
-
-    /// @return number of decimal places to convert from trading qty of 1
-    /// to number of tokens of collateral
-    function getQtyDecimalPlaces() external view returns (uint) {
-        return CONTRACT_SPECS.QTY_DECIMAL_PLACES;
-    }
-
-    /// @return seconds from epoch timestamp of the expiration of this contract
-    function getExpirationTimeStamp() external view returns (uint) {
-        return CONTRACT_SPECS.EXPIRATION;
-    }
 
     /// @return current balance of collateral pool in ERC20 base tokens
     function getCollateralPoolBalance() external view returns (uint) {
@@ -177,7 +136,7 @@ contract MarketBaseContract is Creatable {
     /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
     function depositTokensForTrading(uint256 depositAmount) external {
         require(TOKEN_LOCKER.isUserLocked(address(this), msg.sender));
-        accountMappings.depositTokensForTrading(CONTRACT_SPECS.BASE_TOKEN, depositAmount);
+        accountMappings.depositTokensForTrading(BASE_TOKEN, depositAmount);
     }
 
     // @notice called by a participant wanting to trade a specific order
@@ -232,7 +191,7 @@ contract MarketBaseContract is Creatable {
 
         filledQty = MathLib.absMin(remainingQty, qtyToFill);
         accountMappings.updatePositions(
-            CONTRACT_SPECS,
+            this,
             order.maker,
             order.taker,
             filledQty,
@@ -325,7 +284,7 @@ contract MarketBaseContract is Creatable {
     function settleAndClose() external {
         require(isSettled);
         require(TOKEN_LOCKER.isUserLocked(address(this),msg.sender));
-        accountMappings.settleAndClose(CONTRACT_SPECS, settlementPrice);
+        accountMappings.settleAndClose(this, settlementPrice);
     }
 
     /// @notice allows a user to request an extra query to oracle in order to push the contract into
@@ -347,7 +306,7 @@ contract MarketBaseContract is Creatable {
     /// @notice removes token from users trading account
     /// @param withdrawAmount qty of token to attempt to withdraw
     function withdrawTokens(uint256 withdrawAmount) public {
-        accountMappings.withdrawTokens(CONTRACT_SPECS.BASE_TOKEN, withdrawAmount);
+        accountMappings.withdrawTokens(BASE_TOKEN, withdrawAmount);
     }
     /*
     // PRIVATE METHODS
@@ -360,9 +319,9 @@ contract MarketBaseContract is Creatable {
         if (isSettled)   // already settled.
             return;
 
-        if (now > CONTRACT_SPECS.EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
+        if (now > EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
             isSettled = true;   // time based expiration has occurred.
-        } else if (lastPrice >= CONTRACT_SPECS.PRICE_CAP || lastPrice <= CONTRACT_SPECS.PRICE_FLOOR) {
+        } else if (lastPrice >= PRICE_CAP || lastPrice <= PRICE_FLOOR) {
             isSettled = true;   // we have breached/touched our pricing bands
         }
 
