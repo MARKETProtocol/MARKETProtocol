@@ -20,7 +20,7 @@ import "./Creatable.sol";
 import "./ContractSpecs.sol";
 import "./libraries/MathLib.sol";
 import "./libraries/OrderLib.sol";
-import "./libraries/AccountLib.sol";
+import "./Accounts.sol";
 import "./tokens/TokenLockerInterface.sol";
 
 import "zeppelin-solidity/contracts/token/ERC20.sol";
@@ -30,13 +30,12 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 /// @notice this is the abstract base contract that all contracts should inherit from to
 /// implement different oracle solutions.
 /// @author Phil Elsasser <phil@marketprotcol.io>
-contract MarketBaseContract is Creatable, ContractSpecs {
+contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
     using MathLib for int;
     using MathLib for uint;
     using OrderLib for address;
     using OrderLib for OrderLib.Order;
     using OrderLib for OrderLib.OrderMappings;
-    using AccountLib for AccountLib.AccountMappings;
     using SafeERC20 for ERC20;
 
     enum ErrorCodes {
@@ -63,7 +62,6 @@ contract MarketBaseContract is Creatable, ContractSpecs {
     bool public isSettled;
 
     // accounting
-    AccountLib.AccountMappings accountMappings;
     OrderLib.OrderMappings orderMappings;
 
     // events
@@ -114,29 +112,12 @@ contract MarketBaseContract is Creatable, ContractSpecs {
     // EXTERNAL METHODS
     */
 
-    /// @return current balance of collateral pool in ERC20 base tokens
-    function getCollateralPoolBalance() external view returns (uint) {
-        return accountMappings.collateralPoolBalance;
-    }
-
-    /// @param userAddress address to return position for
-    /// @return the users current open position.
-    function getUserPosition(address userAddress) external view returns (int) {
-        return accountMappings.getUserPosition(userAddress);
-    }
-
-    /// @param userAddress address of user
-    /// @return the users currently unallocated token balance
-    function getUserAccountBalance(address userAddress) external view returns (uint) {
-        return accountMappings.userAddressToAccountBalance[userAddress];
-    }
-
     /// @notice deposits tokens to the smart contract to fund the user account and provide needed tokens for collateral
     /// pool upon trade matching.
     /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
     function depositTokensForTrading(uint256 depositAmount) external {
         require(TOKEN_LOCKER.isUserLocked(address(this), msg.sender));
-        accountMappings.depositTokensForTrading(BASE_TOKEN, depositAmount);
+        depositTokensForTrading(BASE_TOKEN, depositAmount);
     }
 
     // @notice called by a participant wanting to trade a specific order
@@ -190,7 +171,7 @@ contract MarketBaseContract is Creatable, ContractSpecs {
         }
 
         filledQty = MathLib.absMin(remainingQty, qtyToFill);
-        accountMappings.updatePositions(
+         updatePositions(
             this,
             order.maker,
             order.taker,
@@ -284,7 +265,7 @@ contract MarketBaseContract is Creatable, ContractSpecs {
     function settleAndClose() external {
         require(isSettled);
         require(TOKEN_LOCKER.isUserLocked(address(this),msg.sender));
-        accountMappings.settleAndClose(this, settlementPrice);
+        settleAndClose(this, settlementPrice);
     }
 
     /// @notice allows a user to request an extra query to oracle in order to push the contract into
@@ -306,7 +287,7 @@ contract MarketBaseContract is Creatable, ContractSpecs {
     /// @notice removes token from users trading account
     /// @param withdrawAmount qty of token to attempt to withdraw
     function withdrawTokens(uint256 withdrawAmount) public {
-        accountMappings.withdrawTokens(BASE_TOKEN, withdrawAmount);
+         withdrawTokens(BASE_TOKEN, withdrawAmount);
     }
     /*
     // PRIVATE METHODS
