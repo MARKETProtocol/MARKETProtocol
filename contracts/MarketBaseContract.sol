@@ -20,6 +20,7 @@ import "./Creatable.sol";
 import "./libraries/MathLib.sol";
 import "./libraries/OrderLib.sol";
 import "./libraries/AccountLib.sol";
+import "./tokens/TokenLockerInterface.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
 import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 
@@ -44,8 +45,8 @@ contract MarketBaseContract is Creatable {
     // constants
     ContractLib.ContractSpecs CONTRACT_SPECS;
     ERC20 constant MKT_TOKEN = ERC20(0x123);                    // placeholder for our token
+    TokenLockerInterface constant TOKEN_LOCKER = TokenLockerInterface(0x124);
     uint public constant MKT_MIN_CONTRACT_CREATOR = 50 ether;
-    uint public constant MKT_USER_REQUIRED_LOCK = 25 ether;
 
     // state variables
     uint public lastPrice;
@@ -55,7 +56,6 @@ contract MarketBaseContract is Creatable {
     // accounting
     AccountLib.AccountMappings accountMappings;
     OrderLib.OrderMappings orderMappings;
-    mapping(address => bool) userAddressToMEMLocked;
 
     // events
     event UpdatedLastPrice(string price);
@@ -172,15 +172,11 @@ contract MarketBaseContract is Creatable {
         return accountMappings.userAddressToAccountBalance[userAddress];
     }
 
-    function getIsUserMKTLocked(address userAddress) external view returns (bool) {
-        return userAddressToMEMLocked[userAddress];
-    }
-
     /// @notice deposits tokens to the smart contract to fund the user account and provide needed tokens for collateral
     /// pool upon trade matching.
     /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
     function depositTokensForTrading(uint256 depositAmount) external {
-        require(userAddressToMEMLocked[msg.sender]);
+        require(TOKEN_LOCKER.isUserLocked(address(this), msg.sender));
         accountMappings.depositTokensForTrading(CONTRACT_SPECS.BASE_TOKEN, depositAmount);
     }
 
@@ -205,9 +201,10 @@ contract MarketBaseContract is Creatable {
         require(!isSettled);                                // no trading past settlement
         require(orderQty != 0 && qtyToFill != 0);           // no zero trades
         require(orderQty.isSameSign(qtyToFill));            // signs should match
-        require(userAddressToMEMLocked[msg.sender]);
-        OrderLib.Order memory order = address(this).createOrder(orderAddresses, unsignedOrderValues, orderQty);
-        require(userAddressToMEMLocked[order.maker]);
+        address contractAddress = address(this);
+        require(TOKEN_LOCKER.isUserLocked(contractAddress, msg.sender));
+        OrderLib.Order memory order = contractAddress.createOrder(orderAddresses, unsignedOrderValues, orderQty);
+        require(TOKEN_LOCKER.isUserLocked(contractAddress, order.maker));
 
         // taker can be anyone, or specifically the caller!
         require(order.taker == address(0) || order.taker == msg.sender);
@@ -327,9 +324,8 @@ contract MarketBaseContract is Creatable {
     // settlement has occurred.
     function settleAndClose() external {
         require(isSettled);
-        require(userAddressToMEMLocked[msg.sender]);
+        require(TOKEN_LOCKER.isUserLocked(address(this),msg.sender));
         accountMappings.settleAndClose(CONTRACT_SPECS, settlementPrice);
-        unlockMKTTokens();
     }
 
     /// @notice allows a user to request an extra query to oracle in order to push the contract into
@@ -337,13 +333,6 @@ contract MarketBaseContract is Creatable {
     /// the call to our oracle and post processing. This is useful for both a failsafe and as a way to
     /// settle a contract early if a price cap or floor has been breached.
     function requestEarlySettlement() external payable;
-
-    function lockMKTTokensToEnableTrading() external {
-        require(!userAddressToMEMLocked[msg.sender]);
-        userAddressToMEMLocked[msg.sender] = true;
-        MKT_TOKEN.safeTransferFrom(msg.sender, this, MKT_USER_REQUIRED_LOCK);
-    }
-
     /*
     // PUBLIC METHODS
     */
@@ -360,13 +349,6 @@ contract MarketBaseContract is Creatable {
     function withdrawTokens(uint256 withdrawAmount) public {
         accountMappings.withdrawTokens(CONTRACT_SPECS.BASE_TOKEN, withdrawAmount);
     }
-
-    function unlockMKTTokens() public {
-        require(userAddressToMEMLocked[msg.sender]);
-        userAddressToMEMLocked[msg.sender] = false;
-        MKT_TOKEN.safeTransfer(msg.sender, MKT_USER_REQUIRED_LOCK);
-    }
-
     /*
     // PRIVATE METHODS
     */
