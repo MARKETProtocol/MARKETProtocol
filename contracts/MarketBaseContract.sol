@@ -44,14 +44,6 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
     }
 
     // constants
-    string public CONTRACT_NAME;
-    address public BASE_TOKEN_ADDRESS;
-    uint public PRICE_CAP;
-    uint public PRICE_FLOOR;
-    uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
-    uint public QTY_DECIMAL_PLACES;     // how many tradeable units make up a whole pricing increment
-    uint public EXPIRATION;
-    ERC20 public BASE_TOKEN;
     ERC20 constant MKT_TOKEN = ERC20(0x123);                    // placeholder for our token
     TokenLockerInterface constant TOKEN_LOCKER = TokenLockerInterface(0x124);
     uint public constant MKT_MIN_CONTRACT_CREATOR = 50 ether;
