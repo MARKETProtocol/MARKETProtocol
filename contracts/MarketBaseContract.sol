@@ -256,7 +256,7 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
     // settlement has occurred.
     function settleAndClose() external {
         require(isSettled);
-        require(TOKEN_LOCKER.isUserLocked(address(this),msg.sender));
+        require(TOKEN_LOCKER.isUserLocked(address(this), msg.sender));
         settleAndClose(this, settlementPrice);
     }
 
@@ -265,6 +265,7 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
     /// the call to our oracle and post processing. This is useful for both a failsafe and as a way to
     /// settle a contract early if a price cap or floor has been breached.
     function requestEarlySettlement() external payable;
+
     /*
     // PUBLIC METHODS
     */
@@ -281,10 +282,10 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
     function withdrawTokens(uint256 withdrawAmount) public {
          withdrawTokens(BASE_TOKEN, withdrawAmount);
     }
+
     /*
     // PRIVATE METHODS
     */
-
 
     /// @dev checks our last query price to see if our contract should enter settlement due to it being past our
     //  expiration date or outside of our tradeable ranges.
