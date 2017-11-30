@@ -18,10 +18,9 @@ pragma solidity 0.4.18;
 
 import "./Creatable.sol";
 import "./ContractSpecs.sol";
-import "./libraries/MathLib.sol";
-import "./libraries/OrderLib.sol";
 import "./Accounts.sol";
-import "./tokens/TokenLockerInterface.sol";
+import "./libraries/OrderLib.sol";
+import "./tokens/MKTToken.sol";
 
 import "zeppelin-solidity/contracts/token/ERC20.sol";
 import "zeppelin-solidity/contracts/token/SafeERC20.sol";
@@ -31,12 +30,11 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 /// implement different oracle solutions.
 /// @author Phil Elsasser <phil@marketprotcol.io>
 contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
-    using MathLib for int;
-    using MathLib for uint;
     using OrderLib for address;
     using OrderLib for OrderLib.Order;
     using OrderLib for OrderLib.OrderMappings;
     using SafeERC20 for ERC20;
+    using SafeERC20 for MKTToken;
 
     enum ErrorCodes {
         ORDER_EXPIRED,              // past designated timestamp
@@ -44,9 +42,8 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
     }
 
     // constants
-    ERC20 constant MKT_TOKEN = ERC20(0x123);                    // placeholder for our token
-    TokenLockerInterface constant TOKEN_LOCKER = TokenLockerInterface(0x124);
-    uint public constant MKT_MIN_CONTRACT_CREATOR = 50 ether;
+    address constant public MKT_TOKEN_ADDRESS = 0x123;  // place holder for correct address.
+    MKTToken constant MKT_TOKEN = MKTToken(MKT_TOKEN_ADDRESS);
 
     // state variables
     uint public lastPrice;
@@ -97,7 +94,7 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
         uint[5] contractSpecs
     ) ContractSpecs(contractName, baseTokenAddress, contractSpecs) public payable
     {
-        //require(MKT_TOKEN.balanceOf(msg.sender) > MKT_MIN_CONTRACT_CREATOR);    // creator must be MKT holder
+        //require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
     }
 
     /*
@@ -108,7 +105,7 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
     /// pool upon trade matching.
     /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
     function depositTokensForTrading(uint256 depositAmount) external {
-        require(TOKEN_LOCKER.isUserLocked(address(this), msg.sender));
+        require(MKT_TOKEN.isUserEnabledForContract(address(this), msg.sender));
         depositTokensForTrading(BASE_TOKEN, depositAmount);
     }
 
@@ -134,9 +131,9 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
         require(orderQty != 0 && qtyToFill != 0);           // no zero trades
         require(orderQty.isSameSign(qtyToFill));            // signs should match
         address contractAddress = address(this);
-        require(TOKEN_LOCKER.isUserLocked(contractAddress, msg.sender));
+        require(MKT_TOKEN.isUserEnabledForContract(contractAddress, msg.sender));
         OrderLib.Order memory order = contractAddress.createOrder(orderAddresses, unsignedOrderValues, orderQty);
-        require(TOKEN_LOCKER.isUserLocked(contractAddress, order.maker));
+        require(MKT_TOKEN.isUserEnabledForContract(contractAddress, order.maker));
 
         // taker can be anyone, or specifically the caller!
         require(order.taker == address(0) || order.taker == msg.sender);
@@ -256,7 +253,7 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
     // settlement has occurred.
     function settleAndClose() external {
         require(isSettled);
-        require(TOKEN_LOCKER.isUserLocked(address(this), msg.sender));
+        require(MKT_TOKEN.isUserEnabledForContract(address(this), msg.sender));
         settleAndClose(this, settlementPrice);
     }
 

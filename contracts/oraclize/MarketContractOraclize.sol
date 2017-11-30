@@ -105,7 +105,7 @@ contract MarketContractOraclize is MarketBaseContract, usingOraclize {
         bool isScheduled = validScheduledQueryIDs[queryID];
         require(isScheduled || validUserRequestedQueryIDs[queryID]);
         lastPriceQueryResult = result;
-        lastPrice = parseInt(result, CONTRACT_SPECS.PRICE_DECIMAL_PLACES);
+        lastPrice = parseInt(result, PRICE_DECIMAL_PLACES);
         UpdatedLastPrice(result);
         checkSettlement();
 
