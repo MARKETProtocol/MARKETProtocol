@@ -17,24 +17,26 @@
 pragma solidity 0.4.18;
 
 import "./Creatable.sol";
-import "./ContractSpecs.sol";
-import "./Accounts.sol";
+import "./MarketCollateralPool.sol";
 import "./libraries/OrderLib.sol";
-import "./tokens/MKTToken.sol";
+import "./libraries/MathLib.sol";
+import "./tokens/MarketToken.sol";
 
 import "zeppelin-solidity/contracts/token/ERC20.sol";
 import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 
-/// @title MarketBaseContract base contract implement all needed functionality for trading.
+/// @title MarketContract base contract implement all needed functionality for trading.
 /// @notice this is the abstract base contract that all contracts should inherit from to
 /// implement different oracle solutions.
 /// @author Phil Elsasser <phil@marketprotcol.io>
-contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
+contract MarketContract is Creatable {
     using OrderLib for address;
     using OrderLib for OrderLib.Order;
     using OrderLib for OrderLib.OrderMappings;
+    using MathLib for int;
+    using MathLib for uint;
     using SafeERC20 for ERC20;
-    using SafeERC20 for MKTToken;
+    using SafeERC20 for MarketToken;
 
     enum ErrorCodes {
         ORDER_EXPIRED,              // past designated timestamp
@@ -43,14 +45,26 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
 
     // constants
     address constant public MKT_TOKEN_ADDRESS = 0x123;  // place holder for correct address.
-    MKTToken constant MKT_TOKEN = MKTToken(MKT_TOKEN_ADDRESS);
+    MarketToken constant MKT_TOKEN = MarketToken(MKT_TOKEN_ADDRESS);
+
+    string public CONTRACT_NAME;
+    address public BASE_TOKEN_ADDRESS;
+    ERC20 public BASE_TOKEN;
+    uint public PRICE_CAP;
+    uint public PRICE_FLOOR;
+    uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
+    uint public QTY_DECIMAL_PLACES;     // how many tradeable units make up a whole pricing increment
+    uint public EXPIRATION;
 
     // state variables
     uint public lastPrice;
     uint public settlementPrice;
-    bool public isSettled;
+    bool public isSettled = false;
+    bool public isCollateralPoolContractLinked = false;
 
     // accounting
+    address public marketCollateralPoolAddress;
+    MarketCollateralPool marketCollateralPool;
     OrderLib.OrderMappings orderMappings;
 
     // events
@@ -88,26 +102,30 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
     /// an integer
     /// qtyDecimalPlaces decimal places to multiply traded qty by.
     /// expirationTimeStamp - seconds from epoch that this contract expires and enters settlement
-    function MarketBaseContract(
+    function MarketContract(
         string contractName,
         address baseTokenAddress,
         uint[5] contractSpecs
-    ) ContractSpecs(contractName, baseTokenAddress, contractSpecs) public payable
+    ) public payable
     {
         //require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
+        PRICE_FLOOR = contractSpecs[0];
+        PRICE_CAP = contractSpecs[1];
+        require(PRICE_CAP > PRICE_FLOOR);
+
+        PRICE_DECIMAL_PLACES = contractSpecs[2];
+        QTY_DECIMAL_PLACES = contractSpecs[3];
+        EXPIRATION = contractSpecs[4];
+        require(EXPIRATION > now);
+
+        CONTRACT_NAME = contractName;
+        BASE_TOKEN_ADDRESS = baseTokenAddress;
+        BASE_TOKEN = ERC20(baseTokenAddress);
     }
 
     /*
     // EXTERNAL METHODS
     */
-
-    /// @notice deposits tokens to the smart contract to fund the user account and provide needed tokens for collateral
-    /// pool upon trade matching.
-    /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
-    function depositTokensForTrading(uint256 depositAmount) external {
-        require(MKT_TOKEN.isUserEnabledForContract(address(this), msg.sender));
-        depositTokensForTrading(BASE_TOKEN, depositAmount);
-    }
 
     // @notice called by a participant wanting to trade a specific order
     /// @param orderAddresses - maker, taker and feeRecipient addresses
@@ -127,9 +145,8 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
         bytes32 s
     ) external returns (int filledQty)
     {
-        require(!isSettled);                                // no trading past settlement
-        require(orderQty != 0 && qtyToFill != 0);           // no zero trades
-        require(orderQty.isSameSign(qtyToFill));            // signs should match
+        require(isCollateralPoolContractLinked && !isSettled); // no trading past settlement
+        require(orderQty != 0 && qtyToFill != 0 && orderQty.isSameSign(qtyToFill));   // no zero trades, sings match
         address contractAddress = address(this);
         require(MKT_TOKEN.isUserEnabledForContract(contractAddress, msg.sender));
         OrderLib.Order memory order = contractAddress.createOrder(orderAddresses, unsignedOrderValues, orderQty);
@@ -160,8 +177,7 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
         }
 
         filledQty = MathLib.absMin(remainingQty, qtyToFill);
-         updatePositions(
-            this,
+        marketCollateralPool.updatePositions(
             order.maker,
             order.taker,
             filledQty,
@@ -248,14 +264,19 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
         return qtyCancelled;
     }
 
-    // @notice called by a user after settlement has occurred.  This function will finalize all accounting around any
-    // outstanding positions and return all remaining collateral to the caller. This should only be called after
-    // settlement has occurred.
-    function settleAndClose() external {
-        require(isSettled);
-        require(MKT_TOKEN.isUserEnabledForContract(address(this), msg.sender));
-        settleAndClose(this, settlementPrice);
+
+    /// @notice allows the creator to link a collateral pool contract to this trading contract.
+    /// can only be called once if successful.  Trading cannot commence until this is completed.
+    /// @param poolAddress deployed address of the unique collateral pool for this contract.
+    function setCollateralPoolContractAddress(address poolAddress) external onlyCreator {
+        require(!isCollateralPoolContractLinked); // address has not been set previously
+        require(poolAddress != address(0));       // not trying to set it to null addr.
+        marketCollateralPool = MarketCollateralPool(poolAddress);
+        require(marketCollateralPool.linkedAddress() == address(this)); // ensure pool set up correctly.
+        marketCollateralPoolAddress = poolAddress;
+        isCollateralPoolContractLinked = true;
     }
+
 
     /// @notice allows a user to request an extra query to oracle in order to push the contract into
     /// settlement.  A user may call this as many times as they like, since they are the ones paying for
@@ -272,12 +293,6 @@ contract MarketBaseContract is Creatable, ContractSpecs, Accounts {
     /// @return int quantity that is no longer able to filled from the supplied order hash
     function getQtyFilledOrCancelledFromOrder(bytes32 orderHash) public view returns (int) {
         return orderMappings.getQtyFilledOrCancelledFromOrder(orderHash);
-    }
-
-    /// @notice removes token from users trading account
-    /// @param withdrawAmount qty of token to attempt to withdraw
-    function withdrawTokens(uint256 withdrawAmount) public {
-         withdrawTokens(BASE_TOKEN, withdrawAmount);
     }
 
     /*

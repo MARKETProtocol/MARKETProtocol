@@ -16,6 +16,7 @@
 
 pragma solidity 0.4.18;
 
+import "./MarketContract.sol";
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
@@ -63,6 +64,7 @@ contract MarketContractRegistry is Ownable {
     /// @param contractAddress contract to removed from white list
     function addAddressToWhiteList(address contractAddress) external onlyOwner {
         require(!isWhiteListed[contractAddress]);
+        require(MarketContract(contractAddress).isCollateralPoolContractLinked());
         isWhiteListed[contractAddress] = true;
         deployedAddresses.push(contractAddress);
     }

@@ -2,6 +2,7 @@ var MathLib = artifacts.require("./libraries/MathLib.sol");
 var OrderLib = artifacts.require("./libraries/OrderLib.sol");
 var CollateralToken = artifacts.require("./tokens/CollateralToken.sol");
 var MarketContractOraclize = artifacts.require("./oraclize/MarketContractOraclize.sol");
+var MarketCollateralPool = artifacts.require("./MarketCollateralPool.sol");
 var MarketContractRegistry = artifacts.require("./MarketContractRegistry.sol");
 
 // example of deploying a contract using a basic ERC20 token example as collateral
@@ -24,13 +25,25 @@ module.exports = function(deployer) {
                             "URL",
                             "json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0",
                             120,
-                            {gas:6700000 ,  value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]})
-    })
-
-    // add deployed contract to whitelist.
-    deployer.then(function() {
-        return MarketContractRegistry.deployed();
-    }).then(function (instance) {
-        instance.addAddressToWhiteList(MarketContractOraclize.address);
+                            { gas:6000000 ,
+                            value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]}).then(function() {
+                                // deploy needed collateral pool linked to our MarketContract
+                                deployer.deploy(MarketCollateralPool, MarketContractOraclize.address);
+                            });
     });
+    // TODO: fix deployment issues
+    // link collateral pool and Market contract.
+//    deployer.then(function() {
+//        return MarketContractOraclize.deployed();
+//    }).then(function (instance) {
+//        console.log(MarketCollateralPool.address);
+//        instance.setCollateralPoolContractAddress(MarketCollateralPool.address);
+//    });
+//
+//    // add deployed contract to whitelist.
+//    deployer.then(function() {
+//        return MarketContractRegistry.deployed();
+//    }).then(function (instance) {
+//        instance.addAddressToWhiteList(MarketContractOraclize.address);
+//    });
 };

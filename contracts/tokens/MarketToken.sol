@@ -24,7 +24,7 @@ import "zeppelin-solidity/contracts/token/StandardToken.sol";
 /// @notice Our membership and fee token.  Users must lock tokens to enable trading for a given Market Contract
 /// as well as have a minimum balance of tokens to create new Market Contracts.
 /// @author Phil Elsasser <phil@marketprotcol.io>
-contract MKTToken is StandardToken, Creatable {
+contract MarketToken is StandardToken, Creatable {
 
     string public constant name = "Market Token";
     string public constant symbol = "MKT";

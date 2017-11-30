@@ -18,13 +18,13 @@ pragma solidity 0.4.18;
 
 import "./oraclizeAPI.sol";
 import "../libraries/MathLib.sol";
-import "../MarketBaseContract.sol";
+import "../MarketContract.sol";
 
 
 
 /// @title MarketContract first example of a MarketProtocol contract using Oraclize services
 /// @author Phil Elsasser <phil@marketprotcol.io>
-contract MarketContractOraclize is MarketBaseContract, usingOraclize {
+contract MarketContractOraclize is MarketContract, usingOraclize {
     using MathLib for uint;
 
     // constants
@@ -65,13 +65,13 @@ contract MarketContractOraclize is MarketBaseContract, usingOraclize {
         string oracleDataSource,
         string oracleQuery,
         uint oracleQueryRepeatSeconds
-    ) MarketBaseContract(contractName, baseTokenAddress, contractSpecs)  public payable
+    ) MarketContract(contractName, baseTokenAddress, contractSpecs)  public payable
     {
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
         ORACLE_QUERY_REPEAT = oracleQueryRepeatSeconds;
-     //   require(checkSufficientStartingBalance(EXPIRATION.subtract(now)));
+        require(checkSufficientStartingBalance(EXPIRATION.subtract(now)));
         queryOracle();  // schedules recursive calls to oracle
     }
 
