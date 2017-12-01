@@ -44,7 +44,7 @@ contract MarketCollateralPool is Linkable {
         int qty;
     }
 
-    uint collateralPoolBalance;                                 // current balance of all collateral committed
+    uint public collateralPoolBalance;                                 // current balance of all collateral committed
     mapping(address => UserNetPosition) addressToUserPosition;
     mapping(address => uint) public userAddressToAccountBalance;       // stores account balances allowed to be allocated to orders
     address public MKT_TOKEN_ADDRESS;
