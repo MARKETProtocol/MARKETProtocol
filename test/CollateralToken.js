@@ -1,12 +1,11 @@
 const CollateralToken = artifacts.require("CollateralToken");
 
-var initBalance;
-var collateralToken;
-var balancePerAcct;
 
 // basic tests to ensure collateral token works and is set up to allow trading
 contract('CollateralToken', function(accounts) {
-
+    var initBalance;
+    var collateralToken;
+    var balancePerAcct;
     // test setup of token for collateral
     it("Initial supply should be 1e+22", async function() {
         collateralToken = await CollateralToken.deployed();
