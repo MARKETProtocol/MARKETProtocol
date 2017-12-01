@@ -26,24 +26,27 @@ module.exports = function(deployer) {
                             "json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0",
                             120,
                             { gas:6000000 ,
-                            value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]}).then(function() {
-                                // deploy needed collateral pool linked to our MarketContract
-                                deployer.deploy(MarketCollateralPool, MarketContractOraclize.address);
-                            });
+                            value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]})
     });
-    // TODO: fix deployment issues
-    // link collateral pool and Market contract.
-//    deployer.then(function() {
-//        return MarketContractOraclize.deployed();
-//    }).then(function (instance) {
-//        console.log(MarketCollateralPool.address);
-//        instance.setCollateralPoolContractAddress(MarketCollateralPool.address);
-//    });
-//
-//    // add deployed contract to whitelist.
-//    deployer.then(function() {
-//        return MarketContractRegistry.deployed();
-//    }).then(function (instance) {
-//        instance.addAddressToWhiteList(MarketContractOraclize.address);
-//    });
+
+    // create collateral pool contract and link to the Market contract.
+    deployer.then(function() {
+        return MarketContractOraclize.deployed();
+    }).then(function() {
+        return deployer.deploy(
+            MarketCollateralPool,
+            MarketContractOraclize.address
+        ).then(function() {
+            return MarketContractOraclize.deployed();
+        }).then(function(instance) {
+            instance.setCollateralPoolContractAddress(MarketCollateralPool.address);
+        });
+    });
+
+    // add deployed contract to whitelist.
+    deployer.then(function() {
+        return MarketContractRegistry.deployed();
+    }).then(function (instance) {
+        instance.addAddressToWhiteList(MarketContractOraclize.address);
+    });
 };

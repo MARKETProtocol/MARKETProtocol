@@ -78,8 +78,8 @@ contract MarketCollateralPool is Linkable {
         // user must call approve!
         require(MKT_TOKEN.isUserEnabledForContract(address(MKT_CONTRACT), msg.sender));
         uint256 balanceAfterDeposit = userAddressToAccountBalance[msg.sender].add(depositAmount);
-        userAddressToAccountBalance[msg.sender] = balanceAfterDeposit;
         ERC20(MKT_CONTRACT.BASE_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, this, depositAmount);
+        userAddressToAccountBalance[msg.sender] = balanceAfterDeposit;
         UpdatedUserBalance(msg.sender, balanceAfterDeposit);
     }
 
