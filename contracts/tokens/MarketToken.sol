@@ -30,12 +30,18 @@ contract MarketToken is StandardToken, Creatable {
     string public constant SYMBOL = "MKT";
     uint8 public constant DECIMALS = 18;
 
-    uint public lockQtyToAllowTrading = uint256(25)**decimals;
-    uint public minBalanceToAllowContractCreation = uint256(50)**decimals;
+    uint public lockQtyToAllowTrading;  // = uint256(25)**decimals;
+    uint public minBalanceToAllowContractCreation; // = uint256(50)**decimals;
 
     mapping(address => mapping(address => uint)) contractAddressToUserAddressToQtyLocked;
 
     event UpdatedUserLockedBalance(address indexed contractAddress, address indexed userAddress, uint balance);
+
+    function MarketToken(uint qtyToLockForTrading, uint minBalanceForCreation) public {
+        lockQtyToAllowTrading = qtyToLockForTrading;
+        minBalanceToAllowContractCreation = minBalanceForCreation;
+        //TODO: add creation and allocations
+    }
 
     /*
     // EXTERNAL METHODS

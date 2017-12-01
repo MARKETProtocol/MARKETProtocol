@@ -45,6 +45,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
 
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
+    /// @param marketTokenAddress address of our member token
     /// @param baseTokenAddress address of the ERC20 token that will be used for collateral and pricing
     /// @param contractSpecs array of unsigned integers including:
     /// floorPrice minimum tradeable price of this contract, contract enters settlement if breached
@@ -60,12 +61,18 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     /// queries require more gas and may not be needed.
     function MarketContractOraclize(
         string contractName,
+        address marketTokenAddress,
         address baseTokenAddress,
         uint[5] contractSpecs,
         string oracleDataSource,
         string oracleQuery,
         uint oracleQueryRepeatSeconds
-    ) MarketContract(contractName, baseTokenAddress, contractSpecs)  public payable
+    ) MarketContract(
+        contractName,
+        marketTokenAddress,
+        baseTokenAddress,
+        contractSpecs
+    )  public payable
     {
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
         ORACLE_DATA_SOURCE = oracleDataSource;

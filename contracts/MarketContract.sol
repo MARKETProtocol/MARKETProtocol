@@ -45,8 +45,8 @@ contract MarketContract is Creatable {
     }
 
     // constants
-    address constant public MKT_TOKEN_ADDRESS = 0x123;  // place holder for correct address.
-    MarketToken constant MKT_TOKEN = MarketToken(MKT_TOKEN_ADDRESS);
+    address public MKT_TOKEN_ADDRESS;
+    MarketToken MKT_TOKEN;
 
     string public CONTRACT_NAME;
     address public BASE_TOKEN_ADDRESS;
@@ -95,6 +95,7 @@ contract MarketContract is Creatable {
 
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
+    /// @param marketTokenAddress address of our member token
     /// @param baseTokenAddress address of the ERC20 token that will be used for collateral and pricing
     /// @param contractSpecs array of unsigned integers including:
     /// floorPrice minimum tradeable price of this contract, contract enters settlement if breached
@@ -105,11 +106,14 @@ contract MarketContract is Creatable {
     /// expirationTimeStamp - seconds from epoch that this contract expires and enters settlement
     function MarketContract(
         string contractName,
+        address marketTokenAddress,
         address baseTokenAddress,
         uint[5] contractSpecs
     ) public payable
     {
-        //require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
+        MKT_TOKEN_ADDRESS = marketTokenAddress;
+        MKT_TOKEN = MarketToken(marketTokenAddress);
+        require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
         PRICE_FLOOR = contractSpecs[0];
         PRICE_CAP = contractSpecs[1];
         require(PRICE_CAP > PRICE_FLOOR);
