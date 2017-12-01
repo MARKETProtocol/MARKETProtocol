@@ -21,7 +21,7 @@ import "../Creatable.sol";
 import "zeppelin-solidity/contracts/token/StandardToken.sol";
 
 /// @title Market Token
-/// @notice Our membership and fee token.  Users must lock tokens to enable trading for a given Market Contract
+/// @notice Our membership token.  Users must lock tokens to enable trading for a given Market Contract
 /// as well as have a minimum balance of tokens to create new Market Contracts.
 /// @author Phil Elsasser <phil@marketprotcol.io>
 contract MarketToken is StandardToken, Creatable {
@@ -37,46 +37,64 @@ contract MarketToken is StandardToken, Creatable {
 
     event UpdatedUserLockedBalance(address indexed contractAddress, address indexed userAddress, uint balance);
 
-    function MKTToken() public {
-
-    }
-
     /*
     // EXTERNAL METHODS
     */
 
-    function isUserEnabledForContract(address contractAddress, address userAddress) external view returns (bool) {
-        return contractAddressToUserAddressToQtyLocked[contractAddress][userAddress] >= lockQtyToAllowTrading;
+    /// @notice checks if a user address has locked the needed qty to allow trading to a given contract address
+    /// @param marketContractAddress address of the MarketContract
+    /// @param userAddress address of the user
+    /// @return true if user has locked tokens to trade the supplied marketContractAddress
+    function isUserEnabledForContract(address marketContractAddress, address userAddress) external view returns (bool) {
+        return contractAddressToUserAddressToQtyLocked[marketContractAddress][userAddress] >= lockQtyToAllowTrading;
     }
 
+    /// @notice checks if a user address has enough token balance to be eligible to create a contract
+    /// @param userAddress address of the user
+    /// @return true if user has sufficient balance of tokens
     function isBalanceSufficientForContractCreation(address userAddress) external view returns (bool) {
-        return balances[userAddress] >= lockQtyToAllowTrading;
+        return balances[userAddress] >= minBalanceToAllowContractCreation;
     }
 
-    function lockTokensForTradingMarketContract(address contractAddress, uint qtyToLock) external {
+    /// @notice allows user to lock tokens to enable trading for a given market contract
+    /// @param marketContractAddress address of the MarketContract
+    /// @param qtyToLock desired qty of tokens to lock
+    function lockTokensForTradingMarketContract(address marketContractAddress, uint qtyToLock) external {
+
+        uint256 lockedBalance = contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender].add(
+            qtyToLock
+        );
         transferFrom(msg.sender, this, qtyToLock);
-        uint256 lockedBalance = contractAddressToUserAddressToQtyLocked[contractAddress][msg.sender].add(qtyToLock);
-        contractAddressToUserAddressToQtyLocked[contractAddress][msg.sender] = lockedBalance;
-        UpdatedUserLockedBalance(contractAddress, msg.sender, lockedBalance);
+        contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender] = lockedBalance;
+        UpdatedUserLockedBalance(marketContractAddress, msg.sender, lockedBalance);
     }
 
-    function unlockTokens(address contractAddress, uint qtyToUnlock) external {
-        require(contractAddressToUserAddressToQtyLocked[contractAddress][msg.sender] >= qtyToUnlock);     // ensure sufficient balance
-        uint256 balanceAfterUnLock = contractAddressToUserAddressToQtyLocked[contractAddress][msg.sender].sub(qtyToUnlock);
-        contractAddressToUserAddressToQtyLocked[contractAddress][msg.sender] = balanceAfterUnLock;        // update balance before external call!
+    /// @notice allows user to unlock tokens previously allocated to trading a MarketContract
+    /// @param marketContractAddress address of the MarketContract
+    /// @param qtyToUnlock desired qty of tokens to unlock
+    function unlockTokens(address marketContractAddress, uint qtyToUnlock) external {
+        require(contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender] >= qtyToUnlock);     // ensure sufficient balance
+        uint256 balanceAfterUnLock = contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender].sub(
+            qtyToUnlock
+        );
+        contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender] = balanceAfterUnLock;        // update balance before external call!
         transfer(msg.sender, qtyToUnlock);
-        UpdatedUserLockedBalance(contractAddress, msg.sender, balanceAfterUnLock);
+        UpdatedUserLockedBalance(marketContractAddress, msg.sender, balanceAfterUnLock);
     }
-
 
     /*
     // EXTERNAL - ONLY CREATOR  METHODS
     */
 
+    /// @notice allows the creator to set the qty each user address needs to lock in
+    /// order to trade a given MarketContract
+    /// @param qtyToLock qty needed to enable trading
     function setLockQtyToAllowTrading(uint qtyToLock) external onlyCreator {
         lockQtyToAllowTrading = qtyToLock;
     }
 
+    /// @notice allows the creator to set minimum balance a user must have in order to create MarketContracts
+    /// @param minBalance balance to enable contract creation
     function setMinBalanceForContractCreation(uint minBalance) external onlyCreator {
         minBalanceToAllowContractCreation = minBalance;
     }
