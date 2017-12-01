@@ -47,8 +47,8 @@ contract MarketCollateralPool is Linkable {
     uint collateralPoolBalance;                                 // current balance of all collateral committed
     mapping(address => UserNetPosition) addressToUserPosition;
     mapping(address => uint) public userAddressToAccountBalance;       // stores account balances allowed to be allocated to orders
-    address constant public MKT_TOKEN_ADDRESS = 0x123;  // place holder for correct address.
-    MarketToken constant MKT_TOKEN = MarketToken(MKT_TOKEN_ADDRESS);
+    address public MKT_TOKEN_ADDRESS;
+    MarketToken MKT_TOKEN;
     MarketContract MKT_CONTRACT;
 
     event UpdatedUserBalance(address indexed user, uint balance);
@@ -56,16 +56,21 @@ contract MarketCollateralPool is Linkable {
 
     function MarketCollateralPool(address marketContractAddress) Linkable(marketContractAddress) public {
         MKT_CONTRACT = MarketContract(marketContractAddress);
+        MKT_TOKEN_ADDRESS = MKT_CONTRACT.MKT_TOKEN_ADDRESS();
+        MKT_TOKEN = MarketToken(MKT_TOKEN_ADDRESS);
     }
 
     /// @notice get the net position for a give user address
     /// @param userAddress address to return position for
     /// @return the users current open position.
-    function getUserPosition(
-        address userAddress
-    ) external view returns (int)
-    {
+    function getUserPosition(address userAddress) external view returns (int) {
         return addressToUserPosition[userAddress].netPosition;
+    }
+
+    /// @param userAddress address of user
+    /// @return the users currently unallocated token balance
+    function getUserAccountBalance(address userAddress) external view returns (uint) {
+        return userAddressToAccountBalance[userAddress];
     }
 
     /*
