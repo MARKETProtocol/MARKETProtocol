@@ -24,6 +24,7 @@ import "./MarketContract.sol";
 import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
 
+
 /// @title MarketCollateralPool is a contract controlled by a specific Market Contract.  It holds collateral balances
 /// as well as user balances and open positions.  It should be instantiated and then linked by a MarketContract.
 /// @author Phil Elsasser <phil@marketprotcol.io>
@@ -133,8 +134,7 @@ contract MarketCollateralPool is Linkable {
 
     /// @notice removes token from users trading account
     /// @param withdrawAmount qty of token to attempt to withdraw
-    function withdrawTokens(uint256 withdrawAmount) public
-    {
+    function withdrawTokens(uint256 withdrawAmount) public {
         require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
         uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
         userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
@@ -179,7 +179,6 @@ contract MarketCollateralPool is Linkable {
         UpdatedUserBalance(toAddress, newBalance);
         UpdatedPoolBalance(collateralPoolBalance);
     }
-
 
     /// @dev handles all needed internal accounting when a user enters into a new trade
     /// @param userAddress storage struct containing position information for this user
@@ -253,7 +252,6 @@ contract MarketCollateralPool is Linkable {
         userNetPosition.positions.push(Position(price, qty));   // append array with new position
     }
 
-
     /// @dev reduces net position correctly allocating collateral back to user
     /// @param userNetPos storage struct for this users position
     /// @param userAddress address of user who is reducing their pos
@@ -304,6 +302,4 @@ contract MarketCollateralPool is Linkable {
             withdrawCollateralFromPool(userAddress, collateralToReturnToUserAccount);
         }
     }
-
-
 }

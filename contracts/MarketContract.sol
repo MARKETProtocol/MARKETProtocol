@@ -25,6 +25,7 @@ import "./tokens/MarketToken.sol";
 import "zeppelin-solidity/contracts/token/ERC20.sol";
 import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 
+
 /// @title MarketContract base contract implement all needed functionality for trading.
 /// @notice this is the abstract base contract that all contracts should inherit from to
 /// implement different oracle solutions.
@@ -264,7 +265,6 @@ contract MarketContract is Creatable {
         return qtyCancelled;
     }
 
-
     /// @notice allows the creator to link a collateral pool contract to this trading contract.
     /// can only be called once if successful.  Trading cannot commence until this is completed.
     /// @param poolAddress deployed address of the unique collateral pool for this contract.
@@ -276,7 +276,6 @@ contract MarketContract is Creatable {
         marketCollateralPoolAddress = poolAddress;
         isCollateralPoolContractLinked = true;
     }
-
 
     /// @notice allows a user to request an extra query to oracle in order to push the contract into
     /// settlement.  A user may call this as many times as they like, since they are the ones paying for

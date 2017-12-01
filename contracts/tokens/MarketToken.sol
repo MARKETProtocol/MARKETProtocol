@@ -17,8 +17,8 @@
 pragma solidity 0.4.18;
 
 import "../Creatable.sol";
-
 import "zeppelin-solidity/contracts/token/StandardToken.sol";
+
 
 /// @title Market Token
 /// @notice Our membership token.  Users must lock tokens to enable trading for a given Market Contract
@@ -26,9 +26,9 @@ import "zeppelin-solidity/contracts/token/StandardToken.sol";
 /// @author Phil Elsasser <phil@marketprotcol.io>
 contract MarketToken is StandardToken, Creatable {
 
-    string public constant name = "Market Token";
-    string public constant symbol = "MKT";
-    uint8 public constant decimals = 18;
+    string public constant NAME = "Market Token";
+    string public constant SYMBOL = "MKT";
+    uint8 public constant DECIMALS = 18;
 
     uint public lockQtyToAllowTrading = uint256(25)**decimals;
     uint public minBalanceToAllowContractCreation = uint256(50)**decimals;

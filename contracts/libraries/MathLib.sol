@@ -15,6 +15,7 @@
 */
 pragma solidity 0.4.18;
 
+
 /// @title Math function library with overflow protection inspired by Open Zeppelin
 library MathLib {
 
