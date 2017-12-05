@@ -26,12 +26,14 @@ import "zeppelin-solidity/contracts/token/StandardToken.sol";
 /// @author Phil Elsasser <phil@marketprotcol.io>
 contract MarketToken is StandardToken, Creatable {
 
-    string public constant NAME = "Market Token";
-    string public constant SYMBOL = "MKT";
-    uint8 public constant DECIMALS = 18;
+    string public constant name = "Market Token";
+    string public constant symbol = "MKT";
+    uint8 public constant decimals = 18;
 
-    uint public lockQtyToAllowTrading;  // = uint256(25)**decimals;
-    uint public minBalanceToAllowContractCreation; // = uint256(50)**decimals;
+    uint public constant INITIAL_SUPPLY = 100000000 * uint(10)**decimals;
+
+    uint public lockQtyToAllowTrading;
+    uint public minBalanceToAllowContractCreation;
 
     mapping(address => mapping(address => uint)) contractAddressToUserAddressToQtyLocked;
 
@@ -40,7 +42,9 @@ contract MarketToken is StandardToken, Creatable {
     function MarketToken(uint qtyToLockForTrading, uint minBalanceForCreation) public {
         lockQtyToAllowTrading = qtyToLockForTrading;
         minBalanceToAllowContractCreation = minBalanceForCreation;
-        //TODO: add creation and allocations
+        totalSupply = INITIAL_SUPPLY;
+
+        balances[msg.sender] = INITIAL_SUPPLY; // for now allocate all tokens to creator
     }
 
     /*
@@ -66,11 +70,10 @@ contract MarketToken is StandardToken, Creatable {
     /// @param marketContractAddress address of the MarketContract
     /// @param qtyToLock desired qty of tokens to lock
     function lockTokensForTradingMarketContract(address marketContractAddress, uint qtyToLock) external {
-
         uint256 lockedBalance = contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender].add(
             qtyToLock
         );
-        transferFrom(msg.sender, this, qtyToLock);
+        transfer(this, qtyToLock);
         contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender] = lockedBalance;
         UpdatedUserLockedBalance(marketContractAddress, msg.sender, lockedBalance);
     }
@@ -79,13 +82,20 @@ contract MarketToken is StandardToken, Creatable {
     /// @param marketContractAddress address of the MarketContract
     /// @param qtyToUnlock desired qty of tokens to unlock
     function unlockTokens(address marketContractAddress, uint qtyToUnlock) external {
-        require(contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender] >= qtyToUnlock);     // ensure sufficient balance
         uint256 balanceAfterUnLock = contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender].sub(
             qtyToUnlock
-        );
+        );  // no need to check balance, sub() will ensure sufficient balance to unlock!
         contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender] = balanceAfterUnLock;        // update balance before external call!
-        transfer(msg.sender, qtyToUnlock);
+        transferLockedTokensBackToUser(qtyToUnlock);
         UpdatedUserLockedBalance(marketContractAddress, msg.sender, balanceAfterUnLock);
+    }
+
+    /// @notice get the currently locked balance for a user given the specific contract address
+    /// @param marketContractAddress address of the MarketContract
+    /// @param userAddress address of the user
+    /// @return the locked balance
+    function getLockedBalanceForUser(address marketContractAddress, address userAddress) external view returns (uint) {
+        return contractAddressToUserAddressToQtyLocked[marketContractAddress][userAddress];
     }
 
     /*
@@ -103,6 +113,18 @@ contract MarketToken is StandardToken, Creatable {
     /// @param minBalance balance to enable contract creation
     function setMinBalanceForContractCreation(uint minBalance) external onlyCreator {
         minBalanceToAllowContractCreation = minBalance;
+    }
+
+    /*
+    // PRIVATE METHODS
+    */
+
+    /// @dev returns locked balance from this contract to the user's balance
+    /// @param qtyToUnlock qty to return to user's balance
+    function transferLockedTokensBackToUser(uint qtyToUnlock) private {
+        balances[this] = balances[this].sub(qtyToUnlock);
+        balances[msg.sender] = balances[msg.sender].add(qtyToUnlock);
+        Transfer(this, msg.sender, qtyToUnlock);
     }
 
 }
