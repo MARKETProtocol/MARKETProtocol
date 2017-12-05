@@ -281,6 +281,13 @@ contract MarketContract is Creatable {
         isCollateralPoolContractLinked = true;
     }
 
+    /// @notice after contract settlement the contract creator can reclaim any
+    /// unused ethereum balance from this contract that was provided for oracle query costs / gas.
+    function reclaimUnusedEtherBalance() external onlyCreator {
+        require(isSettled && this.balance > 0); // this contract has completed all needed queries
+        creator.transfer(this.balance);         // return balance to the creator.
+    }
+
     /// @notice allows a user to request an extra query to oracle in order to push the contract into
     /// settlement.  A user may call this as many times as they like, since they are the ones paying for
     /// the call to our oracle and post processing. This is useful for both a failsafe and as a way to
@@ -324,6 +331,5 @@ contract MarketContract is Creatable {
     function settleContract(uint finalSettlementPrice) private {
         settlementPrice = finalSettlementPrice;
         ContractSettled(finalSettlementPrice);
-        // TODO: return any remaining ether balance to creator of this contract (no longer needs gas for queries)
     }
 }
