@@ -75,10 +75,10 @@ contract MarketFactoryOraclize is Ownable {
             oracleQueryRepeatSeconds
         );
 
-        isWhiteListed[address(marketContract)] = true;
-        deployedAddresses.push(address(marketContract));
-        MarketContractDeployed(address(marketContract));
-        return address(marketContract);
+        isWhiteListed[marketContract] = true;
+        deployedAddresses.push(marketContract);
+        MarketContractDeployed(marketContract);
+        return marketContract;
     }
 
     /// @notice determines if an address is a valid MarketContract
