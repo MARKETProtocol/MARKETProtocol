@@ -54,6 +54,9 @@ contract MarketCollateralPool is Linkable {
     event UpdatedUserBalance(address indexed user, uint balance);
     event UpdatedPoolBalance(uint balance);
 
+    /// @dev instantiates a collateral pool that is unique to the supplied address of a MarketContract. This pairing
+    /// is 1:1
+    /// @param marketContractAddress deployed address of a MarketContract
     function MarketCollateralPool(address marketContractAddress) Linkable(marketContractAddress) public {
         MKT_CONTRACT = MarketContract(marketContractAddress);
         MKT_TOKEN_ADDRESS = MKT_CONTRACT.MKT_TOKEN_ADDRESS();
@@ -109,6 +112,7 @@ contract MarketCollateralPool is Linkable {
         withdrawTokens(userAddressToAccountBalance[msg.sender]);
     }
 
+    /// @dev called by our linked MarketContract when a trade occurs to update both maker and takers positions.
     /// @param maker address of the maker in the trade
     /// @param taker address of the taker in the trade
     /// @param qty quantity transacted between parties
