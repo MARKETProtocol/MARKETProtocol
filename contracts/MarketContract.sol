@@ -152,10 +152,9 @@ contract MarketContract is Creatable {
     {
         require(isCollateralPoolContractLinked && !isSettled); // no trading past settlement
         require(orderQty != 0 && qtyToFill != 0 && orderQty.isSameSign(qtyToFill));   // no zero trades, sings match
-        address contractAddress = address(this);
-        require(MKT_TOKEN.isUserEnabledForContract(contractAddress, msg.sender));
-        OrderLib.Order memory order = contractAddress.createOrder(orderAddresses, unsignedOrderValues, orderQty);
-        require(MKT_TOKEN.isUserEnabledForContract(contractAddress, order.maker));
+        require(MKT_TOKEN.isUserEnabledForContract(this, msg.sender));
+        OrderLib.Order memory order = address(this).createOrder(orderAddresses, unsignedOrderValues, orderQty);
+        require(MKT_TOKEN.isUserEnabledForContract(this, order.maker));
 
         // taker can be anyone, or specifically the caller!
         require(order.taker == address(0) || order.taker == msg.sender);
