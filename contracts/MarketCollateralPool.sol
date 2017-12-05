@@ -144,7 +144,7 @@ contract MarketCollateralPool is Linkable {
     /// @notice removes token from users trading account
     /// @param withdrawAmount qty of token to attempt to withdraw
     function withdrawTokens(uint256 withdrawAmount) public {
-        require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
+        //require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);  subtract call below will enforce this
         uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
         userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
         ERC20(MKT_CONTRACT.BASE_TOKEN_ADDRESS()).safeTransfer(msg.sender, withdrawAmount);
@@ -181,7 +181,7 @@ contract MarketCollateralPool is Linkable {
     ) private
     {
         require(MKT_TOKEN.isUserEnabledForContract(MKT_CONTRACT, msg.sender));
-        require(collateralPoolBalance >= collateralAmount); // ensure sufficient balance
+        // require(collateralPoolBalance >= collateralAmount); subtract call below will enforce this!
         uint newBalance = userAddressToAccountBalance[toAddress].add(collateralAmount);
         userAddressToAccountBalance[toAddress] = newBalance;
         collateralPoolBalance = collateralPoolBalance.subtract(collateralAmount);
