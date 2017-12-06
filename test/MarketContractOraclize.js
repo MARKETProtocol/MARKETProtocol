@@ -191,4 +191,38 @@ contract('MarketContractOraclize', function(accounts) {
         //      - attempt to trade / cancel post expiration
         //      - expiration methods
         //      - settleAndClose()
+
+    it("should only allow remaining quantity to be filled for an overfilled trade.", async function() {
+        const timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
+        const accountMaker = accounts[0];
+        const accountTaker = accounts[1];
+        const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+        const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
+        const orderQty = 5;   // user is attempting to buy 5
+        const qtyToFill = 10; // order is to be filled by 10
+        const orderHash = await orderLib.createOrderHash.call(
+            MarketContractOraclize.address,
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty
+        );
+
+        const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash)
+        const expectedQtyFilled = Math.min(qtyToFill, orderQty - qtyFilled.toNumber())
+
+        // Execute trade between maker and taker for partial amount of order.
+        const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
+        const actualQtyFilled = await marketContract.tradeOrder.call(
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty, // 5
+            qtyToFill, // 10
+            orderSignature[0],  // v
+            orderSignature[1],  // r
+            orderSignature[2],  // s
+            {from: accountTaker}
+        );
+
+        assert.equal(actualQtyFilled.toNumber(), expectedQtyFilled, "Quantity filled is wrong.");
+    })
 });
