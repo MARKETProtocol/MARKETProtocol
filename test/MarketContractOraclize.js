@@ -289,7 +289,7 @@ contract('MarketContractOraclize', function(accounts) {
         const orderAddresses = [accountMaker, accountTaker, accounts[2]];
         const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
         const zeroOrderQty = 0;
-        const qtyToFill = 4; // order is to be filled by 1
+        const qtyToFill = 4;
         const orderHash = await orderLib.createOrderHash.call(
             MarketContractOraclize.address,
             orderAddresses,
@@ -315,7 +315,42 @@ contract('MarketContractOraclize', function(accounts) {
             error = err;
         }
 
-        assert.ok(error instanceof Error, );
+        assert.ok(error instanceof Error, "Zero Quantity order did not fail");
+    })
+
+    it("should fail for attempts to create maker order and fill as taker from same account", async function() {
+        const expiredTimestamp = ((new Date()).getTime() / 1000) + 60 * 5; // order expires in 5 minutes.
+        const makerAndTakerAddress = accountMaker // same address for maker and taker
+        const orderAddresses = [makerAndTakerAddress, makerAndTakerAddress, accounts[2]];
+        const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
+        const orderQty = 5;
+        const qtyToFill = 1; // order is to be filled by 1
+        const orderHash = await orderLib.createOrderHash.call(
+            MarketContractOraclize.address,
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty
+        );
+
+        // Execute trade between maker and taker for partial amount of order.
+        const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
+        let error = null;
+        try {
+            await marketContract.tradeOrder.call(
+                orderAddresses,
+                unsignedOrderValues,
+                orderQty, // 5
+                qtyToFill, // fill one slot
+                orderSignature[0],  // v
+                orderSignature[1],  // r
+                orderSignature[2],  // s
+                {from: accountTaker}
+            );
+        } catch (err) {
+            error = err;
+        }
+
+        assert.ok(error instanceof Error, "Order did not fail.");
     })
 
 
