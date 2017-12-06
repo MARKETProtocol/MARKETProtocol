@@ -229,7 +229,7 @@ contract('MarketContractOraclize', function(accounts) {
 
         // Execute trade between maker and taker for partial amount of order.
         const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
-        await marketContract.tradeOrder.call(
+        await marketContract.tradeOrder(
             orderAddresses,
             unsignedOrderValues,
             orderQty, // -5
@@ -240,7 +240,7 @@ contract('MarketContractOraclize', function(accounts) {
             {from: accountTaker}
         );
 
-        const expectedQtyCancelled = -5
+        const expectedQtyCancelled = -4
         const qtyToCancel = -7;
         // over cancel order
         const actualQtyCancelled = await marketContract.cancelOrder.call(
