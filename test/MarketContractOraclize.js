@@ -320,8 +320,8 @@ contract('MarketContractOraclize', function(accounts) {
 
     it("should fail for attempts to create maker order and fill as taker from same account", async function() {
         const expiredTimestamp = ((new Date()).getTime() / 1000) + 60 * 5; // order expires in 5 minutes.
-        const makerAndTakerAddress = accountMaker // same address for maker and taker
-        const orderAddresses = [makerAndTakerAddress, makerAndTakerAddress, accounts[2]];
+        const makerAndTakerAccount = accountMaker // same address for maker and taker
+        const orderAddresses = [makerAndTakerAccount, makerAndTakerAccount, accounts[2]];
         const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
         const orderQty = 5;
         const qtyToFill = 1; // order is to be filled by 1
@@ -350,7 +350,44 @@ contract('MarketContractOraclize', function(accounts) {
             error = err;
         }
 
-        assert.ok(error instanceof Error, "Order did not fail.");
+        assert.ok(error instanceof Error, "Order did not fail");
+    })
+
+    it("should fail for attempts to order and fill with price changed", async function() {
+        const expiredTimestamp = ((new Date()).getTime() / 1000) + 60 * 5; // order expires in 5 minutes.
+        const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+        const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
+        const orderQty = 5;
+        const qtyToFill = 1; // order is to be filled by 1
+        const orderHash = await orderLib.createOrderHash.call(
+            MarketContractOraclize.address,
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty
+        );
+
+        const changedOrderPrice = entryOrderPrice + 500;
+        const changedUnsignedOrderValues = [0, 0, changedOrderPrice, expiredTimestamp, 1];
+
+        // Execute trade between maker and taker for partial amount of order.
+        const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
+        let error = null;
+        try {
+            await marketContract.tradeOrder.call(
+                orderAddresses,
+                changedUnsignedOrderValues,
+                orderQty, // 5
+                qtyToFill, // fill one slot
+                orderSignature[0],  // v
+                orderSignature[1],  // r
+                orderSignature[2],  // s
+                {from: accountTaker}
+            );
+        } catch (err) {
+            error = err;
+        }
+
+        assert.ok(error instanceof Error, "Order did not fail");
     })
 
 
