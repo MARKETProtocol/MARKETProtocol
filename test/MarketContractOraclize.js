@@ -179,8 +179,6 @@ contract('MarketContractOraclize', function(accounts) {
     });
 
         // TODO:
-        //      - attempt to overfill
-        //      - attempt to over cancel
         //      - attempt to fill expired order
         //      - attempt to trade zero qty
         //      - order with zero qty
@@ -203,8 +201,7 @@ contract('MarketContractOraclize', function(accounts) {
             orderQty
         );
 
-        const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash)
-        const expectedQtyFilled = Math.min(qtyToFill, orderQty - qtyFilled.toNumber())
+        const expectedQtyFilled = 5;
 
         // Execute trade between maker and taker for partial amount of order.
         const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
@@ -219,6 +216,44 @@ contract('MarketContractOraclize', function(accounts) {
             {from: accountTaker}
         );
 
-        assert.equal(actualQtyFilled.toNumber(), expectedQtyFilled, "Quantity filled is wrong.");
+        assert.equal(expectedQtyFilled, actualQtyFilled.toNumber(), "Quantity filled doesn't match expected");
+    })
+
+    it("should only allow remaining quantity to be cancelled for an over cancelled trade.", async function() {
+        const timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
+        const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+        const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
+        const orderQty = -5;   // user is attempting to sell 5
+        const qtyToFill = -1; // order is to be filled by 1
+        const orderHash = await orderLib.createOrderHash.call(
+            MarketContractOraclize.address,
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty
+        );
+
+        // Execute trade between maker and taker for partial amount of order.
+        const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
+        await marketContract.tradeOrder.call(
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty, // -5
+            qtyToFill, // fill one slot
+            orderSignature[0],  // v
+            orderSignature[1],  // r
+            orderSignature[2],  // s
+            {from: accountTaker}
+        );
+
+        const expectedQtyCancelled = -5
+        const qtyToCancel = -7;
+        // over cancel order
+        const actualQtyCancelled = await marketContract.cancelOrder.call(
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty,
+            qtyToCancel);
+
+        assert.equal(expectedQtyCancelled, actualQtyCancelled.toNumber(), "Quantity cancelled doesn't match expected.");
     })
 });
