@@ -17,6 +17,8 @@ contract('MarketContractOraclize', function(accounts) {
     var makerAccountBalanceBeforeTrade;
     var takerAccountBalanceBeforeTrade;
     var entryOrderPrice = 33025;
+    const accountMaker = accounts[0];
+    const accountTaker = accounts[1];
     it("Trade occurs, cancel occurs, balances transferred, positions updated", async function() {
         collateralPool = await MarketCollateralPool.deployed();
         marketToken = await MarketToken.deployed();
@@ -25,8 +27,6 @@ contract('MarketContractOraclize', function(accounts) {
         collateralToken = await CollateralToken.deployed();
 
         var timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
-        var accountMaker = accounts[0];
-        var accountTaker = accounts[1];
         var orderAddresses = [accountMaker, accountTaker, accounts[2]];
         var unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
         var orderQty = 5;   // user is attempting to buy 5
@@ -60,7 +60,7 @@ contract('MarketContractOraclize', function(accounts) {
         await marketContract.tradeOrder(
             orderAddresses,
             unsignedOrderValues,
-            5,                  // qty is five
+            orderQty,                  // qty is five
             qtyToFill,          // let us fill a one lot
             orderSignature[0],  // v
             orderSignature[1],  // r
@@ -115,8 +115,6 @@ contract('MarketContractOraclize', function(accounts) {
     var exitOrderPrice = 36025;
     it("Trade is unwound, correct collateral amount returns to user balances", async function() {
         var timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
-        var accountMaker = accounts[0];
-        var accountTaker = accounts[1];
         var orderAddresses = [accountMaker, accountTaker, accounts[2]];
         var orderPrice = 36025;
         var unsignedOrderValues = [0, 0, orderPrice, timeStamp, 1];
@@ -135,7 +133,7 @@ contract('MarketContractOraclize', function(accounts) {
         await marketContract.tradeOrder(
             orderAddresses,
             unsignedOrderValues,
-            -5,                 // qty is five
+            orderQty,                 // qty is five
             qtyToFill,          // let us fill a one lot
             orderSignature[0],  // v
             orderSignature[1],  // r
@@ -194,8 +192,6 @@ contract('MarketContractOraclize', function(accounts) {
 
     it("should only allow remaining quantity to be filled for an overfilled trade.", async function() {
         const timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
-        const accountMaker = accounts[0];
-        const accountTaker = accounts[1];
         const orderAddresses = [accountMaker, accountTaker, accounts[2]];
         const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
         const orderQty = 5;   // user is attempting to buy 5
