@@ -5,6 +5,11 @@ const CollateralToken = artifacts.require("CollateralToken");
 const OrderLib = artifacts.require("OrderLib");
 const utility = require('./utility.js');
 
+const ErrorCodes = {
+    ORDER_EXPIRED: 0,
+    ORDER_DEAD: 1,
+}
+
 
 // basic tests for interacting with market contract.
 contract('MarketContractOraclize', function(accounts) {
@@ -178,16 +183,6 @@ contract('MarketContractOraclize', function(accounts) {
         );
     });
 
-        // TODO:
-        //      - attempt to fill expired order
-        //      - attempt to trade zero qty
-        //      - order with zero qty
-        //      - order with values manipulated
-        //      - fees get transferred to recipient correctly.
-        //      - attempt to trade / cancel post expiration
-        //      - expiration methods
-        //      - settleAndClose()
-
     it("should only allow remaining quantity to be filled for an overfilled trade.", async function() {
         const timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
         const orderAddresses = [accountMaker, accountTaker, accounts[2]];
@@ -203,7 +198,7 @@ contract('MarketContractOraclize', function(accounts) {
 
         const expectedQtyFilled = 5;
 
-        // Execute trade between maker and taker for partial amount of order.
+        // Execute trade between maker and taker for overfilled amount of order.
         const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
         const actualQtyFilled = await marketContract.tradeOrder.call(
             orderAddresses,
@@ -256,4 +251,47 @@ contract('MarketContractOraclize', function(accounts) {
 
         assert.equal(expectedQtyCancelled, actualQtyCancelled.toNumber(), "Quantity cancelled doesn't match expected.");
     })
+
+    it("should fail for attempts to fill expired order", async function() {
+        const expiredTimestamp = ((new Date()).getTime() / 1000) - 30; // order expired 30 seconds ago.
+        const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+        const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
+        const orderQty = 5;   // user is attempting to buy 5
+        const qtyToFill = 1; // order is to be filled by 1
+        const orderHash = await orderLib.createOrderHash.call(
+            MarketContractOraclize.address,
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty
+        );
+
+        // Execute trade between maker and taker for partial amount of order.
+        const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
+        await marketContract.tradeOrder(
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty, // 5
+            qtyToFill, // fill one slot
+            orderSignature[0],  // v
+            orderSignature[1],  // r
+            orderSignature[2],  // s
+            {from: accountTaker}
+        );
+        const events = await utility.getEvent(marketContract, 'Error')
+        assert.equal(ErrorCodes.ORDER_EXPIRED, events[0].args.errorCode.toNumber(), "Error event is not order expired.")
+
+        const orderQtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash)
+        assert.equal(0, orderQtyFilled.toNumber(), "Quantity filled is not zero.")
+    })
+
+
+
+    // TODO:
+    //      - attempt to trade zero qty
+    //      - order with zero qty
+    //      - order with values manipulated
+    //      - fees get transferred to recipient correctly.
+    //      - attempt to trade / cancel post expiration
+    //      - expiration methods
+    //      - settleAndClose()
 });
