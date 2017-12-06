@@ -284,6 +284,33 @@ contract('MarketContractOraclize', function(accounts) {
         assert.equal(0, orderQtyFilled.toNumber(), "Quantity filled is not zero.")
     })
 
+    it("should fail for attempts to cancel expired order", async function() {
+        const expiredTimestamp = ((new Date()).getTime() / 1000) - 30; // order expired 30 seconds ago.
+        const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+        const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
+        const orderQty = 5;   // user is attempting to buy 5
+        const qtyToCancel = 1;
+        const orderHash = await orderLib.createOrderHash.call(
+            MarketContractOraclize.address,
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty
+        );
+
+        // Execute trade between maker and taker for partial amount of order.
+        await marketContract.cancelOrder(
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty,
+            qtyToCancel);
+
+        const events = await utility.getEvent(marketContract, 'Error')
+        assert.equal(ErrorCodes.ORDER_EXPIRED, events[0].args.errorCode.toNumber(), "Error event is not order expired.")
+
+        const orderQtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash)
+        assert.equal(0, orderQtyFilled.toNumber(), "Quantity cancelled is not zero.")
+    })
+
     it("should fail for attempts to trade zero quantity", async function() {
         const expiredTimestamp = ((new Date()).getTime() / 1000) + 60 * 5; // order expires in 5 minutes.
         const orderAddresses = [accountMaker, accountTaker, accounts[2]];
@@ -393,8 +420,6 @@ contract('MarketContractOraclize', function(accounts) {
 
 
     // TODO:
-    //      - order with values manipulated
-    //      - fees get transferred to recipient correctly.
     //      - attempt to trade / cancel post expiration
     //      - expiration methods
     //      - settleAndClose()
