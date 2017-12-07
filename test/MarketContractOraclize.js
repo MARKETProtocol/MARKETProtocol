@@ -14,14 +14,14 @@ const ErrorCodes = {
 // basic tests for interacting with market contract.
 contract('MarketContractOraclize', function(accounts) {
 
-    var collateralPool;
-    var marketToken;
-    var marketContract;
-    var collateralToken;
-    var orderLib;
-    var makerAccountBalanceBeforeTrade;
-    var takerAccountBalanceBeforeTrade;
-    var entryOrderPrice = 33025;
+    let collateralPool;
+    let marketToken;
+    let marketContract;
+    let collateralToken;
+    let orderLib;
+    let makerAccountBalanceBeforeTrade;
+    let takerAccountBalanceBeforeTrade;
+    const entryOrderPrice = 33025;
     const accountMaker = accounts[0];
     const accountTaker = accounts[1];
     it("Trade occurs, cancel occurs, balances transferred, positions updated", async function() {
@@ -31,11 +31,11 @@ contract('MarketContractOraclize', function(accounts) {
         orderLib = await OrderLib.deployed();
         collateralToken = await CollateralToken.deployed();
 
-        var timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
-        var orderAddresses = [accountMaker, accountTaker, accounts[2]];
-        var unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
-        var orderQty = 5;   // user is attempting to buy 5
-        var orderHash = await orderLib.createOrderHash.call(
+        let timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
+        let orderAddresses = [accountMaker, accountTaker, accounts[2]];
+        let unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
+        let orderQty = 5;   // user is attempting to buy 5
+        let orderHash = await orderLib.createOrderHash.call(
             MarketContractOraclize.address,
             orderAddresses,
             unsignedOrderValues,
@@ -44,11 +44,11 @@ contract('MarketContractOraclize', function(accounts) {
 
         // transfer half of the collateral tokens to the second account.
         initBalance = await collateralToken.INITIAL_SUPPLY.call().valueOf();
-        var balanceToTransfer = initBalance / 2;
+        const balanceToTransfer = initBalance / 2;
         await collateralToken.transfer(accounts[1], balanceToTransfer, {from: accounts[0]});
 
         // create approval and deposit collateral tokens for trading.
-        var amountToDeposit = 5000000;
+        const amountToDeposit = 5000000;
         await collateralToken.approve(collateralPool.address, amountToDeposit, {from: accounts[0]})
         await collateralToken.approve(collateralPool.address, amountToDeposit, {from: accounts[1]})
 
@@ -60,8 +60,8 @@ contract('MarketContractOraclize', function(accounts) {
         takerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accounts[1]);
 
         // Execute trade between maker and taker for partial amount of order.
-        var qtyToFill = 1;
-        var orderSignature = utility.signMessage(web3, accountMaker, orderHash)
+        const qtyToFill = 1;
+        const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
         await marketContract.tradeOrder(
             orderAddresses,
             unsignedOrderValues,
@@ -73,28 +73,28 @@ contract('MarketContractOraclize', function(accounts) {
             {from: accountTaker}
         );
 
-        var makerNetPos = await collateralPool.getUserPosition.call(accountMaker);
-        var takerNetPos = await collateralPool.getUserPosition.call(accountTaker);
+        const makerNetPos = await collateralPool.getUserPosition.call(accountMaker);
+        const takerNetPos = await collateralPool.getUserPosition.call(accountTaker);
         assert.equal(makerNetPos.toNumber(), 1, "Maker should be long 1");
         assert.equal(takerNetPos.toNumber(), -1, "Taker should be short 1");
 
-        var qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
-        assert.equal(qtyFilledOrCancelled.toNumber(), 1, "Fill Qty doesn't match expected");
+        const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+        assert.equal(qtyFilled.toNumber(), 1, "Fill Qty doesn't match expected");
 
         await marketContract.cancelOrder(orderAddresses, unsignedOrderValues, 5, 1); //cancel part of order
-        qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+        const qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
         assert.equal(qtyFilledOrCancelled.toNumber(), 2, "Fill Or Cancelled Qty doesn't match expected");
 
         // after the execution we should have collateral transferred from users to the pool, check all balances
         // here.
-        var priceFloor = await marketContract.PRICE_FLOOR.call();
-        var priceCap = await marketContract.PRICE_CAP.call();
-        var decimalPlaces = await marketContract.QTY_DECIMAL_PLACES.call();
-        var actualCollateralPoolBalance = await collateralPool.collateralPoolBalance.call();
+        const priceFloor = await marketContract.PRICE_FLOOR.call();
+        const priceCap = await marketContract.PRICE_CAP.call();
+        const decimalPlaces = await marketContract.QTY_DECIMAL_PLACES.call();
+        const actualCollateralPoolBalance = await collateralPool.collateralPoolBalance.call();
 
-        var longCollateral = (entryOrderPrice - priceFloor) * decimalPlaces * qtyToFill;
-        var shortCollateral = (priceCap - entryOrderPrice) * decimalPlaces * qtyToFill;
-        var totalExpectedCollateralBalance = longCollateral + shortCollateral;
+        const longCollateral = (entryOrderPrice - priceFloor) * decimalPlaces * qtyToFill;
+        const shortCollateral = (priceCap - entryOrderPrice) * decimalPlaces * qtyToFill;
+        const totalExpectedCollateralBalance = longCollateral + shortCollateral;
 
         assert.equal(
             totalExpectedCollateralBalance,
@@ -102,8 +102,8 @@ contract('MarketContractOraclize', function(accounts) {
             "Collateral pool isn't funded correctly"
         );
 
-        var makerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accounts[0]);
-        var takerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accounts[1]);
+        const makerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accounts[0]);
+        const takerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accounts[1]);
 
         assert.equal(
             makerAccountBalanceAfterTrade,
@@ -117,14 +117,14 @@ contract('MarketContractOraclize', function(accounts) {
         );
     });
 
-    var exitOrderPrice = 36025;
+    const exitOrderPrice = 36025;
     it("Trade is unwound, correct collateral amount returns to user balances", async function() {
-        var timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
-        var orderAddresses = [accountMaker, accountTaker, accounts[2]];
-        var orderPrice = 36025;
-        var unsignedOrderValues = [0, 0, orderPrice, timeStamp, 1];
-        var orderQty = -5;   // user is attempting to sell -5
-        var orderHash = await orderLib.createOrderHash.call(
+        const timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
+        const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+        const orderPrice = 36025;
+        const unsignedOrderValues = [0, 0, orderPrice, timeStamp, 1];
+        const orderQty = -5;   // user is attempting to sell -5
+        const orderHash = await orderLib.createOrderHash.call(
             MarketContractOraclize.address,
             orderAddresses,
             unsignedOrderValues,
@@ -133,8 +133,8 @@ contract('MarketContractOraclize', function(accounts) {
 
 
         // Execute trade between maker and taker for partial amount of order.
-        var qtyToFill = -1;
-        var orderSignature = utility.signMessage(web3, accountMaker, orderHash)
+        const qtyToFill = -1;
+        const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
         await marketContract.tradeOrder(
             orderAddresses,
             unsignedOrderValues,
@@ -146,30 +146,30 @@ contract('MarketContractOraclize', function(accounts) {
             {from: accountTaker}
         );
 
-        var makerNetPos = await collateralPool.getUserPosition.call(accountMaker);
-        var takerNetPos = await collateralPool.getUserPosition.call(accountTaker);
+        const makerNetPos = await collateralPool.getUserPosition.call(accountMaker);
+        const takerNetPos = await collateralPool.getUserPosition.call(accountTaker);
         assert.equal(makerNetPos.toNumber(), 0, "Maker should be flat");
         assert.equal(takerNetPos.toNumber(), 0, "Taker should be flat");
 
-        var qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
-        assert.equal(qtyFilledOrCancelled.toNumber(), -1, "Fill Qty doesn't match expected");
+        const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+        assert.equal(qtyFilled.toNumber(), -1, "Fill Qty doesn't match expected");
 
         await marketContract.cancelOrder(orderAddresses, unsignedOrderValues, -5, -1); //cancel part of order
-        qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+        const qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
         assert.equal(qtyFilledOrCancelled.toNumber(), -2, "Fill Or Cancelled Qty doesn't match expected");
 
         // after the execution we should have collateral transferred from pool to the users since they are now flat!
-        var actualCollateralPoolBalance = await collateralPool.collateralPoolBalance.call();
+        const actualCollateralPoolBalance = await collateralPool.collateralPoolBalance.call();
         assert.equal(
             actualCollateralPoolBalance.toNumber(),
             0,
             "Collateral pool should be completely empty"
         );
 
-        var makerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accounts[0]);
-        var takerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accounts[1]);
-        var decimalPlaces = await marketContract.QTY_DECIMAL_PLACES.call();
-        var profitForMaker = (exitOrderPrice - entryOrderPrice) * decimalPlaces;
+        const makerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accounts[0]);
+        const takerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accounts[1]);
+        const decimalPlaces = await marketContract.QTY_DECIMAL_PLACES.call();
+        const profitForMaker = (exitOrderPrice - entryOrderPrice) * decimalPlaces;
 
         assert.equal(
             makerAccountBalanceAfterTrade - makerAccountBalanceBeforeTrade,

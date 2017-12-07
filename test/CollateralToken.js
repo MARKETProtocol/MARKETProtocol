@@ -3,9 +3,9 @@ const CollateralToken = artifacts.require("CollateralToken");
 
 // basic tests to ensure collateral token works and is set up to allow trading
 contract('CollateralToken', function(accounts) {
-    var initBalance;
-    var collateralToken;
-    var balancePerAcct;
+    let initBalance;
+    let collateralToken;
+    let balancePerAcct;
     // test setup of token for collateral
     it("Initial supply should be 1e+22", async function() {
         collateralToken = await CollateralToken.deployed();
@@ -14,7 +14,7 @@ contract('CollateralToken', function(accounts) {
     });
 
     it("Main account should have entire balance", async function() {
-        let mainAcctBalance = await collateralToken.balanceOf.call(accounts[0]).valueOf();
+        const mainAcctBalance = await collateralToken.balanceOf.call(accounts[0]).valueOf();
         assert.equal(
             mainAcctBalance.toNumber(),
             initBalance.toNumber(),
@@ -23,10 +23,10 @@ contract('CollateralToken', function(accounts) {
     });
 
     it("Main account should be able to transfer balance", async function() {
-        var balanceToTransfer = initBalance / 2;
+        const balanceToTransfer = initBalance / 2;
         balancePerAcct = balanceToTransfer;
         await collateralToken.transfer(accounts[1], balanceToTransfer, {from: accounts[0]});
-        let secondAcctBalance = await collateralToken.balanceOf.call(accounts[1]).valueOf();
+        const secondAcctBalance = await collateralToken.balanceOf.call(accounts[1]).valueOf();
         assert.equal(
             secondAcctBalance.toNumber(),
             balanceToTransfer,
