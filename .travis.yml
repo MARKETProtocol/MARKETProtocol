@@ -14,9 +14,5 @@ before_install:
   - docker-compose --version
   - docker-compose up -d
   - docker-compose ps
-
-install: true
-
-before_script: docker-compose exec truffle truffle migrate
-
-script: docker-compose exec truffle truffle test
+  - docker-compose exec truffle truffle migrate
+  - docker-compose exec truffle truffle test
