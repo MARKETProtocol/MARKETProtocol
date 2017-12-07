@@ -8,13 +8,18 @@ node_js:
   - "8"
 
 env:
-  - TRUFFLE_DEVELOP_HOST=truffle TRUFFLE_DEVELOP_PORT=9545 TRAVIS_WORKER_DOCKER_BINDS='/home/travis/build/perfectmak/MarketProtocol:/app'
+  - TRUFFLE_DEVELOP_HOST=truffle TRUFFLE_DEVELOP_PORT=9545'
 
 before_install:
   - pwd
   - docker-compose --version
   - docker-compose up -d
-  - sleep 4
+  - sleep 5
   - docker-compose ps
+
+install:
+  - docker-compose exec truffle npm install
   - docker-compose exec truffle truffle migrate
+
+script:
   - docker-compose exec truffle truffle test
