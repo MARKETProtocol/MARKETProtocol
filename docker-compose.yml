@@ -1,0 +1,19 @@
+version: '3'
+services:
+  truffle:
+    build:
+      context: .
+    image: market-protocol:1.0.0
+    command: truffle develop
+    volumes:
+      - ./:/app
+    tty: true
+    stdin_open: true
+
+  eth-bridge:
+    image: perfectmak/ethereum-bridge:0.5.5
+    command: -H ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} -a 9 --dev
+    depends_on:
+      - truffle
+    links:
+      - truffle

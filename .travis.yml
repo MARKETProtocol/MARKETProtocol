@@ -1,0 +1,23 @@
+sudo: required
+
+services:
+  - docker
+
+language: node_js
+node_js:
+  - "8"
+
+env:
+  - TRUFFLE_DEVELOP_HOST=truffle
+  - TRUFFLE_DEVELOP_PORT=9545
+
+before_install:
+  - docker-compose --version
+  - docker-compose up -d
+  - docker-compose ps
+
+install: true
+
+before_script: docker-compose exec truffle truffle migrate
+
+script: docker-compose exec truffle truffle test
