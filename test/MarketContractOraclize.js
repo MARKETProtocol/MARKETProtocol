@@ -24,18 +24,21 @@ contract('MarketContractOraclize', function(accounts) {
     const entryOrderPrice = 33025;
     const accountMaker = accounts[0];
     const accountTaker = accounts[1];
-    it("Trade occurs, cancel occurs, balances transferred, positions updated", async function() {
+
+    beforeEach(async function() {
         collateralPool = await MarketCollateralPool.deployed();
         marketToken = await MarketToken.deployed();
         marketContract = await MarketContractOraclize.deployed();
         orderLib = await OrderLib.deployed();
         collateralToken = await CollateralToken.deployed();
+    })
 
-        let timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
-        let orderAddresses = [accountMaker, accountTaker, accounts[2]];
-        let unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
-        let orderQty = 5;   // user is attempting to buy 5
-        let orderHash = await orderLib.createOrderHash.call(
+    it("Trade occurs, cancel occurs, balances transferred, positions updated", async function() {
+        const timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
+        const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+        const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
+        const orderQty = 5;   // user is attempting to buy 5
+        const orderHash = await orderLib.createOrderHash.call(
             MarketContractOraclize.address,
             orderAddresses,
             unsignedOrderValues,
