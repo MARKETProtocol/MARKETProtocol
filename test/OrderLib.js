@@ -25,7 +25,7 @@ contract('OrderLib', function(accounts) {
             orderSignature[2]),
             "Order hash doesn't match signer"
         );
-        assert.isTrue(await orderLib.isValidSignature.call(
+        assert.isTrue(!await orderLib.isValidSignature.call(
             accounts[1],
             orderHash,
             orderSignature[0],
