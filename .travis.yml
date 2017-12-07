@@ -8,8 +8,7 @@ node_js:
   - "8"
 
 env:
-  - TRUFFLE_DEVELOP_HOST=truffle
-  - TRUFFLE_DEVELOP_PORT=9545
+  - TRUFFLE_DEVELOP_HOST=truffle TRUFFLE_DEVELOP_PORT=9545
 
 before_install:
   - docker-compose --version
