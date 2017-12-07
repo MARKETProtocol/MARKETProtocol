@@ -8,7 +8,7 @@ node_js:
   - "8"
 
 env:
-  - TRUFFLE_DEVELOP_HOST=truffle TRUFFLE_DEVELOP_PORT=9545 TRAVIS_WORKER_DOCKER_BINDS='${TRAVIS_BUILD_DIR}:/app'
+  - TRUFFLE_DEVELOP_HOST=truffle TRUFFLE_DEVELOP_PORT=9545 TRAVIS_WORKER_DOCKER_BINDS='/home/travis/build/perfectmak/MarketProtocol:/app'
 
 before_install:
   - pwd
