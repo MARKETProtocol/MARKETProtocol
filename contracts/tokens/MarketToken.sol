@@ -30,7 +30,7 @@ contract MarketToken is StandardToken, Creatable {
     string public constant symbol = "MKT";
     uint8 public constant decimals = 18;
 
-    uint public constant INITIAL_SUPPLY = 100000000 * uint(10)**decimals;
+    uint public constant INITIAL_SUPPLY = 10**27; // 1 billion w. 18 decimals
 
     uint public lockQtyToAllowTrading;
     uint public minBalanceToAllowContractCreation;
