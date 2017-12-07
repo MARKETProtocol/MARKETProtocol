@@ -54,6 +54,9 @@ contract MarketCollateralPool is Linkable {
     event UpdatedUserBalance(address indexed user, uint balance);
     event UpdatedPoolBalance(uint balance);
 
+    /// @dev instantiates a collateral pool that is unique to the supplied address of a MarketContract. This pairing
+    /// is 1:1
+    /// @param marketContractAddress deployed address of a MarketContract
     function MarketCollateralPool(address marketContractAddress) Linkable(marketContractAddress) public {
         MKT_CONTRACT = MarketContract(marketContractAddress);
         MKT_TOKEN_ADDRESS = MKT_CONTRACT.MKT_TOKEN_ADDRESS();
@@ -82,7 +85,7 @@ contract MarketCollateralPool is Linkable {
     /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
     function depositTokensForTrading(uint256 depositAmount) external {
         // user must call approve!
-        require(MKT_TOKEN.isUserEnabledForContract(address(MKT_CONTRACT), msg.sender));
+        require(MKT_TOKEN.isUserEnabledForContract(MKT_CONTRACT, msg.sender));
         uint256 balanceAfterDeposit = userAddressToAccountBalance[msg.sender].add(depositAmount);
         ERC20(MKT_CONTRACT.BASE_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, this, depositAmount);
         userAddressToAccountBalance[msg.sender] = balanceAfterDeposit;
@@ -94,7 +97,7 @@ contract MarketCollateralPool is Linkable {
     // settlement has occurred.
     function settleAndClose() external {
         require(MKT_CONTRACT.isSettled());
-        require(MKT_TOKEN.isUserEnabledForContract(address(MKT_CONTRACT), msg.sender));
+        require(MKT_TOKEN.isUserEnabledForContract(MKT_CONTRACT, msg.sender));
         UserNetPosition storage userNetPos = addressToUserPosition[msg.sender];
         if (userNetPos.netPosition != 0) {
             // this user has a position that we need to settle based upon the settlement price of the contract
@@ -109,6 +112,7 @@ contract MarketCollateralPool is Linkable {
         withdrawTokens(userAddressToAccountBalance[msg.sender]);
     }
 
+    /// @dev called by our linked MarketContract when a trade occurs to update both maker and takers positions.
     /// @param maker address of the maker in the trade
     /// @param taker address of the taker in the trade
     /// @param qty quantity transacted between parties
@@ -140,7 +144,7 @@ contract MarketCollateralPool is Linkable {
     /// @notice removes token from users trading account
     /// @param withdrawAmount qty of token to attempt to withdraw
     function withdrawTokens(uint256 withdrawAmount) public {
-        require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);   // ensure sufficient balance
+        //require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);  subtract call below will enforce this
         uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
         userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
         ERC20(MKT_CONTRACT.BASE_TOKEN_ADDRESS()).safeTransfer(msg.sender, withdrawAmount);
@@ -159,7 +163,7 @@ contract MarketCollateralPool is Linkable {
         uint collateralAmount
     ) private
     {
-        require(MKT_TOKEN.isUserEnabledForContract(address(MKT_CONTRACT), msg.sender));
+        require(MKT_TOKEN.isUserEnabledForContract(MKT_CONTRACT, msg.sender));
         require(userAddressToAccountBalance[fromAddress] >= collateralAmount);   // ensure sufficient balance
         uint newBalance = userAddressToAccountBalance[fromAddress].subtract(collateralAmount);
         userAddressToAccountBalance[fromAddress] = newBalance;
@@ -176,8 +180,8 @@ contract MarketCollateralPool is Linkable {
         uint collateralAmount
     ) private
     {
-        require(MKT_TOKEN.isUserEnabledForContract(address(MKT_CONTRACT), msg.sender));
-        require(collateralPoolBalance >= collateralAmount); // ensure sufficient balance
+        require(MKT_TOKEN.isUserEnabledForContract(MKT_CONTRACT, msg.sender));
+        // require(collateralPoolBalance >= collateralAmount); subtract call below will enforce this!
         uint newBalance = userAddressToAccountBalance[toAddress].add(collateralAmount);
         userAddressToAccountBalance[toAddress] = newBalance;
         collateralPoolBalance = collateralPoolBalance.subtract(collateralAmount);
