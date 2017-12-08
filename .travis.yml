@@ -14,7 +14,7 @@ before_install:
   - pwd
   - docker-compose --version
   - docker-compose up -d
-  - sleep 5
+  - sleep 6
   - docker-compose ps
 
 install:
