@@ -22,41 +22,33 @@ import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 contract MarketContractRegistry is Ownable {
 
-    mapping(address => bool) isWhiteListed; // by default currently all contracts are whitelisted
-    address[] deployedAddresses;            // record of all deployed addresses;
-
-    function MarketContractRegistry() public {
-
-    }
+    mapping(address => bool) isWhiteListed;
+    address[] addressWhiteList;            // record of currently deployed addresses;
 
     /// @notice determines if an address is a valid MarketContract
-    /// @return false if the address has not been deployed by this factory, or is no longer white listed.
+    /// @return false if the address is not white listed.
     function isAddressWhiteListed(address contractAddress) external view returns (bool) {
         return isWhiteListed[contractAddress];
     }
 
-    /// @notice the current number of contracts that have been deployed by this factory.
-    function getDeployedAddressesLength() external view returns (uint) {
-        return deployedAddresses.length;
-    }
-
-    /// @notice allows user to get all addresses currently available from this factory
-    /// @param index of the deployed contract to return the address
-    /// @return address of a white listed contract, or if contract is no longer valid address(0) is returned.
-    function getAddressByIndex(uint index) external view returns (address) {
-        address deployedAddress = deployedAddresses[index];
-        if (isWhiteListed[deployedAddress]) {
-            return deployedAddress;
-        } else {
-            return address(0);
-        }
+    /// @notice all currently whitelisted addresses
+    /// returns array of addresses
+    function getAddressWhiteList() external view returns (address[]) {
+        return addressWhiteList;
     }
 
     /// @dev allows for the owner to remove a white listed contract, eventually ownership could transition to
     /// a decentralized smart contract of community members to vote
     /// @param contractAddress contract to removed from white list
-    function removeContractFromWhiteList(address contractAddress) external onlyOwner returns (bool) {
+    /// @param whiteListIndex of the contractAddress in the addressWhiteList to be removed.
+    function removeContractFromWhiteList(address contractAddress, uint whiteListIndex) external onlyOwner returns (bool) {
+        require(isWhiteListed[contractAddress]);
+        require(addressWhiteList[whiteListIndex] == contractAddress);
         isWhiteListed[contractAddress] = false;
+
+        // push the last item in array to replace the address we are removing and then trim the array.
+        addressWhiteList[whiteListIndex] = addressWhiteList[addressWhiteList.length - 1];
+        addressWhiteList.length -= 1;
     }
 
     /// @dev allows for the owner to add a white listed contract, eventually ownership could transition to
@@ -66,6 +58,6 @@ contract MarketContractRegistry is Ownable {
         require(!isWhiteListed[contractAddress]);
         require(MarketContract(contractAddress).isCollateralPoolContractLinked());
         isWhiteListed[contractAddress] = true;
-        deployedAddresses.push(contractAddress);
+        addressWhiteList.push(contractAddress);
     }
 }
