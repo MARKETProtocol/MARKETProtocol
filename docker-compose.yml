@@ -3,7 +3,7 @@ services:
   truffle:
     build:
       context: .
-    image: market-protocol:1.0.0
+    image: market-protocol:1.0.1
     command: truffle develop
     volumes:
       - ./:/app
@@ -21,7 +21,7 @@ services:
   truffle-coverage:
     build:
       context: .
-    image: market-protocol:1.0.0
+    image: market-protocol:1.0.1
     command: scripts/coverage_setup.sh
     volumes:
       - ./:/app
