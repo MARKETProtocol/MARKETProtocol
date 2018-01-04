@@ -13,13 +13,14 @@ env:
 before_install:
   - pwd
   - docker-compose --version
+  - docker-compose down
   - docker-compose up -d
-  - sleep 60
   - docker-compose ps
 
 install:
-  - docker-compose exec truffle npm install
   - docker-compose exec truffle-coverage npm install
+  - docker-compose exec truffle npm install
+  - docker-compose exec eth-bridge-coverage scripts/wait_for_oraclize_connector.sh
 
 script:
   - docker-compose exec truffle-coverage scripts/coverage_run.sh
