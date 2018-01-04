@@ -8,18 +8,20 @@ node_js:
   - "8"
 
 env:
-  - TRUFFLE_DEVELOP_HOST=truffle TRUFFLE_DEVELOP_PORT=9545'
+  - TRUFFLE_DEVELOP_HOST=truffle TRUFFLE_DEVELOP_PORT=9545 TRUFFLE_COVERAGE_HOST=truffle-coverage TRUFFLE_COVERAGE_PORT=8555
 
 before_install:
   - pwd
   - docker-compose --version
   - docker-compose up -d
-  - sleep 6
+  - sleep 60
   - docker-compose ps
 
 install:
   - docker-compose exec truffle npm install
-  - docker-compose exec truffle truffle migrate
+  - docker-compose exec truffle-coverage npm install
 
 script:
+  - docker-compose exec truffle-coverage scripts/coverage_run.sh
+  - docker-compose exec truffle truffle migrate
   - docker-compose exec truffle truffle test
