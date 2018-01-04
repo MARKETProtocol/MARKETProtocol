@@ -29,7 +29,7 @@ services:
     stdin_open: true
 
   eth-bridge-coverage:
-    image: cryptomental/ethereum-bridge-coverage:0.5.5
+    image: cryptomental/ethereum-bridge-coverage:0.5.6
     command: -H ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} -a 9 --dev
     depends_on:
       - truffle-coverage
