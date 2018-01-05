@@ -19,6 +19,7 @@ services:
   eth-bridge:
     image: cryptomental/ethereum-bridge-coverage:0.5.6
     command: -H ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} -a 9 --dev
+    restart: unless-stopped
     depends_on:
       - truffle
     links:
@@ -43,6 +44,7 @@ services:
   eth-bridge-coverage:
     image: cryptomental/ethereum-bridge-coverage:0.5.6
     command: -H ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} -a 9 --dev
+    restart: unless-stopped
     depends_on:
       - truffle-coverage
     links:
