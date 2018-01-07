@@ -1,8 +1,9 @@
-const MarketContractOraclize = artifacts.require("MarketContractOraclize");
+const MarketContractOraclize = artifacts.require("TestableMarketContractOraclize");
 const MarketCollateralPool = artifacts.require("MarketCollateralPool");
 const MarketToken = artifacts.require("MarketToken");
 const CollateralToken = artifacts.require("CollateralToken");
 const OrderLib = artifacts.require("OrderLib");
+const Helpers = require('./helpers/Helpers.js')
 const utility = require('./utility.js');
 
 const ErrorCodes = {
@@ -21,6 +22,7 @@ contract('MarketContractOraclize', function(accounts) {
     let orderLib;
     let makerAccountBalanceBeforeTrade;
     let takerAccountBalanceBeforeTrade;
+    let tradeHelper;
     const entryOrderPrice = 33025;
     const accountMaker = accounts[0];
     const accountTaker = accounts[1];
@@ -31,6 +33,7 @@ contract('MarketContractOraclize', function(accounts) {
         marketContract = await MarketContractOraclize.deployed();
         orderLib = await OrderLib.deployed();
         collateralToken = await CollateralToken.deployed();
+        tradeHelper = await Helpers.TradeHelper(MarketContractOraclize, OrderLib, CollateralToken, MarketCollateralPool)
     })
 
     it("Trade occurs, cancel occurs, balances transferred, positions updated", async function() {
@@ -420,10 +423,74 @@ contract('MarketContractOraclize', function(accounts) {
         assert.ok(error instanceof Error, "Order did not fail");
     })
 
+    it("should fail for attempt to trade after settlement", async function() {
+        const orderQty = 2;
+        const orderToFill = 2;
+        const settlementPrice = 50000;
+        const isExpired = true;
+        await tradeHelper.tradeOrder(
+            [accounts[0], accounts[1], accounts[2]],
+            [entryOrderPrice, orderQty, orderToFill],
+            isExpired
+        );
+        await tradeHelper.settleOrderWithPrice(settlementPrice);
 
+        let error;
+        try {
+            await tradeHelper.tradeOrder(
+                [accounts[0], accounts[1], accounts[2]],
+                [entryOrderPrice, orderQty, orderToFill]
+            );
+        } catch (err) {
+            error = err;
+        }
 
-    // TODO:
-    //      - attempt to trade / cancel post expiration
-    //      - expiration methods
-    //      - settleAndClose()
+        assert.ok(error instanceof Error, "tradeOrder() should fail after settlement");
+    })
+
+    it("should fail for attempt to cancel after settlement", async function() {
+        const orderQty = 2;
+        const orderToCancel = 1;
+        const settlementPrice = 20000;
+        await tradeHelper.tradeOrder(
+            [accounts[0], accounts[1], accounts[2]],
+            [entryOrderPrice, orderQty, orderToCancel],
+            true
+        );
+        await tradeHelper.settleOrderWithPrice(settlementPrice);
+
+        let error;
+        try {
+            await tradeHelper.cancelOrder(
+                [accounts[0], accounts[1], accounts[2]],
+                [entryOrderPrice, orderQty, orderToCancel],
+            );
+        } catch (err) {
+            error = err;
+        }
+
+        assert.ok(error instanceof Error, "cancelOrder() should fail after settlement");
+    })
+
+    it("should not allow unknown address to claim remaining ether", async function() {
+        const unknownAddress = accounts[4];
+
+        let error;
+        try {
+            await marketContract.reclaimUnusedEtherBalance({from: unknownAddress});
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "Address not creator can claim unused ether");
+    })
+
+    it("should allow only contract owner to claim remaining ether", async function() {
+        const creator = accounts[0];
+        const balance = await web3.eth.getBalance(MarketContractOraclize.address);
+
+        await marketContract.reclaimUnusedEtherBalance({from: creator});
+
+        const balanceAfterTransfer = await web3.eth.getBalance(MarketContractOraclize.address);
+        assert.equal(balanceAfterTransfer.toNumber(), 0, "Remaining ether is not fully claimed");
+    })
 });

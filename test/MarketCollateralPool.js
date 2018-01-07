@@ -1,8 +1,10 @@
-const MarketContractOraclize = artifacts.require("MarketContractOraclize");
+const MarketContractOraclize = artifacts.require("TestableMarketContractOraclize");
 const MarketCollateralPool = artifacts.require("MarketCollateralPool");
 const CollateralToken = artifacts.require("CollateralToken");
 const MarketToken = artifacts.require("MarketToken");
-
+const OrderLib = artifacts.require("OrderLib");
+const Helpers = require('./helpers/Helpers.js')
+const utility = require('./utility.js');
 
 // basic tests to ensure MarketCollateralPool works and is set up to allow trading
 contract('MarketCollateralPool', function(accounts) {
@@ -13,13 +15,26 @@ contract('MarketCollateralPool', function(accounts) {
     let collateralPool;
     let marketContract;
     let marketToken
+    let orderLib;
+    let decimalPlaces;
+    let priceFloor;
+    let priceCap;
+    let tradeHelper;
+
+    beforeEach(async function() {
+        collateralPool = await MarketCollateralPool.deployed();
+        marketToken = await MarketToken.deployed();
+        marketContract = await MarketContractOraclize.deployed();
+        orderLib = await OrderLib.deployed();
+        collateralToken = await CollateralToken.deployed();
+        decimalPlaces = await marketContract.QTY_DECIMAL_PLACES.call();
+        priceFloor = await marketContract.PRICE_FLOOR.call();
+        priceCap = await marketContract.PRICE_CAP.call();
+        tradeHelper = await Helpers.TradeHelper(MarketContractOraclize, OrderLib, CollateralToken, MarketCollateralPool)
+    })
 
     it("Both accounts should be able to deposit to collateral pool contract", async function() {
-        collateralToken = await CollateralToken.deployed();
         initBalance = await collateralToken.INITIAL_SUPPLY.call().valueOf();
-        collateralPool = await MarketCollateralPool.deployed();
-        marketContract = await MarketContractOraclize.deployed();
-        marketToken = await MarketToken.deployed();
 
         // transfer half of balance to second account
         const balanceToTransfer = initBalance / 2;
@@ -75,4 +90,77 @@ contract('MarketCollateralPool', function(accounts) {
         const secondAcctTokenBalance = await collateralToken.balanceOf.call(accounts[1]).valueOf();
         assert.equal(secondAcctTokenBalance, expectedTokenBalances, "Token didn't get transferred back to user");
     });
+
+    it('should fail if settleAndClose() is called before settlement', async () => {
+        // const entryOrderPrice = 3000;
+        // const orderQty = 2;
+        // const orderToFill = 1;
+        // await tradeHelper.tradeOrder([accounts[0], accounts[1], accounts[2]], [entryOrderPrice, orderQty, orderToFill]);
+
+        let error = null
+        try {
+            await collateralPool.settleAndClose.call({ from: accounts[0] });
+        } catch (err) {
+            error = err;
+        }
+
+        assert.ok(error instanceof Error, "settleAndClose() did not fail before settlement");
+    })
+
+    it('should close open positions and withdraw collateral to accounts when settleAndClose() is called', async function() {
+        const entryOrderPrice = 3000;
+        const settlementPrice = 20000; // force to settlement with price below price floor (20155)
+        const orderQty = 2;
+        const orderToFill = 1;
+
+        await tradeHelper.tradeOrder(
+            [accounts[0], accounts[1], accounts[2]],
+            [entryOrderPrice, orderQty, orderToFill]
+        );
+        await tradeHelper.settleOrderWithPrice(settlementPrice);
+
+        const expectedMakersTokenAfterSettlement = await tradeHelper.calculateSettlementToken(
+            accounts[0],
+            priceFloor,
+            priceCap,
+            decimalPlaces,
+            orderToFill,
+            settlementPrice
+        )
+
+        const expectedTakersTokenAfterSettlement = await tradeHelper.calculateSettlementToken(
+            accounts[1],
+            priceFloor,
+            priceCap,
+            decimalPlaces,
+            -orderToFill,
+            settlementPrice
+        )
+
+        await collateralPool.settleAndClose({ from: accounts[0] });
+        await collateralPool.settleAndClose({ from: accounts[1] });
+
+        // makers and takers collateral pool balance is cleared
+        const makersCollateralBalanceAfterSettlement = await collateralPool.getUserAccountBalance.call(accounts[0]);
+        const takersCollateralBalanceAfterSettlement = await collateralPool.getUserAccountBalance.call(accounts[1]);
+
+        assert.equal(makersCollateralBalanceAfterSettlement.toNumber(), 0, 'Makers collateral balance not returned')
+        assert.equal(takersCollateralBalanceAfterSettlement.toNumber(), 0, 'Takers collateral balance not returned')
+
+        // check correct token amount is withdrawn to makers and takers account
+        const makersTokenBalanceAfterSettlement = await collateralToken.balanceOf.call(accounts[0]);
+        assert.equal(
+            makersTokenBalanceAfterSettlement.toNumber(),
+            expectedMakersTokenAfterSettlement.toNumber(),
+            'Makers account incorrectly settled'
+        );
+
+        const takersTokenBalanceAfterSettlement = await collateralToken.balanceOf.call(accounts[1]);
+        assert.equal(
+            takersTokenBalanceAfterSettlement.toNumber(),
+            expectedTakersTokenAfterSettlement.toNumber(),
+            'Takers account incorrectly settled'
+        );
+    })
+
 });
