@@ -33,5 +33,33 @@ module.exports = {
         return resolve(logs)
       });
     });
+  },
+
+  /**
+   *
+   * @param priceFloor
+   * @param priceCap
+   * @param qtyDecimalPlaces
+   * @param qty
+   * @param price
+   * @return {number}
+   */
+  calculateCollateral(priceFloor, priceCap, qtyDecimalPlaces, qty, price){
+    const zero = 0;
+    let maxLoss;
+    if (qty > zero) {
+      if (price <= priceFloor) {
+        maxLoss = zero;
+      } else {
+        maxLoss = price - priceFloor;
+      }
+    } else {
+      if (price >= priceCap) {
+        maxLoss = zero;
+      } else {
+        maxLoss = priceCap - price;
+      }
+    }
+    return maxLoss * Math.abs(qty) * qtyDecimalPlaces;
   }
 }

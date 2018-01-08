@@ -1,4 +1,4 @@
-const MarketContractOraclize = artifacts.require("MarketContractOraclize");
+const MarketContractOraclize = artifacts.require("TestableMarketContractOraclize");
 const MarketCollateralPool = artifacts.require("MarketCollateralPool");
 const MarketToken = artifacts.require("MarketToken");
 const MarketContractRegistry = artifacts.require("MarketContractRegistry");

@@ -1,8 +1,9 @@
-const MarketContractOraclize = artifacts.require("MarketContractOraclize");
+const MarketContractOraclize = artifacts.require("TestableMarketContractOraclize");
 const MarketCollateralPool = artifacts.require("MarketCollateralPool");
 const MarketToken = artifacts.require("MarketToken");
 const CollateralToken = artifacts.require("CollateralToken");
 const OrderLib = artifacts.require("OrderLib");
+const Helpers = require('./helpers/Helpers.js')
 const utility = require('./utility.js');
 
 const ErrorCodes = {
@@ -21,6 +22,7 @@ contract('MarketContractOraclize', function(accounts) {
     let orderLib;
     let makerAccountBalanceBeforeTrade;
     let takerAccountBalanceBeforeTrade;
+    let tradeHelper;
     const entryOrderPrice = 33025;
     const accountMaker = accounts[0];
     const accountTaker = accounts[1];
@@ -31,6 +33,7 @@ contract('MarketContractOraclize', function(accounts) {
         marketContract = await MarketContractOraclize.deployed();
         orderLib = await OrderLib.deployed();
         collateralToken = await CollateralToken.deployed();
+        tradeHelper = await Helpers.TradeHelper(MarketContractOraclize, OrderLib, CollateralToken, MarketCollateralPool)
     })
 
     it("Trade occurs, cancel occurs, balances transferred, positions updated", async function() {
@@ -122,31 +125,15 @@ contract('MarketContractOraclize', function(accounts) {
 
     const exitOrderPrice = 36025;
     it("Trade is unwound, correct collateral amount returns to user balances", async function() {
-        const timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
         const orderAddresses = [accountMaker, accountTaker, accounts[2]];
         const orderPrice = 36025;
-        const unsignedOrderValues = [0, 0, orderPrice, timeStamp, 1];
         const orderQty = -5;   // user is attempting to sell -5
-        const orderHash = await orderLib.createOrderHash.call(
-            MarketContractOraclize.address,
-            orderAddresses,
-            unsignedOrderValues,
-            orderQty
-        );
-
 
         // Execute trade between maker and taker for partial amount of order.
         const qtyToFill = -1;
-        const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
-        await marketContract.tradeOrder(
+        const { orderHash, unsignedOrderValues } = await tradeHelper.tradeOrder(
             orderAddresses,
-            unsignedOrderValues,
-            orderQty,                 // qty is five
-            qtyToFill,          // let us fill a one lot
-            orderSignature[0],  // v
-            orderSignature[1],  // r
-            orderSignature[2],  // s
-            {from: accountTaker}
+            [orderPrice, orderQty, qtyToFill]
         );
 
         const makerNetPos = await collateralPool.getUserPosition.call(accountMaker);
@@ -218,29 +205,14 @@ contract('MarketContractOraclize', function(accounts) {
     })
 
     it("should only allow remaining quantity to be cancelled for an over cancelled trade.", async function() {
-        const timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
         const orderAddresses = [accountMaker, accountTaker, accounts[2]];
-        const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
         const orderQty = -5;   // user is attempting to sell 5
         const qtyToFill = -1; // order is to be filled by 1
-        const orderHash = await orderLib.createOrderHash.call(
-            MarketContractOraclize.address,
-            orderAddresses,
-            unsignedOrderValues,
-            orderQty
-        );
 
         // Execute trade between maker and taker for partial amount of order.
-        const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
-        await marketContract.tradeOrder(
+        const { unsignedOrderValues } = await tradeHelper.tradeOrder(
             orderAddresses,
-            unsignedOrderValues,
-            orderQty, // -5
-            qtyToFill, // fill one slot
-            orderSignature[0],  // v
-            orderSignature[1],  // r
-            orderSignature[2],  // s
-            {from: accountTaker}
+            [entryOrderPrice, orderQty, qtyToFill]
         );
 
         const expectedQtyCancelled = -4
@@ -256,30 +228,17 @@ contract('MarketContractOraclize', function(accounts) {
     })
 
     it("should fail for attempts to fill expired order", async function() {
-        const expiredTimestamp = ((new Date()).getTime() / 1000) - 30; // order expired 30 seconds ago.
-        const orderAddresses = [accountMaker, accountTaker, accounts[2]];
-        const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
+        const isExpired = true;
         const orderQty = 5;   // user is attempting to buy 5
         const qtyToFill = 1; // order is to be filled by 1
-        const orderHash = await orderLib.createOrderHash.call(
-            MarketContractOraclize.address,
-            orderAddresses,
-            unsignedOrderValues,
-            orderQty
-        );
 
         // Execute trade between maker and taker for partial amount of order.
-        const orderSignature = utility.signMessage(web3, accountMaker, orderHash)
-        await marketContract.tradeOrder(
-            orderAddresses,
-            unsignedOrderValues,
-            orderQty, // 5
-            qtyToFill, // fill one slot
-            orderSignature[0],  // v
-            orderSignature[1],  // r
-            orderSignature[2],  // s
-            {from: accountTaker}
+        const { orderHash } = await tradeHelper.tradeOrder(
+            [accountMaker, accountTaker, accounts[2]],
+            [entryOrderPrice, orderQty, qtyToFill],
+            isExpired
         );
+
         const events = await utility.getEvent(marketContract, 'Error')
         assert.equal(ErrorCodes.ORDER_EXPIRED, events[0].args.errorCode.toNumber(), "Error event is not order expired.")
 
@@ -288,24 +247,16 @@ contract('MarketContractOraclize', function(accounts) {
     })
 
     it("should fail for attempts to cancel expired order", async function() {
-        const expiredTimestamp = ((new Date()).getTime() / 1000) - 30; // order expired 30 seconds ago.
-        const orderAddresses = [accountMaker, accountTaker, accounts[2]];
-        const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
+        const isExpired = true;
         const orderQty = 5;   // user is attempting to buy 5
         const qtyToCancel = 1;
-        const orderHash = await orderLib.createOrderHash.call(
-            MarketContractOraclize.address,
-            orderAddresses,
-            unsignedOrderValues,
-            orderQty
-        );
 
         // Execute trade between maker and taker for partial amount of order.
-        await marketContract.cancelOrder(
-            orderAddresses,
-            unsignedOrderValues,
-            orderQty,
-            qtyToCancel);
+        const { orderHash } = await tradeHelper.cancelOrder(
+            [accountMaker, accountTaker, accounts[2]],
+            [entryOrderPrice, orderQty, qtyToCancel],
+            isExpired
+        );
 
         const events = await utility.getEvent(marketContract, 'Error')
         assert.equal(ErrorCodes.ORDER_EXPIRED, events[0].args.errorCode.toNumber(), "Error event is not order expired.")
@@ -420,10 +371,74 @@ contract('MarketContractOraclize', function(accounts) {
         assert.ok(error instanceof Error, "Order did not fail");
     })
 
+    it("should fail for attempt to trade after settlement", async function() {
+        const orderQty = 2;
+        const orderToFill = 2;
+        const settlementPrice = 50000;
+        const isExpired = true;
+        await tradeHelper.tradeOrder(
+            [accounts[0], accounts[1], accounts[2]],
+            [entryOrderPrice, orderQty, orderToFill],
+            isExpired
+        );
+        await tradeHelper.settleOrderWithPrice(settlementPrice);
 
+        let error;
+        try {
+            await tradeHelper.tradeOrder(
+                [accounts[0], accounts[1], accounts[2]],
+                [entryOrderPrice, orderQty, orderToFill]
+            );
+        } catch (err) {
+            error = err;
+        }
 
-    // TODO:
-    //      - attempt to trade / cancel post expiration
-    //      - expiration methods
-    //      - settleAndClose()
+        assert.ok(error instanceof Error, "tradeOrder() should fail after settlement");
+    })
+
+    it("should fail for attempt to cancel after settlement", async function() {
+        const orderQty = 2;
+        const orderToCancel = 1;
+        const settlementPrice = 20000;
+        await tradeHelper.tradeOrder(
+            [accounts[0], accounts[1], accounts[2]],
+            [entryOrderPrice, orderQty, orderToCancel],
+            true
+        );
+        await tradeHelper.settleOrderWithPrice(settlementPrice);
+
+        let error;
+        try {
+            await tradeHelper.cancelOrder(
+                [accounts[0], accounts[1], accounts[2]],
+                [entryOrderPrice, orderQty, orderToCancel],
+            );
+        } catch (err) {
+            error = err;
+        }
+
+        assert.ok(error instanceof Error, "cancelOrder() should fail after settlement");
+    })
+
+    it("should not allow unknown address to claim remaining ether", async function() {
+        const unknownAddress = accounts[4];
+
+        let error;
+        try {
+            await marketContract.reclaimUnusedEtherBalance({from: unknownAddress});
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "Address not creator can claim unused ether");
+    })
+
+    it("should allow only contract owner to claim remaining ether", async function() {
+        const creator = accounts[0];
+        const balance = await web3.eth.getBalance(MarketContractOraclize.address);
+
+        await marketContract.reclaimUnusedEtherBalance({from: creator});
+
+        const balanceAfterTransfer = await web3.eth.getBalance(MarketContractOraclize.address);
+        assert.equal(balanceAfterTransfer.toNumber(), 0, "Remaining ether is not fully claimed");
+    })
 });
