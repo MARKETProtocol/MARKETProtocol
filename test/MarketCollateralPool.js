@@ -42,8 +42,8 @@ contract('MarketCollateralPool', function(accounts) {
 
         // currently the Market Token is deployed with no qty need to trade, so all accounts should
         // be enabled.
-        const isAllowedToTradeAcctOne = await marketToken.isUserEnabledForContract(marketContract.address, accounts[0])
-        const isAllowedToTradeAcctTwo = await marketToken.isUserEnabledForContract(marketContract.address, accounts[1])
+        const isAllowedToTradeAcctOne = await marketToken.isUserEnabledForContract.call(marketContract.address, accounts[0])
+        const isAllowedToTradeAcctTwo = await marketToken.isUserEnabledForContract.call(marketContract.address, accounts[1])
 
         assert.isTrue(isAllowedToTradeAcctOne, "account isn't able to trade!");
         assert.isTrue(isAllowedToTradeAcctTwo, "account isn't able to trade!");
