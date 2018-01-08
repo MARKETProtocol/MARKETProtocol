@@ -93,5 +93,9 @@ contract TestMathLib {
         // neededCollateral for a long position and price equal to priceFloor returns zero
         Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyDecimalPlaces, longQty, priceFloor),
                      0, "collateral for a long position and price equal to priceFloor should be 0");
+
+        // neededCollateral for a short position and price equal to priceCap returns zero
+        Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyDecimalPlaces, shortQty, priceCap),
+                     0, "collateral for a short position and price equal to priceCap should be 0");
     }
 }
