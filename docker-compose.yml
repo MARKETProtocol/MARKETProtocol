@@ -1,19 +1,55 @@
-version: '3'
+version: '3.4'
 services:
   truffle:
     build:
       context: .
-    image: market-protocol:1.0.0
+    image: market-protocol:1.0.1
     command: truffle develop
+    tmpfs: 
+      - /app/build
+      - /app/node_modules:exec,mode=777
     volumes:
-      - ./:/app
+      - type: volume
+        source: ./
+        target: /app
+        name: truffle_volume
     tty: true
     stdin_open: true
 
   eth-bridge:
-    image: perfectmak/ethereum-bridge:0.5.5
+    image: cryptomental/ethereum-bridge-coverage:0.5.6
     command: -H ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} -a 9 --dev
+    restart: unless-stopped
     depends_on:
       - truffle
     links:
       - truffle
+
+  truffle-coverage:
+    build:
+      context: .
+    image: market-protocol:1.0.1
+    command: scripts/coverage_setup.sh
+    tmpfs: 
+      - /app/build
+      - /app/node_modules:exec,mode=777
+    volumes:
+      - type: volume
+        source: ./
+        target: /app
+        name: truffle_coverage_volume
+    tty: true
+    stdin_open: true
+
+  eth-bridge-coverage:
+    image: cryptomental/ethereum-bridge-coverage:0.5.6
+    command: -H ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} -a 9 --dev
+    restart: unless-stopped
+    depends_on:
+      - truffle-coverage
+    links:
+      - truffle-coverage
+
+volumes:
+  truffle_volume:
+  truffle_coverage_volume:
