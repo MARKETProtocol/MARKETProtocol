@@ -21,12 +21,12 @@ module.exports = async function(MarketContractOraclize, OrderLib, CollateralToke
 
     async function tradeOrder(
         [accountMaker, accountTaker, feeAccount],
-        [entryOrderPrice, orderQty, qtyToFill],
+        [orderPrice, orderQty, qtyToFill],
         isExpired = false
     ) {
         const timeStamp = ((new Date()).getTime() / 1000) + 60 * ( isExpired ? -5 : 5); // expires/expired 5 mins (ago)
         const orderAddresses = [accountMaker, accountTaker, feeAccount];
-        const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
+        const unsignedOrderValues = [0, 0, orderPrice, timeStamp, 1];
         const orderHash = await orderLib.createOrderHash.call(
             MarketContractOraclize.address,
             orderAddresses,
@@ -45,7 +45,7 @@ module.exports = async function(MarketContractOraclize, OrderLib, CollateralToke
             orderSignature[2],  // s
             {from: accountTaker}
         );
-        return { orderHash };
+        return { orderHash, orderSignature, unsignedOrderValues };
     }
 
     async function cancelOrder(
@@ -56,6 +56,12 @@ module.exports = async function(MarketContractOraclize, OrderLib, CollateralToke
         const timeStamp = ((new Date()).getTime() / 1000) + 60 * ( isExpired ? -5 : 5); // expires/expired 5 mins (ago)
         const orderAddresses = [accountMaker, accountTaker, feeAccount];
         const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
+        const orderHash = await orderLib.createOrderHash.call(
+            MarketContractOraclize.address,
+            orderAddresses,
+            unsignedOrderValues,
+            orderQty
+        );
 
         await marketContract.cancelOrder(
             orderAddresses,
@@ -63,7 +69,7 @@ module.exports = async function(MarketContractOraclize, OrderLib, CollateralToke
             orderQty,
             qtyToCancel
         );
-        return { };
+        return { orderHash };
     }
 
     async function settleOrderWithPrice(settlementPrice) {
