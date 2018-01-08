@@ -8,7 +8,7 @@ node_js:
   - "8"
 
 env:
-  - TRUFFLE_DEVELOP_HOST=truffle TRUFFLE_DEVELOP_PORT=9546 TRUFFLE_COVERAGE_HOST=truffle-coverage TRUFFLE_COVERAGE_PORT=8555
+  - TRUFFLE_DEVELOP_HOST=truffle TRUFFLE_DEVELOP_PORT=9545 TRUFFLE_COVERAGE_HOST=truffle-coverage TRUFFLE_COVERAGE_PORT=8555
 
 before_install:
   - pwd
@@ -24,6 +24,6 @@ script:
   - docker-compose ps
   - docker-compose exec eth-bridge scripts/wait_for_oraclize_connector.sh
   - docker-compose exec eth-bridge-coverage scripts/wait_for_oraclize_connector.sh
-  - docker-compose exec truffle-coverage env CONTINUOUS_INTEGRATION=true scripts/coverage_run.sh
+  - docker-compose exec truffle-coverage env CONTINUOUS_INTEGRATION=true TRAVIS=true TRAVIS_JOB_ID="$TRAVIS_JOB_ID" TRAVIS_BRANCH="$TRAVIS_BRANCH" TRAVIS_PULL_REQUEST="$TRAVIS_PULL_REQUEST" scripts/coverage_run.sh
   - docker-compose exec truffle truffle migrate
   - docker-compose exec truffle truffle test
