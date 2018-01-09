@@ -19,6 +19,7 @@ pragma solidity 0.4.18;
 import "truffle/Assert.sol";
 import "../../contracts/libraries/MathLib.sol";
 
+
 /// @title TestMathLib tests for all of our math functions
 /// @author Phil Elsasser <phil@marketprotcol.io>
 contract TestMathLib {
@@ -60,6 +61,47 @@ contract TestMathLib {
         Assert.equal(MathLib.absMax(-15, -20), -20, "-20 further from 0 than -15");
     }
 
+    function failSubtractWhenALessThanB() public pure returns(uint256) {
+         return MathLib.subtract(uint256(1), uint256(2));
+    }
+
+    function testSubtract() public {
+        Assert.equal(MathLib.subtract(uint(1), uint(1)), 0, "1 - 1 does not equal 0");
+        bytes4 abi = bytes4(keccak256("failSubtractWhenALessThanB()"));
+        Assert.isFalse(this.call(abi), "Should assert");
+    }
+
+    function failSafeAddWhenGreaterThanIntMax() public pure returns(int256) {
+         int256 signedIntMax = int256(~((uint256(1) << 255)));
+         return MathLib.add(int256(1), signedIntMax);
+    }
+
+    function testSafeAdd() public {
+        int256 signedIntMin = int256((uint256(1) << 255));
+        int256 signedIntMax = int256(~((uint256(1) << 255)));
+
+        Assert.equal(MathLib.add(int256(2), int256(2)), 4, "2 + 2 equals 4");
+        Assert.equal(MathLib.add(int256(0), signedIntMax), signedIntMax, "add 0 to int256 max should equal int256 max");
+        Assert.equal(MathLib.add(int256(0), signedIntMin), signedIntMin, "add 0 to int256 min should equal int256 min");
+
+        bytes4 abi = bytes4(keccak256("failSafeAddWhenGreaterThanIntMax()"));
+        Assert.isFalse(this.call(abi), "Should assert");
+        }
+
+    function failDivideFractionalByZero() public pure returns(uint256) {
+        return MathLib.divideFractional(2, 6, 0);
+    }
+
+    function testDivideFractional() public {
+        Assert.equal(MathLib.divideFractional(2, 6, 10), 1, "12 / 10 = 1");
+        Assert.equal(MathLib.divideFractional(3, 5, 10), 1, "15 / 10 = 1");
+        Assert.equal(MathLib.divideFractional(3, 6, 10), 1, "18 / 10 = 1");
+        Assert.equal(MathLib.divideFractional(4, 6, 10), 2, "24 / 10 = 2");
+
+        bytes4 abi = bytes4(keccak256("failDivideFractionalByZero()"));
+        Assert.isFalse(this.call(abi), "Should assert");
+    }
+
     function testCalculateNeededCollateral() public {
         uint priceFloor = 250;
         uint priceCap = 350;
@@ -89,5 +131,21 @@ contract TestMathLib {
         // for a short position we need to look at the priceCeiling from the price, this represents a shorts max loss
         // so 350 - 275 = 75 max loss per unit * 5 units * 100 decimal places = 62500 collateral units
         Assert.equal(neededCollateralForShortPos, 37500, "max loss of 75 and qty of 5 with 100 decimals should be 37500 units");
+
+        // neededCollateral for a long position and price equal to priceFloor returns zero
+        Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyDecimalPlaces, longQty, priceFloor),
+                     0, "collateral for a long position and price equal to priceFloor should be 0");
+
+        // neededCollateral for a long position and price less than priceFloor returns zero
+        Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyDecimalPlaces, longQty, priceFloor-1),
+                     0, "collateral for a long position and price less than priceFloor should be 0");
+
+        // neededCollateral for a short position and price equal to priceCap returns zero
+        Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyDecimalPlaces, shortQty, priceCap),
+                     0, "collateral for a short position and price equal to priceCap should be 0");
+
+        // neededCollateral for a short position and price greater than priceCap returns zero
+        Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyDecimalPlaces, shortQty, priceCap+1),
+                     0, "collateral for a short position and price greater than priceCap should be 0");
     }
 }
