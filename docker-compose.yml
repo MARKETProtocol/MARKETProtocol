@@ -9,10 +9,9 @@ services:
       - /app/build
       - /app/node_modules:exec,mode=777
     volumes:
-      - type: volume
+      - type: bind
         source: ./
         target: /app
-        name: truffle_volume
     tty: true
     stdin_open: true
 
@@ -34,10 +33,9 @@ services:
       - /app/build
       - /app/node_modules:exec,mode=777
     volumes:
-      - type: volume
+      - type: bind
         source: ./
         target: /app
-        name: truffle_coverage_volume
     tty: true
     stdin_open: true
 
@@ -49,7 +47,3 @@ services:
       - truffle-coverage
     links:
       - truffle-coverage
-
-volumes:
-  truffle_volume:
-  truffle_coverage_volume:
