@@ -105,11 +105,6 @@ contract('MarketCollateralPool', function(accounts) {
             orderQty
         );
 
-        // transfer half of the collateral tokens to the second account.
-//        initBalance = await collateralToken.INITIAL_SUPPLY.call().valueOf();
-//        const balanceToTransfer = initBalance / 2;
-//        await collateralToken.transfer(accounts[1], balanceToTransfer, {from: accounts[0]});
-
         // create approval and deposit collateral tokens for trading.
         const amountToDeposit = 5000000;
         await collateralToken.approve(collateralPool.address, amountToDeposit, {from: accounts[0]})
