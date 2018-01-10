@@ -1,5 +1,5 @@
 const OrderLib = artifacts.require("OrderLib");
-const MarketContractOraclize = artifacts.require("MarketContractOraclize");
+const MarketContractOraclize = artifacts.require("TestableMarketContractOraclize");
 const utility = require('./utility.js');
 
 contract('OrderLib', function(accounts) {
