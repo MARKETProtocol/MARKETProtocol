@@ -27,7 +27,7 @@ Start truffle and its development blockhain with
 $ truffle develop
 ```
 
-and then start the ethereum bridge (separate console) to run connected
+and then start the ethereum bridge (in a separate console) to run connected
 to the development blockchain you just started, note the account you use (in this example account 9 is used)
 
 ```
@@ -35,7 +35,7 @@ $ cd ethereum-bridge/
 $ node bridge -H localhost:9545 -a 9 --dev
 ```
 
-At this point you should be able to run the example migrations as well
+Once the bridge has fully initialized, you should be able to run the example migrations as well
 as the accompanying tests inside the truffle console
 
 ```
