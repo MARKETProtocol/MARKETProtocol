@@ -163,8 +163,9 @@ contract MarketCollateralPool is Linkable {
         uint collateralAmount
     ) private
     {
-        require(MKT_TOKEN.isUserEnabledForContract(MKT_CONTRACT, msg.sender));
-        require(userAddressToAccountBalance[fromAddress] >= collateralAmount);   // ensure sufficient balance
+        //require(MKT_TOKEN.isUserEnabledForContract(MKT_CONTRACT, msg.sender)); already confirmed higher in call stack!
+        //require(userAddressToAccountBalance[fromAddress] >= collateralAmount);   // ensure sufficient balance
+        // subtract call will enforce sufficient balance.
         uint newBalance = userAddressToAccountBalance[fromAddress].subtract(collateralAmount);
         userAddressToAccountBalance[fromAddress] = newBalance;
         collateralPoolBalance = collateralPoolBalance.add(collateralAmount);
@@ -180,7 +181,7 @@ contract MarketCollateralPool is Linkable {
         uint collateralAmount
     ) private
     {
-        require(MKT_TOKEN.isUserEnabledForContract(MKT_CONTRACT, msg.sender));
+        //require(MKT_TOKEN.isUserEnabledForContract(MKT_CONTRACT, msg.sender)); already confirmed higher in call stack!
         // require(collateralPoolBalance >= collateralAmount); subtract call below will enforce this!
         uint newBalance = userAddressToAccountBalance[toAddress].add(collateralAmount);
         userAddressToAccountBalance[toAddress] = newBalance;
