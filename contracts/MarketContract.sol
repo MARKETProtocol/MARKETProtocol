@@ -183,7 +183,7 @@ contract MarketContract is Creatable {
         filledQty = MathLib.absMin(remainingQty, qtyToFill);
         marketCollateralPool.updatePositions(
             order.maker,
-            order.taker,
+            msg.sender,
             filledQty,
             order.price
         );
@@ -208,7 +208,7 @@ contract MarketContract is Creatable {
             if (order.takerFee > 0) {
                 paidTakerFee = order.takerFee.divideFractional(filledAbsQty, orderAbsQty);
                 MKT_TOKEN.safeTransferFrom(
-                    order.taker,
+                    msg.sender,
                     order.feeRecipient,
                     paidTakerFee
                 );
@@ -217,7 +217,7 @@ contract MarketContract is Creatable {
 
         OrderFilled(
             order.maker,
-            order.taker,
+            msg.sender,
             order.feeRecipient,
             filledQty,
             paidMakerFee,
