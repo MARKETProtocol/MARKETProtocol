@@ -302,7 +302,7 @@ contract MarketCollateralPool is Linkable {
                         price
                     )
                 );
-                //qtyToReduce = 0; // completely reduced now!
+//                qtyToReduce = 0; // completely reduced now!
                 break;
             }
         }
