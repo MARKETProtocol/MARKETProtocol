@@ -20,7 +20,7 @@ $ npm install
 
 ## Tests
 To run the tests locally via truffle you must have oraclize's bridge
-running. Information on installation can be found here https://github.com/oraclize/ethereum-bridge
+running. Information on installation can be found [here](https://github.com/MarketProject/ethereum-bridge)
 
 Start truffle and its development blockhain with
 ```
@@ -42,6 +42,11 @@ as the accompanying tests inside the truffle console
 truffle(develop)> migrate
 truffle(develop)> test
 ```
+
+If this fails due to a `revert` , please be sure the bridge is listening prior to attempting the migration.
+
+
+
 ## Contact us
 We would love to hear your feedback and suggestions. We are also actively seeking community members who want to get involved in the project.  Please reach out to us at info@marketprotocol.io
 
