@@ -38,32 +38,77 @@ contract('MarketCollateralPool', function(accounts) {
 
     it("Both accounts should be able to deposit to collateral pool contract", async function() {
         initBalance = await collateralToken.INITIAL_SUPPLY.call().valueOf();
+        fourBalance = 10000;
         // transfer half of balance to second account
         const balanceToTransfer = initBalance / 2;
         await collateralToken.transfer(accounts[1], balanceToTransfer, {from: accounts[0]});
+        await collateralToken.transfer(accounts[3], fourBalance, {from: accounts[0]});
+
+        let error = null
+        try {
+            await collateralPool.depositTokensForTrading(500, {from: accounts[5]});
+        } catch (err) {
+            error = err;
+        }
+
+        assert.ok(error instanceof Error, "should not be able to deposit tokens until enabled");
 
         // currently the Market Token is deployed with no qty need to trade, so all accounts should
         // be enabled.
         const isAllowedToTradeAcctOne = await marketToken.isUserEnabledForContract.call(marketContract.address, accounts[0])
         const isAllowedToTradeAcctTwo = await marketToken.isUserEnabledForContract.call(marketContract.address, accounts[1])
+        const isAllowedToTradeAcctFour = await marketToken.isUserEnabledForContract.call(marketContract.address, accounts[3])
+        await marketToken.setLockQtyToAllowTrading(10);
+        error = null
+
+        try {
+            await collateralPool.depositTokensForTrading(fourBalance, {from: accounts[3]});
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "should not be able to deposit tokens until APPROVED");
+        await marketToken.setLockQtyToAllowTrading(0);
 
         assert.isTrue(isAllowedToTradeAcctOne, "account isn't able to trade!");
         assert.isTrue(isAllowedToTradeAcctTwo, "account isn't able to trade!");
+        assert.isTrue(isAllowedToTradeAcctFour, "account isn't able to trade!");
 
         const amountToDeposit = 5000000;
         // create approval for main contract to move tokens!
         await collateralToken.approve(collateralPool.address, amountToDeposit, {from: accounts[0]})
         await collateralToken.approve(collateralPool.address, amountToDeposit, {from: accounts[1]})
+        await collateralToken.approve(collateralPool.address, fourBalance, {from: accounts[3]})
 
         // move tokens to the collateralPool
         await collateralPool.depositTokensForTrading(amountToDeposit, {from: accounts[0]})
         await collateralPool.depositTokensForTrading(amountToDeposit, {from: accounts[1]})
+        await collateralPool.depositTokensForTrading(fourBalance, {from: accounts[3]})
+
+// trigger requires
+        error = null
+        try {
+            await collateralPool.depositTokensForTrading(amountToDeposit, {from: accounts[2]});
+        } catch (err) {
+            error = err;
+        }
+       assert.ok(error instanceof Error, "should not be able to deposit tokens");
+
+        error = null
+        try {
+            await collateralPool.settleAndClose( {from: accounts[2]});
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "should not be able call settleAndClose until settled");
+// end trigger requires
 
         // ensure balances are now inside the contract.
         const tradingBalanceAcctOne = await collateralPool.getUserAccountBalance.call(accounts[0]);
         const tradingBalanceAcctTwo = await collateralPool.getUserAccountBalance.call(accounts[1]);
+        const tradingBalanceAcctFour = await collateralPool.getUserAccountBalance.call(accounts[3]);
         assert.equal(tradingBalanceAcctOne, amountToDeposit, "Balance doesn't equal tokens deposited");
         assert.equal(tradingBalanceAcctTwo, amountToDeposit, "Balance doesn't equal tokens deposited");
+        assert.equal(tradingBalanceAcctFour, fourBalance, "4 Balance doesn't equal tokens deposited");
     });
 
     it("Both accounts should be able to withdraw from collateral pool contract", async function() {
@@ -93,14 +138,81 @@ contract('MarketCollateralPool', function(accounts) {
         assert.equal(secondAcctTokenBalance, expectedTokenBalances, "Token didn't get transferred back to user");
     });
 
+    it("test lock marketToken", async function() {
+        const entryOrderPrice = 3000;
+        const settlementPrice = 20000; // force to settlement with price below price floor (20155)
+        const orderQty = 2;
+        const orderToFill = 1;
+
+        // trigger require when don't have enough MKT tokens
+        await marketToken.setLockQtyToAllowTrading(10);
+        await marketToken.transfer(accountTaker, 10);
+        await marketToken.lockTokensForTradingMarketContract(marketContract.address, 10, {from:accountTaker});
+
+        try {
+            await tradeHelper.tradeOrder(
+                [accounts[0], accounts[1], accounts[2]],
+                [entryOrderPrice, orderQty, orderToFill]
+            );
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "didn't fail with inadequate locked market tokens for Maker");
+
+        await marketToken.lockTokensForTradingMarketContract(marketContract.address, 10, {from:accountMaker});
+        await marketToken.unlockTokens(marketContract.address, 10, {from:accountTaker});
+
+        try {
+            await tradeHelper.tradeOrder(
+                [accounts[0], accounts[1], accounts[2]],
+                [entryOrderPrice, orderQty, orderToFill]
+            );
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "didn't fail with inadequate locked market tokens for Taker");
+
+        await marketToken.unlockTokens(marketContract.address, 10, {from:accountMaker});
+        // 
+        //  try to withdraw collateral without adequate locked tokens
+        //
+        try {
+            await collateralPool.withdrawTokens(1, {from: accounts[1]})
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "didn't fail withdrawTokens with inadequate locked market tokens for Taker");
+        //
+        //  try to deposit tokens without adequate locked tokens
+        //
+        try {
+            await collateralPool.depositTokensForTrading(amountToDeposit, {from: accounts[0]})
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "didn't fail depositTokens with inadequate locked market tokens for Maker");
+
+        //  clear out the lockqty 
+        await marketToken.setLockQtyToAllowTrading(0);
+    });
+
     it("2 Trades occur, 1 cancel occurs, new order, 2 trades, positions updated", async function() {
         const timeStamp = ((new Date()).getTime() / 1000) + 60*5; // order expires 5 minute from now.
         const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+        const smallAddress = [accountMaker, accounts[3], accounts[2]];
         const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
         var orderQty = 10;   // user is attempting to buy 10
+        // set up 2 different trades (different trading partners)
         const orderHash = await orderLib.createOrderHash.call(
             MarketContractOraclize.address,
             orderAddresses,
+            unsignedOrderValues,
+            orderQty
+        );
+        // this one designed to fail
+        const smallOrderHash = await orderLib.createOrderHash.call(
+            MarketContractOraclize.address,
+            smallAddress,
             unsignedOrderValues,
             orderQty
         );
@@ -130,6 +242,24 @@ contract('MarketCollateralPool', function(accounts) {
             orderSignature[2],  // s
             {from: accountTaker}
         );
+        // the taker on this order has no tokens, order will fail
+        orderSignature = utility.signMessage(web3, accountMaker, smallOrderHash)
+        error = null
+        try {
+            await marketContract.tradeOrder(
+                smallAddress,
+                unsignedOrderValues,
+                orderQty,                  // qty is 10
+                qtyToFill,          // let us fill a one lot
+                orderSignature[0],  // v
+                orderSignature[1],  // r
+                orderSignature[2],  // s
+                {from: accounts[3]}
+            );
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "didn't fail a trade order");
 
         var makerNetPos = await collateralPool.getUserPosition.call(accountMaker);
         var takerNetPos = await collateralPool.getUserPosition.call(accountTaker);
@@ -252,9 +382,19 @@ contract('MarketCollateralPool', function(accounts) {
             orderSignature[2],  // s
             {from: accountTaker}
         );
+    });
 
 
-
+    it("Fail depositTokensForTrading when not enough MKT tokens for contract", async function() {
+        await marketToken.setLockQtyToAllowTrading(10);
+        var error = null
+        try {
+            await collateralPool.depositTokensForTrading(1, {from: accounts[2]});
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "should not be able to deposit tokens until enabled");
+        await marketToken.setLockQtyToAllowTrading(0);
     });
 
 
@@ -289,8 +429,20 @@ contract('MarketCollateralPool', function(accounts) {
             settlementPrice
         )
 
+// test for inadequate locked tokens      
+        await marketToken.setLockQtyToAllowTrading(10);
+        try {
+            await collateralPool.settleAndClose({ from: accounts[0] });
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "didn't fail settleAndClose for inadequate locked market tokens for Taker");
+        await marketToken.setLockQtyToAllowTrading(0);
+// end test for inadequate locked tokens
+
         await collateralPool.settleAndClose({ from: accounts[0] });
         await collateralPool.settleAndClose({ from: accounts[1] });
+        await collateralPool.settleAndClose({ from: accounts[3] });
 
         // makers and takers collateral pool balance is cleared
         const makersCollateralBalanceAfterSettlement = await collateralPool.getUserAccountBalance.call(accounts[0]);
