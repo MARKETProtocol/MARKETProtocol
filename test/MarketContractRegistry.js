@@ -24,7 +24,7 @@ contract('MarketContractRegistry', function(accounts) {
 
     it("Only owner is able to add or remove contracts to the white list", async function() {
         const ownerAddress = await marketContractRegistry.owner.call();
-        assert.equal(accounts[0], ownerAddress, "owner isn't be our first account");
+        assert.equal(accounts[0], ownerAddress, "owner isn't our first account");
 
         var isAddressWhiteListed = await marketContractRegistry.isAddressWhiteListed.call(marketContract.address);
         assert.isTrue(isAddressWhiteListed, "Deployed Market Contract is not White Listed");
@@ -77,4 +77,42 @@ contract('MarketContractRegistry', function(accounts) {
          isAddressWhiteListed = await marketContractRegistry.isAddressWhiteListed.call(marketContract.address);
          assert.isTrue(isAddressWhiteListed, "Market Contract was not added back to white list by owner");
     });
+
+//
+//    it("Non white listed contract cannot be removed", async function() {
+//        const ownerAddress = await marketContractRegistry.owner.call();
+//        assert.equal(accounts[0], ownerAddress, "owner isn't our first account");
+//
+//        var isAddressWhiteListed = await marketContractRegistry.isAddressWhiteListed.call(marketContract.address);
+//        assert.isTrue(isAddressWhiteListed, "Deployed Market Contract is not White Listed");
+//
+//         await marketContractRegistry.removeContractFromWhiteList(
+//            marketContract.address,
+//            addressIndex,
+//            { from: accounts[0] }
+//         );
+//
+//         isAddressWhiteListed = await marketContractRegistry.isAddressWhiteListed.call(marketContract.address);
+//         assert.isTrue(!isAddressWhiteListed, "Market Contract was not removed from white list by owner");
+//
+//         error = null;
+//         try {
+//            await marketContractRegistry.removeContractFromWhiteList(
+//                       marketContract.address,
+//                       addressIndex,
+//                       { from: accounts[0] }
+//                );
+//         } catch (err) {
+//             error = err;
+//         }
+//         assert.ok(error instanceof Error, "removing non white listed contract to whitelist by non owner didn't fail!");
+//
+//         await marketContractRegistry.addAddressToWhiteList(marketContract.address, {from: accounts[0]});
+//         isAddressWhiteListed = await marketContractRegistry.isAddressWhiteListed.call(marketContract.address);
+//         assert.isTrue(isAddressWhiteListed, "Market Contract was not added back to white list by owner");
+//    });
+//
+
+
+
 });
