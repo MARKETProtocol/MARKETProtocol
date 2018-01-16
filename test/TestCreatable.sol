@@ -40,9 +40,30 @@ contract TestCreatable {
             "contract creator isn't itself after setting"
         );
 
-        Assert.isTrue(
-            address(creatable) != address(this),
+        Assert.isFalse(
+            address(creatable) == address(this),
             "Addresses of contracts are equal, test not working"
         );
+    }
+
+    function shouldThrowOnAttemptToTransferToNullAddress() private {
+        Creatable creatable = new Creatable();
+        creatable.transferCreator(address(0));
+    }
+
+    function testThrowOnTransferToNullAddress() public {
+        bool result = this.call(bytes4(keccak256("shouldThrowOnAttemptToTransferToNullAddress()")));
+        Assert.isFalse(result, "Should require address not to be null address");
+    }
+
+    function shouldThrowOnAttemptToTransferWhenNotOwner() private {
+        Creatable creatable = new Creatable();
+        creatable.transferCreator(address(creatable));
+        creatable.transferCreator(address(this)); // should fail since we are no longer creator!
+    }
+
+    function testThrowOnTransferWhenNotCreator() public {
+        bool result = this.call(bytes4(keccak256("shouldThrowOnAttemptToTransferWhenNotOwner()")));
+        Assert.isFalse(result, "Able to transfer creator when not creator!");
     }
 }
