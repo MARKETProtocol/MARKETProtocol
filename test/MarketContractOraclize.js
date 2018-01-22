@@ -469,7 +469,7 @@ contract('MarketContractOraclize.Fees', function(accounts) {
         collateralPoolBalanceBeforeTrade = await collateralPool.collateralPoolBalance.call();
         makerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accountMaker);
         takerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accountTaker);
-        feeRecipientAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accountFeeRecipient);
+        feeRecipientAccountBalanceBeforeTrade = await marketToken.balanceOf.call(accountFeeRecipient);
     })
 
     before(async function() {
@@ -493,13 +493,17 @@ contract('MarketContractOraclize.Fees', function(accounts) {
         // move tokens to the collateralPool
         await collateralPool.depositTokensForTrading(amountToDeposit, {from: accountMaker});
         await collateralPool.depositTokensForTrading(amountToDeposit, {from: accountTaker});
+
+        // approve spend of fees
+        marketToken.approve(marketContract.address, 1000, {from: accountMaker});
+        marketToken.approve(marketContract.address, 1000, {from: accountTaker});
     })
 
     async function collectBalancesAfterTrade() {
         collateralPoolBalanceAfterTrade = await collateralPool.collateralPoolBalance.call();
         makerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accountMaker);
         takerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accountTaker);
-        feeRecipientAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accountFeeRecipient);
+        feeRecipientAccountBalanceAfterTrade = await marketToken.balanceOf.call(accountFeeRecipient);
     }
 
     async function executeTradeWithFees(makerFee, takerFee) {
