@@ -442,3 +442,153 @@ contract('MarketContractOraclize', function(accounts) {
         assert.equal(balanceAfterTransfer.toNumber(), 0, "Remaining ether is not fully claimed");
     })
 });
+
+contract('MarketContractOraclize.Fees', function(accounts) {
+    let orderLib;
+    let tradeHelper;
+    let collateralPool;
+    let collateralToken;
+    let marketToken;
+    let marketContract;
+
+    let collateralPoolBalanceBeforeTrade;
+    let makerAccountBalanceBeforeTrade;
+    let takerAccountBalanceBeforeTrade;
+    let feeRecipientAccountBalanceBeforeTrade;
+
+    let collateralPoolBalanceAfterTrade;
+    let makerAccountBalanceAfterTrade;
+    let takerAccountBalanceAfterTrade;
+    let feeRecipientAccountBalanceAfterTrade;
+
+    const accountMaker = accounts[0];
+    const accountTaker = accounts[1];
+    const accountFeeRecipient = accounts[2];
+
+    beforeEach(async function() {
+        collateralPoolBalanceBeforeTrade = await collateralPool.collateralPoolBalance.call();
+        makerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accountMaker);
+        takerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accountTaker);
+        feeRecipientAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accountFeeRecipient);
+    })
+
+    before(async function() {
+        collateralPool = await MarketCollateralPool.deployed();
+        marketToken = await MarketToken.deployed();
+        marketContract = await MarketContractOraclize.deployed();
+        orderLib = await OrderLib.deployed();
+        collateralToken = await CollateralToken.deployed();
+        tradeHelper = await Helpers.TradeHelper(MarketContractOraclize, OrderLib, CollateralToken, MarketCollateralPool);
+
+        // transfer half of the collateral tokens to the second account.
+        initBalance = await collateralToken.INITIAL_SUPPLY.call().valueOf();
+        const balanceToTransfer = initBalance / 2;
+        await collateralToken.transfer(accountTaker, balanceToTransfer, {from: accountMaker});
+
+        // create approval and deposit collateral tokens for trading.
+        const amountToDeposit = 5000000;
+        await collateralToken.approve(collateralPool.address, amountToDeposit, {from: accountMaker});
+        await collateralToken.approve(collateralPool.address, amountToDeposit, {from: accountTaker});
+
+        // move tokens to the collateralPool
+        await collateralPool.depositTokensForTrading(amountToDeposit, {from: accountMaker});
+        await collateralPool.depositTokensForTrading(amountToDeposit, {from: accountTaker});
+    })
+
+    async function collectBalancesAfterTrade() {
+        collateralPoolBalanceAfterTrade = await collateralPool.collateralPoolBalance.call();
+        makerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accountMaker);
+        takerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accountTaker);
+        feeRecipientAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accountFeeRecipient);
+    }
+
+    async function executeTradeWithFees(makerFee, takerFee) {
+        const orderQty = 2;
+        const qtyToFill = 2;
+        const orderPrice = 100;
+        const orderAddresses = [accountMaker, accountTaker, accountFeeRecipient];
+
+        const { orderHash, unsignedOrderValues } = await tradeHelper.tradeOrder(
+            orderAddresses,
+            [orderPrice, orderQty, qtyToFill],
+            false, makerFee, takerFee
+        );
+
+        return orderHash;
+    }
+
+    it("maker and taker should pay zero MKT token fees when fees are zero", async function() {
+        let orderHash = await executeTradeWithFees(0, 0);
+        await collectBalancesAfterTrade();
+
+        const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+        assert.equal(qtyFilled.toNumber(), 2, "Fill Qty doesn't match expected");
+
+        assert.equal(feeRecipientAccountBalanceBeforeTrade.toNumber(),
+                     feeRecipientAccountBalanceAfterTrade.toNumber(),
+                     "Fee recipient balance differs after trade")
+    })
+
+    it("maker pays the correct fee amount", async function() {
+        let orderHash = await executeTradeWithFees(1, 0);
+        await collectBalancesAfterTrade();
+
+        const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+        assert.equal(qtyFilled.toNumber(), 2, "Fill Qty doesn't match expected");
+
+        assert.equal(feeRecipientAccountBalanceBeforeTrade.toNumber(),
+                     feeRecipientAccountBalanceAfterTrade.toNumber() - 1,
+                     "Fee recipient did not receive fee")
+    })
+
+    it("taker pays the correct fee amount", async function() {
+        let orderHash = await executeTradeWithFees(0, 1);
+        await collectBalancesAfterTrade();
+
+        const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+        assert.equal(qtyFilled.toNumber(), 2, "Fill Qty doesn't match expected");
+
+        assert.equal(feeRecipientAccountBalanceBeforeTrade.toNumber(),
+                     feeRecipientAccountBalanceAfterTrade.toNumber() - 1 ,
+                     "Fee recipient did not receive fee")
+    })
+
+    it("maker and taker pay MKT fees", async function() {
+        let orderHash = await executeTradeWithFees(1, 1);
+        await collectBalancesAfterTrade();
+
+        const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+        assert.equal(qtyFilled.toNumber(), 2, "Fill Qty doesn't match expected");
+
+        assert.equal(feeRecipientAccountBalanceBeforeTrade.toNumber(),
+                     feeRecipientAccountBalanceAfterTrade.toNumber() - 2,
+                     "Fee recipient did not receive fee")
+    })
+
+    it("fails if fee greater than balance", async function() {
+        try {
+            await executeTradeWithFees(makerAccountBalanceBeforeTrade + 1, 0);
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "Fees greater than balance are possible");
+    })
+
+    it("fails if maker fee is negative", async function() {
+        try {
+            await executeTradeWithFees(-1, 0);
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "Negative maker fees are possible");
+    })
+
+    it("fails if taker fee is negative", async function() {
+        try {
+            await executeTradeWithFees(0, -1);
+        } catch (err) {
+            error = err;
+        }
+        assert.ok(error instanceof Error, "Negative taker fees are possible");
+    })
+});
