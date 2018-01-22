@@ -2,7 +2,6 @@
 .env
 .idea/
 allFiredEvents
-build/
 coverage.json
 coverage/
 node_modules/
