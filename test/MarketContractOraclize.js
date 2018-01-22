@@ -494,9 +494,10 @@ contract('MarketContractOraclize.Fees', function(accounts) {
         await collateralPool.depositTokensForTrading(amountToDeposit, {from: accountMaker});
         await collateralPool.depositTokensForTrading(amountToDeposit, {from: accountTaker});
 
-        // approve spend of fees
-        marketToken.approve(marketContract.address, 1000, {from: accountMaker});
-        marketToken.approve(marketContract.address, 1000, {from: accountTaker});
+        // provide taker with MKT to pay fee and approve spend of fees.
+        await marketToken.transfer(accountTaker, 1000 , {from: accountMaker});
+        await marketToken.approve(marketContract.address, 1000, {from: accountMaker});
+        await marketToken.approve(marketContract.address, 1000, {from: accountTaker});
     })
 
     async function collectBalancesAfterTrade() {
