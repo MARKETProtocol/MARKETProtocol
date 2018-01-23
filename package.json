@@ -1,7 +1,7 @@
 {
-  "name": "marketprotocol",
-  "version": "1.0.0",
-  "description": "Decentralized and trust-less ERC20 Trading Protocol",
+  "name": "market-solidity",
+  "version": "0.0.4",
+  "description": "Decentralized Derivates Trading Protocol For The Ethereum Blockchain",
   "main": "truffle-config.js",
   "directories": {
     "test": "test"

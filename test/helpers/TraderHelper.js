@@ -22,11 +22,13 @@ module.exports = async function(MarketContractOraclize, OrderLib, CollateralToke
     async function tradeOrder(
         [accountMaker, accountTaker, feeAccount],
         [orderPrice, orderQty, qtyToFill],
-        isExpired = false
+        isExpired = false,
+        makerFee = 0,
+        takerFee = 0
     ) {
         const timeStamp = ((new Date()).getTime() / 1000) + 60 * ( isExpired ? -5 : 5); // expires/expired 5 mins (ago)
         const orderAddresses = [accountMaker, accountTaker, feeAccount];
-        const unsignedOrderValues = [0, 0, orderPrice, timeStamp, 1];
+        const unsignedOrderValues = [makerFee, takerFee, orderPrice, timeStamp, 1];
         const orderHash = await orderLib.createOrderHash.call(
             MarketContractOraclize.address,
             orderAddresses,
