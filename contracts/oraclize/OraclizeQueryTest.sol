@@ -21,7 +21,7 @@ import "../libraries/MathLib.sol";
 
 
 /// @title QueryTest small contract to allow users to test query structure prior to contract deployment
-/// @author Phil Elsasser <phil@marketprotcol.io>
+/// @author Phil Elsasser <phil@marketprotocol.io>
 contract OraclizeQueryTest is usingOraclize {
     using MathLib for uint;
 

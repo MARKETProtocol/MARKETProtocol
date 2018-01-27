@@ -20,7 +20,7 @@ pragma solidity 0.4.18;
 /// @title Linkable
 /// @notice allows contracts to become linked together that are not directly created by one another for gas
 /// constraints. Linking occurs at instantiation and then once linked there is no ability to change the linkedAddress
-/// @author Phil Elsasser <phil@marketprotcol.io>
+/// @author Phil Elsasser <phil@marketprotocol.io>
 contract Linkable {
 
     address public linkedAddress;

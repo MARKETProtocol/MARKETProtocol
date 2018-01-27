@@ -29,7 +29,7 @@ import "zeppelin-solidity/contracts/token/SafeERC20.sol";
 /// @title MarketContract base contract implement all needed functionality for trading.
 /// @notice this is the abstract base contract that all contracts should inherit from to
 /// implement different oracle solutions.
-/// @author Phil Elsasser <phil@marketprotcol.io>
+/// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketContract is Creatable {
     using OrderLib for address;
     using OrderLib for OrderLib.Order;

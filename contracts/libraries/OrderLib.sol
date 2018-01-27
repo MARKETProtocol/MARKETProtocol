@@ -19,7 +19,7 @@ import "./MathLib.sol";
 
 
 /// @title OrderLib
-/// @author Phil Elsasser <phil@marketprotcol.io>
+/// @author Phil Elsasser <phil@marketprotocol.io>
 library OrderLib {
     using MathLib for int;
 

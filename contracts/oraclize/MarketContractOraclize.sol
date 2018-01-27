@@ -23,7 +23,7 @@ import "../MarketContract.sol";
 
 
 /// @title MarketContract first example of a MarketProtocol contract using Oraclize services
-/// @author Phil Elsasser <phil@marketprotcol.io>
+/// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketContractOraclize is MarketContract, usingOraclize {
     using MathLib for uint;
 

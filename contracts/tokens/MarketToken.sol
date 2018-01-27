@@ -23,7 +23,7 @@ import "zeppelin-solidity/contracts/token/StandardToken.sol";
 /// @title Market Token
 /// @notice Our membership token.  Users must lock tokens to enable trading for a given Market Contract
 /// as well as have a minimum balance of tokens to create new Market Contracts.
-/// @author Phil Elsasser <phil@marketprotcol.io>
+/// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketToken is StandardToken, Creatable {
 
     string public constant name = "Market Token";

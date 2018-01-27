@@ -21,7 +21,7 @@ import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 /// @title MarketContractRegistry
-/// @author Phil Elsasser <phil@marketprotcol.io>
+/// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketContractRegistry is Ownable {
 
     mapping(address => bool) isWhiteListed;
