@@ -16,7 +16,7 @@ contract('MarketCollateralPool', function(accounts) {
     let marketContract;
     let marketToken
     let orderLib;
-    let decimalPlaces;
+    let qtyMultiplier;
     let priceFloor;
     let priceCap;
     let tradeHelper;
@@ -30,7 +30,7 @@ contract('MarketCollateralPool', function(accounts) {
         marketContract = await MarketContractOraclize.deployed();
         orderLib = await OrderLib.deployed();
         collateralToken = await CollateralToken.deployed();
-        decimalPlaces = await marketContract.QTY_DECIMAL_PLACES.call();
+        qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
         priceFloor = await marketContract.PRICE_FLOOR.call();
         priceCap = await marketContract.PRICE_CAP.call();
         tradeHelper = await Helpers.TradeHelper(MarketContractOraclize, OrderLib, CollateralToken, MarketCollateralPool)
@@ -298,11 +298,11 @@ contract('MarketCollateralPool', function(accounts) {
         // here.
         const priceFloor = await marketContract.PRICE_FLOOR.call();
         const priceCap = await marketContract.PRICE_CAP.call();
-        const decimalPlaces = await marketContract.QTY_DECIMAL_PLACES.call();
+        const qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
         const actualCollateralPoolBalance = await collateralPool.collateralPoolBalance.call();
 
-        const longCollateral = (entryOrderPrice - priceFloor) * decimalPlaces * qtyFilled;
-        const shortCollateral = (priceCap - entryOrderPrice) * decimalPlaces * qtyFilled;
+        const longCollateral = (entryOrderPrice - priceFloor) * qtyMultiplier * qtyFilled;
+        const shortCollateral = (priceCap - entryOrderPrice) * qtyMultiplier * qtyFilled;
         const totalExpectedCollateralBalance = longCollateral + shortCollateral;
 
         assert.equal(
@@ -354,8 +354,8 @@ contract('MarketCollateralPool', function(accounts) {
 
         qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(secondOrderHash);
         assert.equal(qtyFilled.toNumber(), -1, "Fill Qty doesn't match expected");
-        const elongCollateral = (entryOrderPrice - priceFloor) * decimalPlaces * qtyFilled;
-        const eshortCollateral = (priceCap - entryOrderPrice) * decimalPlaces * qtyFilled;
+        const elongCollateral = (entryOrderPrice - priceFloor) * qtyMultiplier * qtyFilled;
+        const eshortCollateral = (priceCap - entryOrderPrice) * qtyMultiplier * qtyFilled;
 
         const emakerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accounts[0]);
         const etakerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accounts[1]);
@@ -415,7 +415,7 @@ contract('MarketCollateralPool', function(accounts) {
             accounts[0],
             priceFloor,
             priceCap,
-            decimalPlaces,
+            qtyMultiplier,
             orderToFill,
             settlementPrice
         )
@@ -424,7 +424,7 @@ contract('MarketCollateralPool', function(accounts) {
             accounts[1],
             priceFloor,
             priceCap,
-            decimalPlaces,
+            qtyMultiplier,
             -orderToFill,
             settlementPrice
         )

@@ -254,7 +254,7 @@ contract MarketCollateralPool is Linkable {
         uint neededCollateral = MathLib.calculateNeededCollateral(
             MKT_CONTRACT.PRICE_FLOOR(),
             MKT_CONTRACT.PRICE_CAP(),
-            MKT_CONTRACT.QTY_DECIMAL_PLACES(),
+            MKT_CONTRACT.QTY_MULTIPLIER(),
             qty,
             price
         );
@@ -284,7 +284,7 @@ contract MarketCollateralPool is Linkable {
                     MathLib.calculateNeededCollateral(
                         MKT_CONTRACT.PRICE_FLOOR(),
                         MKT_CONTRACT.PRICE_CAP(),
-                        MKT_CONTRACT.QTY_DECIMAL_PLACES(),
+                        MKT_CONTRACT.QTY_MULTIPLIER(),
                         position.qty,
                         price
                     )
@@ -298,7 +298,7 @@ contract MarketCollateralPool is Linkable {
                     MathLib.calculateNeededCollateral(
                         MKT_CONTRACT.PRICE_FLOOR(),
                         MKT_CONTRACT.PRICE_CAP(),
-                        MKT_CONTRACT.QTY_DECIMAL_PLACES(),
+                        MKT_CONTRACT.QTY_MULTIPLIER(),
                         qtyToReduce * -1,
                         price
                     )

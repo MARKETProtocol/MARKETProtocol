@@ -54,7 +54,7 @@ contract MarketContract is Creatable {
     uint public PRICE_CAP;
     uint public PRICE_FLOOR;
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
-    uint public QTY_DECIMAL_PLACES;     // how many tradeable units make up a whole pricing increment
+    uint public QTY_MULTIPLIER;         // multiplier corresponding to the value of 1 increment in price to token base units
     uint public EXPIRATION;
 
     // state variables
@@ -102,7 +102,7 @@ contract MarketContract is Creatable {
     /// capPrice maximum tradeable price of this contract, contract enters settlement if breached
     /// priceDecimalPlaces number of decimal places to convert our queried price from a floating point to
     /// an integer
-    /// qtyDecimalPlaces decimal places to multiply traded qty by.
+    /// qtyMultiplier multiply traded qty by this value from base units of collateral token.
     /// expirationTimeStamp - seconds from epoch that this contract expires and enters settlement
     function MarketContract(
         string contractName,
@@ -119,7 +119,7 @@ contract MarketContract is Creatable {
         require(PRICE_CAP > PRICE_FLOOR);
 
         PRICE_DECIMAL_PLACES = contractSpecs[2];
-        QTY_DECIMAL_PLACES = contractSpecs[3];
+        QTY_MULTIPLIER = contractSpecs[3];
         EXPIRATION = contractSpecs[4];
         require(EXPIRATION > now);
 

@@ -84,18 +84,18 @@ module.exports = async function(MarketContractOraclize, OrderLib, CollateralToke
      * @param address
      * @param priceFloor
      * @param priceCap
-     * @param decimalPlace
+     * @param qtyMultiplier
      * @param orderToFill
      * @param settlementPrice
      * @return {Promise.<void>}
      */
-    async function calculateSettlementToken(address, priceFloor, priceCap, decimalPlace, orderToFill, settlementPrice) {
+    async function calculateSettlementToken(address, priceFloor, priceCap, qtyMultiplier, orderToFill, settlementPrice) {
         const accountsTokenBalance = await collateralToken.balanceOf.call(address);
         const collateralBalance = await collateralPool.getUserAccountBalance.call(address);
         const collateralLeft = utility.calculateCollateral(
             priceFloor,
             priceCap,
-            decimalPlace,
+            qtyMultiplier,
             orderToFill,
             settlementPrice
         )

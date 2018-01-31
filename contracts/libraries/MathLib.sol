@@ -119,13 +119,13 @@ library MathLib {
     /// @notice determines the amount of needed collateral for a given position (qty and price)
     /// @param priceFloor lowest price the contract is allowed to trade before expiration
     /// @param priceCap highest price the contract is allowed to trade before expiration
-    /// @param qtyDecimalPlaces number of decimal places in traded quantity.
+    /// @param qtyMultiplier multiplier for qty from base units
     /// @param qty signed integer corresponding to the traded quantity
     /// @param price of the trade
     function calculateNeededCollateral(
         uint priceFloor,
         uint priceCap,
-        uint qtyDecimalPlaces,
+        uint qtyMultiplier,
         int qty,
         uint price
     ) pure internal returns (uint neededCollateral)
@@ -145,6 +145,6 @@ library MathLib {
                 maxLoss = subtract(priceCap, price);
             }
         }
-        neededCollateral = maxLoss * abs(qty) * qtyDecimalPlaces;
+        neededCollateral = maxLoss * abs(qty) * qtyMultiplier;
     }
 }

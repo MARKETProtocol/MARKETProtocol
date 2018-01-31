@@ -33,7 +33,7 @@ contract TestableMarketContractOraclize is MarketContractOraclize {
     /// capPrice maximum tradeable price of this contract, contract enters settlement if breached
     /// priceDecimalPlaces number of decimal places to convert our queried price from a floating point to
     /// an integer
-    /// qtyDecimalPlaces decimal places to multiply traded qty by.
+    /// qtyMultiplier multiply traded qty by this value from base units of collateral token.
     /// expirationTimeStamp - seconds from epoch that this contract expires and enters settlement
     /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"dv
     /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query

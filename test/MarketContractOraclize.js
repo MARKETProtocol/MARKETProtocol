@@ -95,11 +95,11 @@ contract('MarketContractOraclize', function(accounts) {
         // here.
         const priceFloor = await marketContract.PRICE_FLOOR.call();
         const priceCap = await marketContract.PRICE_CAP.call();
-        const decimalPlaces = await marketContract.QTY_DECIMAL_PLACES.call();
+        const qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
         const actualCollateralPoolBalance = await collateralPool.collateralPoolBalance.call();
 
-        const longCollateral = (entryOrderPrice - priceFloor) * decimalPlaces * qtyToFill;
-        const shortCollateral = (priceCap - entryOrderPrice) * decimalPlaces * qtyToFill;
+        const longCollateral = (entryOrderPrice - priceFloor) * qtyMultiplier * qtyToFill;
+        const shortCollateral = (priceCap - entryOrderPrice) * qtyMultiplier * qtyToFill;
         const totalExpectedCollateralBalance = longCollateral + shortCollateral;
 
         assert.equal(
@@ -158,8 +158,8 @@ contract('MarketContractOraclize', function(accounts) {
 
         const makerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accounts[0]);
         const takerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accounts[1]);
-        const decimalPlaces = await marketContract.QTY_DECIMAL_PLACES.call();
-        const profitForMaker = (exitOrderPrice - entryOrderPrice) * decimalPlaces;
+        const qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
+        const profitForMaker = (exitOrderPrice - entryOrderPrice) * qtyMultiplier;
 
         assert.equal(
             makerAccountBalanceAfterTrade - makerAccountBalanceBeforeTrade,

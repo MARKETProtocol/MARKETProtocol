@@ -39,12 +39,12 @@ module.exports = {
    *
    * @param priceFloor
    * @param priceCap
-   * @param qtyDecimalPlaces
+   * @param qtyMultiplier
    * @param qty
    * @param price
    * @return {number}
    */
-  calculateCollateral(priceFloor, priceCap, qtyDecimalPlaces, qty, price){
+  calculateCollateral(priceFloor, priceCap, qtyMultiplier, qty, price){
     const zero = 0;
     let maxLoss;
     if (qty > zero) {
@@ -60,6 +60,6 @@ module.exports = {
         maxLoss = priceCap - price;
       }
     }
-    return maxLoss * Math.abs(qty) * qtyDecimalPlaces;
+    return maxLoss * Math.abs(qty) * qtyMultiplier;
   }
 }
