@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity 0.4.18;
+pragma solidity ^0.4.18;
 
 import "../Creatable.sol";
 import "zeppelin-solidity/contracts/token/StandardToken.sol";
