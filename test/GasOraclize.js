@@ -40,6 +40,11 @@ contract('MarketContractOraclize.Callback', function(accounts) {
         let sleep = (ms) => {
             return new Promise(resolve => setTimeout(resolve, ms));
         };
+        let gasLimit = 6200000;  // gas limit for development network
+        let block = web3.eth.getBlock("latest");
+        if (block.gasLimit > 7000000) {  // coverage network
+            gasLimit = block.gasLimit;
+        }
         MarketContractOraclize.new(
             "ETHUSD-10",
             marketToken.address,
@@ -48,7 +53,7 @@ contract('MarketContractOraclize.Callback', function(accounts) {
             "URL",
             "json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0",
             oraclizeQueryCallbackRepeat,
-            { gas: 6200000, value: web3.toWei('.1', 'ether'), accountMaker}
+            { gas: gasLimit, value: web3.toWei('.1', 'ether'), accountMaker}
         ).then(async function(deployedMarketContract) {
             /*
             console.log("Contract deployed " + new Date().toISOString());
