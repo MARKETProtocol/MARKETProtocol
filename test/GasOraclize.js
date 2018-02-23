@@ -33,11 +33,13 @@ contract('MarketContractOraclize.Callback', function(accounts) {
 
     it("gas used by Oraclize callback is within specified limit", async function() {
         // execute the most expensive path for Oraclize callback: settle the contract
-        console.log("Creating contract " + new Date().toISOString());
         const marketContractExpirationInTenSeconds = Math.floor(Date.now() / 1000) + 10;
         const oraclizeQueryCallbackRepeat = 7; // callback will be fired once
         const priceFloor = 1;
         const priceCap = 1000000; // 10k USD
+        let sleep = (ms) => {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        };
         MarketContractOraclize.new(
             "ETHUSD-10",
             marketToken.address,
@@ -48,21 +50,33 @@ contract('MarketContractOraclize.Callback', function(accounts) {
             oraclizeQueryCallbackRepeat,
             { gas: 6200000, value: web3.toWei('.1', 'ether'), accountMaker}
         ).then(async function(deployedMarketContract) {
+            /*
             console.log("Contract deployed " + new Date().toISOString());
-            console.log("Contract address " + deployedMarketContract.address);
+            console.log("Contract address " + deployedMarketContract.address);\
+            */
             let oraclizeCallbackGasCost = await deployedMarketContract.QUERY_CALLBACK_GAS.call();
-            console.log("Market Contract Oraclize callback gas limit : " + oraclizeCallbackGasCost.toNumber());
+            // console.log("Market Contract Oraclize callback gas limit : " + oraclizeCallbackGasCost.toNumber());
             let contractSettledEvent = deployedMarketContract.ContractSettled();
+            let txReceipt = null;  // Oraclize callback transaction receipt
             contractSettledEvent.watch((err, response) => {
-                    console.log("Contract settled at " + new Date().toISOString());
-                    console.log(response.transactionHash);
-                    console.log(response.args.settlePrice.toNumber() / 100);
-                    contractSettledEvent.stopWatching();
-                    assert.equal(response.event, 'ContractSettled');
-                    let txReceipt = web3.eth.getTransactionReceipt(response.transactionHash);
-                    console.log("Oraclize callback gas used : " + txReceipt.gasUsed);
-                    return response;
+                if (err) {
+                    console.log(err);
+                };
+                /*
+                console.log("Contract settled at " + new Date().toISOString());
+                console.log(response.transactionHash);
+                console.log("Settlement price " + response.args.settlePrice.toNumber() / 100);
+                */
+                contractSettledEvent.stopWatching();
+                assert.equal(response.event, 'ContractSettled');
+                txReceipt = web3.eth.getTransactionReceipt(response.transactionHash);
+                console.log("Oraclize callback gas used : " + txReceipt.gasUsed);
+                assert.isBelow(txReceipt.gasUsed, oraclizeCallbackGasCost,
+                               "Callback tx claims to have used more gas than allowed!");
+                return response;
             });
-        })
+            await sleep(30000);  // allow 30 seconds for the callback just in case Oraclize is slow
+            assert.notEqual(txReceipt, null, "Oraclize callback did not arrive. Please increase QUERY_CALLBACK_GAS!");
+        });
     })
 });
