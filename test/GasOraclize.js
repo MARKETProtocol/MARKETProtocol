@@ -45,6 +45,7 @@ contract('MarketContractOraclize.Callback', function(accounts) {
         if (block.gasLimit > 7000000) {  // coverage network
             gasLimit = block.gasLimit;
         }
+        let txReceipt = null;  // Oraclize callback transaction receipt
         MarketContractOraclize.new(
             "ETHUSD-10",
             marketToken.address,
@@ -62,7 +63,6 @@ contract('MarketContractOraclize.Callback', function(accounts) {
             let oraclizeCallbackGasCost = await deployedMarketContract.QUERY_CALLBACK_GAS.call();
             // console.log("Market Contract Oraclize callback gas limit : " + oraclizeCallbackGasCost.toNumber());
             let contractSettledEvent = deployedMarketContract.ContractSettled();
-            let txReceipt = null;  // Oraclize callback transaction receipt
             contractSettledEvent.watch((err, response) => {
                 if (err) {
                     console.log(err);
@@ -80,8 +80,9 @@ contract('MarketContractOraclize.Callback', function(accounts) {
                                "Callback tx claims to have used more gas than allowed!");
                 return response;
             });
-            await sleep(30000);  // allow 30 seconds for the callback just in case Oraclize is slow
-            assert.notEqual(txReceipt, null, "Oraclize callback did not arrive. Please increase QUERY_CALLBACK_GAS!");
+
         });
+        await sleep(30000);  // allow 30 seconds for the callback just in case Oraclize is slow
+        assert.notEqual(txReceipt, null, "Oraclize callback did not arrive. Please increase QUERY_CALLBACK_GAS!");
     })
 });
