@@ -63,7 +63,7 @@ contract('MarketContractOraclize.Callback', function(accounts) {
             let oraclizeCallbackGasCost = await deployedMarketContract.QUERY_CALLBACK_GAS.call();
             // console.log("Market Contract Oraclize callback gas limit : " + oraclizeCallbackGasCost.toNumber());
             let contractSettledEvent = deployedMarketContract.ContractSettled();
-            contractSettledEvent.watch((err, response) => {
+            contractSettledEvent.watch(async (err, response) => {
                 if (err) {
                     console.log(err);
                 };
@@ -74,15 +74,28 @@ contract('MarketContractOraclize.Callback', function(accounts) {
                 */
                 contractSettledEvent.stopWatching();
                 assert.equal(response.event, 'ContractSettled');
-                txReceipt = web3.eth.getTransactionReceipt(response.transactionHash);
+                txReceipt = await web3.eth.getTransactionReceipt(response.transactionHash);
                 console.log("Oraclize callback gas used : " + txReceipt.gasUsed);
                 assert.isBelow(txReceipt.gasUsed, oraclizeCallbackGasCost,
                                "Callback tx claims to have used more gas than allowed!");
                 return response;
             });
-
         });
-        await sleep(30000);  // allow 30 seconds for the callback just in case Oraclize is slow
+
+        let waitForOraclizeCallback = ms => new Promise((r, j) => {
+            var check = () => {
+              if (txReceipt)
+                r()
+              else if((ms -= 1000) < 0)
+                j('Oraclize time out!')
+              else
+                setTimeout(check, 1000)
+            }
+            setTimeout(check, 1000)
+        });
+
+        await waitForOraclizeCallback(30000);
+
         assert.notEqual(txReceipt, null, "Oraclize callback did not arrive. Please increase QUERY_CALLBACK_GAS!");
     })
 });
