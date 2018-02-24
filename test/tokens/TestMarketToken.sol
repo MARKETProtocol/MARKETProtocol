@@ -24,7 +24,7 @@ import "../../contracts/tokens/MarketToken.sol";
 /// @author Phil Elsasser <phil@marketprotcol.io>
 contract TestMarketToken {
 
-    function testInitialBalance() {
+    function testInitialBalance() public {
         MarketToken marketToken = new MarketToken(0, 0);
         Assert.equal(
             marketToken.balanceOf(this),
@@ -35,7 +35,7 @@ contract TestMarketToken {
 
     /// @dev tests functionality related to our minimum required balance of tokens in order
     /// to allow users to create a MarketContract
-    function testNeededBalanceForContractCreation() {
+    function testNeededBalanceForContractCreation() public {
         uint neededBalanceForContractCreation = 25;
         MarketToken marketToken = new MarketToken(0, neededBalanceForContractCreation);
 
@@ -91,7 +91,7 @@ contract TestMarketToken {
         );
     }
 
-    function testLockTokensForTrading() {
+    function testLockTokensForTrading() public {
         uint qtyToLockForTrading = 10;
         MarketToken marketToken = new MarketToken(qtyToLockForTrading, 0);
 
