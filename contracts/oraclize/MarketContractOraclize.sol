@@ -32,7 +32,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     string public ORACLE_QUERY;
     uint public ORACLE_QUERY_REPEAT;
     uint constant public COST_PER_QUERY = 2 finney;    // leave static for now, price of first query from oraclize is 0
-    uint constant public QUERY_CALLBACK_GAS = 300000;
+    uint constant public QUERY_CALLBACK_GAS = 150000;  // this is ~30,000 over needed gas currently - some cushion here
 
     // state variables
     string public lastPriceQueryResult;
