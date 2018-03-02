@@ -26,7 +26,7 @@ contract OraclizeQueryTest is usingOraclize {
     using MathLib for uint;
 
     // constants
-    uint constant public QUERY_CALLBACK_GAS = 200000;
+    uint constant public QUERY_CALLBACK_GAS = 150000;
 
     // state variables
     mapping(bytes32 => bool) validScheduledQueryIDs;
@@ -47,7 +47,7 @@ contract OraclizeQueryTest is usingOraclize {
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
     /// @return unique identifier to allow them to retrieve the query results once completed.
     function testOracleQuery(string oracleDataSource, string oracleQuery) external payable returns (bytes32) {
-        uint cost = oraclize_getPrice(oracleDataSource).add(QUERY_CALLBACK_GAS);
+        uint cost = oraclize_getPrice(oracleDataSource, QUERY_CALLBACK_GAS);
         require(msg.value >= cost); // user must pay enough to cover query and callback
         bytes32 queryId = oraclize_query(
             oracleDataSource,
@@ -64,6 +64,14 @@ contract OraclizeQueryTest is usingOraclize {
     /// @return results (if any) from the query
     function getQueryResults(bytes32 queryID) external view returns (string) {
         return queryResults[queryID];
+    }
+
+    /// @notice allows a user to retrieve current pricing from oraclize API
+    /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"
+    /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
+    /// @return cost in wei of query
+    function getQueryCost(string oracleDataSource) external returns (uint cost) {
+        oraclize_getPrice(oracleDataSource, QUERY_CALLBACK_GAS);
     }
 
     /// @notice only public for callbacks from oraclize, do not call
