@@ -31,8 +31,8 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     string public ORACLE_DATA_SOURCE;
     string public ORACLE_QUERY;
     uint public ORACLE_QUERY_REPEAT;
-    uint constant public COST_PER_QUERY = 2 finney;    // leave static for now, price of first query from oraclize is 0
     uint constant public QUERY_CALLBACK_GAS = 150000;  // this is ~30,000 over needed gas currently - some cushion here
+    uint constant public QUERY_CALLBACK_GAS_PRICE = 20000000000 wei; // 20 gwei - need to make this dynamic!
 
     // state variables
     string public lastPriceQueryResult;
@@ -75,6 +75,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     )  public payable
     {
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
+        oraclize_setCustomGasPrice(QUERY_CALLBACK_GAS_PRICE);  //TODO: allow this to be changed by creator.
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
         ORACLE_QUERY_REPEAT = oracleQueryRepeatSeconds;
@@ -87,7 +88,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     /// the call to our oracle and post processing. This is useful for both a failsafe and as a way to
     /// settle a contract early if a price cap or floor has been breached.
     function requestEarlySettlement() external payable {
-        uint cost = oraclize_getPrice(ORACLE_DATA_SOURCE).add(QUERY_CALLBACK_GAS);
+        uint cost = oraclize_getPrice(ORACLE_DATA_SOURCE, QUERY_CALLBACK_GAS);
         require(msg.value >= cost); // user must pay enough to cover query and callback
         // create immediate query, we must make sure to store this one separately, so
         // we do not schedule recursive callbacks when the query completes.
@@ -134,7 +135,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
 
     /// @dev call to oraclize to set up our query and record its hash.
     function queryOracle() private {
-        if (oraclize_getPrice(ORACLE_DATA_SOURCE) > this.balance) {
+        if (oraclize_getPrice(ORACLE_DATA_SOURCE, QUERY_CALLBACK_GAS) > this.balance) {
             OracleQueryFailed();
             lastPriceQueryResult = "FAILED"; //TODO: failsafe
         } else {
@@ -149,15 +150,17 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
         }
     }
 
-    /// @dev over estimates needed gas to power queries until expiration and determines if provided contract
-    /// contains enough.
+    /// @dev over estimates needed pre-funding to power queries (gas + cost to oraclize) until expiration
+    /// and determines if provided contract contains enough.
     /// @param secondsToExpiration seconds from now that expiration is scheduled.
     /// @return true if sufficient gas is present to create queries at the designated
     /// frequency from now until expiration
     function checkSufficientStartingBalance(uint secondsToExpiration) private view returns (bool isSufficient) {
-        //uint costPerQuery = oraclize_getPrice(ORACLE_DATA_SOURCE); this doesn't work prior to first query(its free)
+        // with Oraclize, the first query is free, unless the callback gas is more than 200k - therefore we need to
+        // set the callback gas higher than this, so Oraclize will not return 0.
+        uint costPerQuery = oraclize_getPrice(ORACLE_DATA_SOURCE, QUERY_CALLBACK_GAS * 2); // overestimate.
         uint expectedNoOfQueries = secondsToExpiration / ORACLE_QUERY_REPEAT;
-        uint approxGasRequired = COST_PER_QUERY.multiply(expectedNoOfQueries);
-        return this.balance > (approxGasRequired * 2);
+        uint approxGasRequired = costPerQuery.multiply(expectedNoOfQueries); // cost per query currently includes callback gas cost
+        return this.balance > (approxGasRequired.divideFractional(6, 5)); // 1.2 safety factor built in here.
     }
 }

@@ -40,7 +40,7 @@ contract('MarketContractOraclize.Callback', function(accounts) {
         let sleep = (ms) => {
             return new Promise(resolve => setTimeout(resolve, ms));
         };
-        let gasLimit = 6200000;  // gas limit for development network
+        let gasLimit = 6500000;  // gas limit for development network
         let block = web3.eth.getBlock("latest");
         if (block.gasLimit > 7000000) {  // coverage network
             gasLimit = block.gasLimit;
