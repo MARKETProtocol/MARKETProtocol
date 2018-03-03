@@ -1,4 +1,4 @@
-<img src="https://ibb.co/gUOXNn" align="middle">
+<img src="https://image.ibb.co/mzSFa7/MARKET_logo_URL.png" align="middle">
 
 [![Build Status](https://travis-ci.org/MarketProject/MarketProtocol.svg?branch=master)](https://travis-ci.org/MarketProject/MarketProtocol) [![Coverage Status](https://coveralls.io/repos/github/MarketProject/MarketProtocol/badge.svg?branch=master&service=github)](https://coveralls.io/github/MarketProject/MarketProtocol?branch=master)
 
