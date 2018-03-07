@@ -32,7 +32,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     string public ORACLE_QUERY;
     uint public ORACLE_QUERY_REPEAT;
     uint constant public QUERY_CALLBACK_GAS = 150000;  // this is ~30,000 over needed gas currently - some cushion here
-    uint constant public QUERY_CALLBACK_GAS_PRICE = 20000000000 wei; // 20 gwei - need to make this dynamic!
+    //uint constant public QUERY_CALLBACK_GAS_PRICE = 20000000000 wei; // 20 gwei - need to make this dynamic!
 
     // state variables
     string public lastPriceQueryResult;
@@ -75,11 +75,10 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     )  public payable
     {
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
-        oraclize_setCustomGasPrice(QUERY_CALLBACK_GAS_PRICE);  //TODO: allow this to be changed by creator.
+        //oraclize_setCustomGasPrice(QUERY_CALLBACK_GAS_PRICE);  //TODO: allow this to be changed by creator.
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
         ORACLE_QUERY_REPEAT = oracleQueryRepeatSeconds;
-        require(checkSufficientStartingBalance(EXPIRATION.subtract(now)));
         queryOracle();  // schedules recursive calls to oracle
     }
 
@@ -148,19 +147,5 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
             );
             validScheduledQueryIDs[queryId] = true;
         }
-    }
-
-    /// @dev over estimates needed pre-funding to power queries (gas + cost to oraclize) until expiration
-    /// and determines if provided contract contains enough.
-    /// @param secondsToExpiration seconds from now that expiration is scheduled.
-    /// @return true if sufficient gas is present to create queries at the designated
-    /// frequency from now until expiration
-    function checkSufficientStartingBalance(uint secondsToExpiration) private view returns (bool isSufficient) {
-        // with Oraclize, the first query is free, unless the callback gas is more than 200k - therefore we need to
-        // set the callback gas higher than this, so Oraclize will not return 0.
-        uint costPerQuery = oraclize_getPrice(ORACLE_DATA_SOURCE, QUERY_CALLBACK_GAS * 2); // overestimate.
-        uint expectedNoOfQueries = secondsToExpiration / ORACLE_QUERY_REPEAT;
-        uint approxGasRequired = costPerQuery.multiply(expectedNoOfQueries); // cost per query currently includes callback gas cost
-        return this.balance > (approxGasRequired.divideFractional(6, 5)); // 1.2 safety factor built in here.
     }
 }
