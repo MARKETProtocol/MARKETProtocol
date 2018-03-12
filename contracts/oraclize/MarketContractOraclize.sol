@@ -31,7 +31,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     string public ORACLE_DATA_SOURCE;
     string public ORACLE_QUERY;
     uint public ORACLE_QUERY_REPEAT;
-    uint constant public QUERY_CALLBACK_GAS = 150000;  // this is ~30,000 over needed gas currently - some cushion here
+    uint constant public QUERY_CALLBACK_GAS = 180000;
     //uint constant public QUERY_CALLBACK_GAS_PRICE = 20000000000 wei; // 20 gwei - need to make this dynamic!
 
     // state variables
