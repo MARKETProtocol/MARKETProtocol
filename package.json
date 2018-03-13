@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "truffle": "^4.0.1",
-    "zeppelin-solidity": "^1.5.0"
+    "zeppelin-solidity": "1.5.0"
   },
   "devDependencies": {
     "coveralls": "^3.0.0",
