@@ -35,6 +35,7 @@ contract OraclizeQueryTest is usingOraclize {
     // events
     event QueryCompleted(bytes32 indexed queryIDCompleted);
     event QueryScheduled(bytes32 indexed queryIDScheduled);
+    event QueryPrice(uint value);
 
     function OraclizeQueryTest() public {
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS); //set proof to match main contracts
@@ -74,8 +75,8 @@ contract OraclizeQueryTest is usingOraclize {
     /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"
     /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
     /// @return cost in wei of query
-    function getQueryCost(string oracleDataSource) external returns (uint cost) {
-        oraclize_getPrice(oracleDataSource, QUERY_CALLBACK_GAS);
+    function getQueryCost(string oracleDataSource) external returns (uint) {
+        return oraclize_getPrice(oracleDataSource, QUERY_CALLBACK_GAS);
     }
 
     /// @notice only public for callbacks from oraclize, do not call
