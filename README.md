@@ -4,6 +4,8 @@
 
 MARKET Protocol provides the first opportunity for crypto holders to gain exposure to real-world or crypto assets through derivatives. A derivative is a contract between two parties with its value derived from an underlying asset. MARKET users will be able to design and implement contracts deriving value from digital and non-digital assets settling on the Ethereum blockchain. Users are not limited to owned or existing ERC20 tokens. MARKET is designed to facilitate risk transference and trading in a trustless manner.  Take a look at our [FAQ](https://github.com/MARKETProtocol/MARKETProtocol/wiki/Frequently-Asked-Questions) or [docs](http://docs.marketprotocol.io) for a little more explanation.
 
+Join our [Discord Community](https://www.marketprotocol.io/discord) to interact with members of our dev staff and other contributors.
+
 ## Getting Started
 Assuming you have npm already, Install truffle
 ```
