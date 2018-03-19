@@ -41,7 +41,6 @@ module.exports = function(deployer, network) {
                     [20155, 60465, 2, 10, marketContractExpiration],
                     "URL",
                     "json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0",
-                    120,
                     { gas: gasLimit, value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]}
                 )
             }).then(function() {
@@ -76,7 +75,6 @@ module.exports = function(deployer, network) {
                         [20155, 60465, 2, 10, marketContractExpiration],
                         "URL",
                         "json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0",
-                        120,
                         { gas: gasLimit, value: web3.toWei('.2', 'ether'), from: web3.eth.accounts[0]}
                     )
                 }).then(function(deployedMarketContract) {
