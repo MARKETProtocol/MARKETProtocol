@@ -34,5 +34,8 @@
   "bugs": {
     "url": "https://github.com/MARKETProtocol/MARKETProtocol/issues"
   },
-  "homepage": "https://github.com/MARKETProtocol/MARKETProtocol#readme"
+  "homepage": "https://github.com/MARKETProtocol/MARKETProtocol#readme",
+  "engines": {
+    "node": ">=8.10.0"
+  }
 }
