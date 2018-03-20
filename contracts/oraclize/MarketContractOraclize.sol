@@ -34,7 +34,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
 
     // state variables
     string public lastPriceQueryResult;
-    mapping(bytes32 => bool) validUserRequestedQueryIDs;
+    mapping(bytes32 => bool) validQueryIDs;
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
     /// @param marketTokenAddress address of our member token
@@ -67,8 +67,6 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
         //oraclize_setCustomGasPrice(QUERY_CALLBACK_GAS_PRICE);  //TODO: allow this to be changed by creator.
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
-        // Require that sufficient funds are available to pay for the query.
-        require(oraclize_getPrice(ORACLE_DATA_SOURCE, QUERY_CALLBACK_GAS) < this.balance);
         queryOracle();  // Schedule a call to oracle at contract expiration time.
     }
 
@@ -86,7 +84,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
             ORACLE_QUERY,
             QUERY_CALLBACK_GAS
         );
-        validUserRequestedQueryIDs[queryId] = true;
+        validQueryIDs[queryId] = true;
     }
 
     /*
@@ -99,12 +97,12 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     /// @param proof result proof
     function __callback(bytes32 queryID, string result, bytes proof) public {
         require(msg.sender == oraclize_cbAddress());
-        require(validUserRequestedQueryIDs[queryID]);
+        require(validQueryIDs[queryID]);  // At expiration or early settlement.
         lastPriceQueryResult = result;
         lastPrice = parseInt(result, PRICE_DECIMAL_PLACES);
         UpdatedLastPrice(result);
         checkSettlement();  // Verify settlement at expiration or requested early settlement.
-        delete validUserRequestedQueryIDs[queryID];
+        delete validQueryIDs[queryID];
     }
 
     /*
@@ -113,6 +111,8 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
 
     /// @dev call to oraclize to set up our query and record its hash.
     function queryOracle() private {
+        // Require that sufficient funds are available to pay for the query.
+        require(oraclize_getPrice(ORACLE_DATA_SOURCE, QUERY_CALLBACK_GAS) < this.balance);
         // Require expiration time in the future.
         require(EXPIRATION > now);
         // Future timestamp must be within 60 days from now.
@@ -125,5 +125,6 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
             ORACLE_QUERY,
             QUERY_CALLBACK_GAS
         );
+        validQueryIDs[queryId] = true;
     }
 }
