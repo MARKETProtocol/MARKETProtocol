@@ -109,7 +109,7 @@ contract MarketContract is Creatable {
         address marketTokenAddress,
         address baseTokenAddress,
         uint[5] contractSpecs
-    ) public payable
+    ) public
     {
         MKT_TOKEN_ADDRESS = marketTokenAddress;
         MKT_TOKEN = MarketToken(marketTokenAddress);
@@ -280,12 +280,14 @@ contract MarketContract is Creatable {
         isCollateralPoolContractLinked = true;
     }
 
+    /* Currently no pre-funding is required.
     /// @notice after contract settlement the contract creator can reclaim any
     /// unused ethereum balance from this contract that was provided for oracle query costs / gas.
     function reclaimUnusedEtherBalance() external onlyCreator {
         require(isSettled && this.balance > 0); // this contract has completed all needed queries
         creator.transfer(this.balance);         // return balance to the creator.
     }
+    */
 
     /// @notice allows a user to request an extra query to oracle in order to push the contract into
     /// settlement.  A user may call this as many times as they like, since they are the ones paying for

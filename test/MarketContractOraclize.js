@@ -420,27 +420,27 @@ contract('MarketContractOraclize', function(accounts) {
         assert.ok(error instanceof Error, "cancelOrder() should fail after settlement");
     })
 
-    it("should not allow unknown address to claim remaining ether", async function() {
-        const unknownAddress = accounts[4];
-
-        let error;
-        try {
-            await marketContract.reclaimUnusedEtherBalance({from: unknownAddress});
-        } catch (err) {
-            error = err;
-        }
-        assert.ok(error instanceof Error, "Address not creator can claim unused ether");
-    })
-
-    it("should allow only contract owner to claim remaining ether", async function() {
-        const creator = accounts[0];
-        const balance = await web3.eth.getBalance(MarketContractOraclize.address);
-
-        await marketContract.reclaimUnusedEtherBalance({from: creator});
-
-        const balanceAfterTransfer = await web3.eth.getBalance(MarketContractOraclize.address);
-        assert.equal(balanceAfterTransfer.toNumber(), 0, "Remaining ether is not fully claimed");
-    })
+    // it("should not allow unknown address to claim remaining ether", async function() {
+    //     const unknownAddress = accounts[4];
+    //
+    //     let error;
+    //     try {
+    //         await marketContract.reclaimUnusedEtherBalance({from: unknownAddress});
+    //     } catch (err) {
+    //         error = err;
+    //     }
+    //     assert.ok(error instanceof Error, "Address not creator can claim unused ether");
+    // })
+    //
+    // it("should allow only contract owner to claim remaining ether", async function() {
+    //     const creator = accounts[0];
+    //     const balance = await web3.eth.getBalance(MarketContractOraclize.address);
+    //
+    //     await marketContract.reclaimUnusedEtherBalance({from: creator});
+    //
+    //     const balanceAfterTransfer = await web3.eth.getBalance(MarketContractOraclize.address);
+    //     assert.equal(balanceAfterTransfer.toNumber(), 0, "Remaining ether is not fully claimed");
+    // })
 });
 
 contract('MarketContractOraclize.Fees', function(accounts) {

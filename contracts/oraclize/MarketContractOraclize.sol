@@ -62,18 +62,18 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
         marketTokenAddress,
         baseTokenAddress,
         contractSpecs
-    )  public payable
+    )  public
     {
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
         //oraclize_setCustomGasPrice(QUERY_CALLBACK_GAS_PRICE);  //TODO: allow this to be changed by creator.
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
-        // Require expiration time in the future.
-        require(EXPIRATION > now);
+        require(EXPIRATION > now);         // Require expiration time in the future.
+
         // Future timestamp must be within 60 days from now.
         // https://docs.oraclize.it/#ethereum-quick-start-schedule-a-query-in-the-future
         require(EXPIRATION - now <= SECONDS_PER_SIXTY_DAYS);
-        queryOracle();  // Schedule a call to oracle at contract expiration time.
+        queryOracle();                      // Schedule a call to oracle at contract expiration time.
     }
 
     /// @notice allows a user to request an extra query to oracle in order to push the contract into
@@ -118,8 +118,13 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     /// @dev call to oraclize to set up our query and record its hash.
     function queryOracle() private {
         // Require that sufficient funds are available to pay for the query.
-        require(oraclize_getPrice(ORACLE_DATA_SOURCE, QUERY_CALLBACK_GAS) < this.balance);
-
+        // require(oraclize_getPrice(ORACLE_DATA_SOURCE, QUERY_CALLBACK_GAS) < this.balance);
+        // NOTE: Currently the first oracle query call to oraclize.it is free. Since our
+        // expiration query will always be the first, there is no needed pre-funding amount
+        // to create this query.  When we go to the centralized query hub - this will change
+        // due to the fact that the address creating the query will always be the query hub.
+        // will have to do the analysis to see which is cheaper, free queries, or lower deployment
+        // gas costs
         bytes32 queryId = oraclize_query(
             EXPIRATION,
             ORACLE_DATA_SOURCE,

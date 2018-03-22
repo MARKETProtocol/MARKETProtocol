@@ -41,7 +41,7 @@ module.exports = function(deployer, network) {
                     [20155, 60465, 2, 10, marketContractExpiration],
                     "URL",
                     "json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0",
-                    { gas: gasLimit, value: web3.toWei('.002', 'ether'), from: web3.eth.accounts[0]}
+                    { gas: gasLimit, from: web3.eth.accounts[0]}
                 )
             }).then(function() {
                 return deployer.deploy(
@@ -62,7 +62,7 @@ module.exports = function(deployer, network) {
             return MarketToken.deployed().then(function() {
                 return CollateralToken.deployed().then(function() {
 
-                    let gasLimit = 6100000;  // gas limit for development network
+                    let gasLimit = 5900000;  // gas limit for development network
                     let block = web3.eth.getBlock("latest");
                     if (block.gasLimit > 7000000) {  // coverage network allows for more gas.
                         gasLimit = block.gasLimit;
@@ -75,7 +75,7 @@ module.exports = function(deployer, network) {
                         [20155, 60465, 2, 10, marketContractExpiration],
                         "URL",
                         "json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0",
-                        { gas: gasLimit, value: web3.toWei('.002', 'ether'), from: web3.eth.accounts[0]}
+                        { gas: gasLimit, from: web3.eth.accounts[0]}
                     )
                 }).then(function(deployedMarketContract) {
                     return MarketCollateralPool.new(
