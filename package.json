@@ -1,6 +1,6 @@
 {
   "name": "market-solidity",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "Decentralized Derivatives Trading Protocol For The Ethereum Blockchain",
   "main": "truffle-config.js",
   "directories": {
