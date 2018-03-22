@@ -1,5 +1,5 @@
 /*
-    Copyright 2017 Phillip A. Elsasser
+    Copyright 2017-2018 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import "../libraries/MathLib.sol";
 import "../MarketContract.sol";
 
 
-
 /// @title MarketContract first example of a MarketProtocol contract using Oraclize services
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketContractOraclize is MarketContract, usingOraclize {
@@ -30,19 +29,13 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     // constants
     string public ORACLE_DATA_SOURCE;
     string public ORACLE_QUERY;
-    uint public ORACLE_QUERY_REPEAT;
-    uint constant public QUERY_CALLBACK_GAS = 180000;
+    uint constant public QUERY_CALLBACK_GAS = 150000;
+    uint constant SECONDS_PER_SIXTY_DAYS = 60 * 60 * 24 * 60;
     //uint constant public QUERY_CALLBACK_GAS_PRICE = 20000000000 wei; // 20 gwei - need to make this dynamic!
 
     // state variables
     string public lastPriceQueryResult;
-    mapping(bytes32 => bool) validScheduledQueryIDs;
-    mapping(bytes32 => bool) validUserRequestedQueryIDs;
-
-    // events
-    event OracleQuerySuccess();
-    event OracleQueryFailed();
-
+    mapping(bytes32 => bool) validQueryIDs;
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
     /// @param marketTokenAddress address of our member token
@@ -57,16 +50,13 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"
     /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
-    /// @param oracleQueryRepeatSeconds how often to repeat this callback to check for settlement, more frequent
-    /// queries require more gas and may not be needed.
     function MarketContractOraclize(
         string contractName,
         address marketTokenAddress,
         address baseTokenAddress,
         uint[5] contractSpecs,
         string oracleDataSource,
-        string oracleQuery,
-        uint oracleQueryRepeatSeconds
+        string oracleQuery
     ) MarketContract(
         contractName,
         marketTokenAddress,
@@ -78,8 +68,12 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
         //oraclize_setCustomGasPrice(QUERY_CALLBACK_GAS_PRICE);  //TODO: allow this to be changed by creator.
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
-        ORACLE_QUERY_REPEAT = oracleQueryRepeatSeconds;
-        queryOracle();  // schedules recursive calls to oracle
+        // Require expiration time in the future.
+        require(EXPIRATION > now);
+        // Future timestamp must be within 60 days from now.
+        // https://docs.oraclize.it/#ethereum-quick-start-schedule-a-query-in-the-future
+        require(EXPIRATION - now <= SECONDS_PER_SIXTY_DAYS);
+        queryOracle();  // Schedule a call to oracle at contract expiration time.
     }
 
     /// @notice allows a user to request an extra query to oracle in order to push the contract into
@@ -96,7 +90,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
             ORACLE_QUERY,
             QUERY_CALLBACK_GAS
         );
-        validUserRequestedQueryIDs[queryId] = true;
+        validQueryIDs[queryId] = true;
     }
 
     /*
@@ -109,23 +103,12 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     /// @param proof result proof
     function __callback(bytes32 queryID, string result, bytes proof) public {
         require(msg.sender == oraclize_cbAddress());
-        bool isScheduled = validScheduledQueryIDs[queryID];
-        require(isScheduled || validUserRequestedQueryIDs[queryID]);
+        require(validQueryIDs[queryID]);  // At expiration or early settlement.
         lastPriceQueryResult = result;
         lastPrice = parseInt(result, PRICE_DECIMAL_PLACES);
         UpdatedLastPrice(result);
-        checkSettlement();
-
-        if (isScheduled) {
-            delete validScheduledQueryIDs[queryID];
-            if (!isSettled) {
-                // this was a scheduled query, and we have not entered a settlement state
-                // so we want to schedule a new query.
-                queryOracle();
-            }
-        } else {
-            delete validUserRequestedQueryIDs[queryID];
-        }
+        checkSettlement();  // Verify settlement at expiration or requested early settlement.
+        delete validQueryIDs[queryID];
     }
 
     /*
@@ -134,18 +117,15 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
 
     /// @dev call to oraclize to set up our query and record its hash.
     function queryOracle() private {
-        if (oraclize_getPrice(ORACLE_DATA_SOURCE, QUERY_CALLBACK_GAS) > this.balance) {
-            OracleQueryFailed();
-            lastPriceQueryResult = "FAILED"; //TODO: failsafe
-        } else {
-            OracleQuerySuccess();
-            bytes32 queryId = oraclize_query(
-                ORACLE_QUERY_REPEAT,
-                ORACLE_DATA_SOURCE,
-                ORACLE_QUERY,
-                QUERY_CALLBACK_GAS
-            );
-            validScheduledQueryIDs[queryId] = true;
-        }
+        // Require that sufficient funds are available to pay for the query.
+        require(oraclize_getPrice(ORACLE_DATA_SOURCE, QUERY_CALLBACK_GAS) < this.balance);
+
+        bytes32 queryId = oraclize_query(
+            EXPIRATION,
+            ORACLE_DATA_SOURCE,
+            ORACLE_QUERY,
+            QUERY_CALLBACK_GAS
+        );
+        validQueryIDs[queryId] = true;
     }
 }

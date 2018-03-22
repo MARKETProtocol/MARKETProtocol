@@ -1,5 +1,5 @@
 /*
-    Copyright 2017 Phillip A. Elsasser
+    Copyright 2017-2018 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -38,24 +38,20 @@ contract TestableMarketContractOraclize is MarketContractOraclize {
     /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"dv
     /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
-    /// @param oracleQueryRepeatSeconds how often to repeat this callback to check for settlement, more frequent
-    /// queries require more gas and may not be needed.
     function TestableMarketContractOraclize(
         string contractName,
         address marketTokenAddress,
         address baseTokenAddress,
         uint[5] contractSpecs,
         string oracleDataSource,
-        string oracleQuery,
-        uint oracleQueryRepeatSeconds
+        string oracleQuery
     ) MarketContractOraclize(
         contractName,
         marketTokenAddress,
         baseTokenAddress,
         contractSpecs,
         oracleDataSource,
-        oracleQuery,
-        oracleQueryRepeatSeconds
+        oracleQuery
     ) public payable { }
 
     /// @notice allows the creator of the contract to manually set a last price and check for settlement
