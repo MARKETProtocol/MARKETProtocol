@@ -87,7 +87,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
         setTimeout(check, 1000)
     });
 
-    await waitForContractSettledEvent(30000);
+    await waitForContractSettledEvent(60000);
     assert.notEqual(txReceipt, null, "Oraclize callback did not arrive. Please increase QUERY_CALLBACK_GAS!");
 
     })
