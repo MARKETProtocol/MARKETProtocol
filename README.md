@@ -24,7 +24,7 @@ $ npm install
 To run the tests locally via truffle you must have oraclize's bridge
 running. Information on installation can be found [here](https://github.com/MARKETProtocol/ethereum-bridge)
 
-Start truffle and its development blockhain with
+Start truffle and its development blockchain with
 ```
 $ truffle develop
 ```
