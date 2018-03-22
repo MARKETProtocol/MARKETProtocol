@@ -330,7 +330,6 @@ contract('MarketContractOraclize', function(accounts) {
         } catch (err) {
             error = err;
         }
-
         assert.ok(error instanceof Error, "Order did not fail");
     })
 
@@ -395,6 +394,64 @@ contract('MarketContractOraclize', function(accounts) {
 
         assert.ok(error instanceof Error, "tradeOrder() should fail after settlement");
     })
+
+    it("should fail for attempt to call Oraclize callback", async function() {
+        let error;
+        try {
+            await marketContract._callback.call();
+        } catch (err) {
+            error = err;
+        }
+
+        assert.ok(error instanceof Error, "Oraclize callback should fail if not called by Oraclize");
+    })
+
+    it("should fail for attempt to self-trade", async function() {
+        const orderQty = 2;
+        const orderToFill = 2;
+        const settlementPrice = 50000;
+        const isExpired = false;
+
+        let error;
+        try {
+            await tradeHelper.tradeOrder(
+                [accounts[0], accounts[0], accounts[2]],
+                [entryOrderPrice, orderQty, orderToFill]
+            );
+        } catch (err) {
+            error = err;
+        }
+
+        assert.ok(error instanceof Error, "tradeOrder() should fail for self-trade attempt");
+    })
+
+    it("should fail for attempt to cancel twice full qty", async function() {
+        const orderQty = 2;
+        const orderToCancel = 2;
+        const settlementPrice = 20000;
+
+        let error;
+        try {
+            await tradeHelper.cancelOrder(
+                [accounts[0], accounts[1], accounts[2]],
+                [entryOrderPrice, orderQty, orderToCancel],
+            );
+        } catch (err) {
+            error = err;
+        }
+        let errorEvent = marketContract.Error();
+        await tradeHelper.cancelOrder(
+            [accounts[0], accounts[1], accounts[2]],
+            [entryOrderPrice, orderQty, orderToCancel],
+        );
+        errorEvent.watch(async (err, response) => {
+        if (err) {
+            console.log(err);
+        };
+        assert.equal(response.event, 'Error');
+        errorEvent.stopWatching();
+        });
+   })
 
     it("should fail for attempt to cancel after settlement", async function() {
         const orderQty = 2;

@@ -13,6 +13,8 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
     let collateralToken;
     let marketToken;
     let marketContract;
+    let marketContractInstance;
+    let gasLimit;
 
     const accountMaker = accounts[0];
 
@@ -29,7 +31,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
         const marketContractExpirationInTenSeconds = Math.floor(Date.now() / 1000) + 10;
         const priceFloor = 1;
         const priceCap = 1000000; // 10k USD
-        let gasLimit = 6500000;  // gas limit for development network
+        gasLimit = 6500000;  // gas limit for development network
         let block = web3.eth.getBlock("latest");
         if (block.gasLimit > 7000000) {  // coverage network
             gasLimit = block.gasLimit;
@@ -48,6 +50,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
             let oraclizeCallbackGasCost = await deployedMarketContract.QUERY_CALLBACK_GAS.call();
             let contractSettledEvent = deployedMarketContract.ContractSettled();
             let updatedLastPriceEvent = deployedMarketContract.UpdatedLastPrice();
+            marketContractInstance = deployedMarketContract;
 
             contractSettledEvent.watch(async (err, response) => {
                 if (err) {
@@ -86,6 +89,71 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
 
     await waitForContractSettledEvent(30000);
     assert.notEqual(txReceipt, null, "Oraclize callback did not arrive. Please increase QUERY_CALLBACK_GAS!");
+
+    })
+
+    it("request early settlement after contract settled", async function() {
+        await marketContractInstance.requestEarlySettlement.call(
+        { gas: gasLimit, value: web3.toWei('.1', 'ether'), accountMaker});
+    })
+
+    it("Should fail to deploy a contract with priceFloor equal to priceCap", async function() {
+    const marketContractExpirationInTenSeconds = Math.floor(Date.now() / 1000) + 10;
+    let error = null;
+    try {
+        await MarketContractOraclize.new(
+            "ETHUSD-EQUALPRICECAPPRICEFLOOR",
+            marketToken.address,
+            collateralToken.address,
+            [100000, 100000, 2, 1, marketContractExpirationInTenSeconds],
+            "URL",
+            "json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0",
+            { gas: gasLimit, value: web3.toWei('.1', 'ether'), accountMaker}
+        )
+    } catch (err) {
+        error = err;
+    }
+    assert.ok(error instanceof Error, "Contract with priceFloor equal to priceCap is possible");
+
+    })
+
+    it("Should fail to deploy a contract with expiration in the past", async function() {
+    const marketContractExpirationTenSecondsAgo = Math.floor(Date.now() / 1000) - 10;
+    let error = null;
+    try {
+        await MarketContractOraclize.new(
+            "ETHUSD-EQUALPRICECAPPRICEFLOOR",
+            marketToken.address,
+            collateralToken.address,
+            [10, 100, 2, 1, marketContractExpirationTenSecondsAgo],
+            "URL",
+            "json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0",
+            { gas: gasLimit, value: web3.toWei('.1', 'ether'), accountMaker}
+        )
+    } catch (err) {
+        error = err;
+    }
+    assert.ok(error instanceof Error, "Contract with expiration in the past is possible");
+
+    })
+
+    it("Should fail to deploy a contract with expiration set after 60 days", async function() {
+    const marketContractExpirationInSixtyOneDays = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 61;
+    let error = null;
+    try {
+        await MarketContractOraclize.new(
+            "ETHUSD-EQUALPRICECAPPRICEFLOOR",
+            marketToken.address,
+            collateralToken.address,
+            [10, 100, 2, 1, marketContractExpirationTenSecondsAgo],
+            "URL",
+            "json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0",
+            { gas: gasLimit, value: web3.toWei('.1', 'ether'), accountMaker}
+        )
+    } catch (err) {
+        error = err;
+    }
+    assert.ok(error instanceof Error, "Contract with expiration set after 60 days is possible");
 
     })
 });
