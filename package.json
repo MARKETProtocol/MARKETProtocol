@@ -1,7 +1,7 @@
 {
   "name": "market-solidity",
   "version": "0.0.17",
-  "description": "Decentralized Derivates Trading Protocol For The Ethereum Blockchain",
+  "description": "Decentralized Derivatives Trading Protocol For The Ethereum Blockchain",
   "main": "truffle-config.js",
   "directories": {
     "test": "test"
