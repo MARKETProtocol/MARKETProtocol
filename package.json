@@ -11,8 +11,8 @@
     "zeppelin-solidity": "1.5.0"
   },
   "devDependencies": {
-    "coveralls": "^3.0.0",
     "solidity-coverage": "^0.4.8",
+    "coveralls": "^3.0.0",
     "solium": "^1.0.5"
   },
   "scripts": {
