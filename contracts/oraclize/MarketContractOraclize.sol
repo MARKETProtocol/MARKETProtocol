@@ -30,7 +30,6 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     string public ORACLE_DATA_SOURCE;
     string public ORACLE_QUERY;
     uint constant public QUERY_CALLBACK_GAS = 150000;
-    uint constant SECONDS_PER_SIXTY_DAYS = 60 * 60 * 24 * 60;
     //uint constant public QUERY_CALLBACK_GAS_PRICE = 20000000000 wei; // 20 gwei - need to make this dynamic!
 
     // state variables
@@ -72,7 +71,8 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
 
         // Future timestamp must be within 60 days from now.
         // https://docs.oraclize.it/#ethereum-quick-start-schedule-a-query-in-the-future
-        require(EXPIRATION - now <= SECONDS_PER_SIXTY_DAYS);
+        uint secondsPerSixtyDays = 60 * 60 * 24 * 60;
+        require(EXPIRATION - now <= secondsPerSixtyDays);
         queryOracle();                      // Schedule a call to oracle at contract expiration time.
     }
 

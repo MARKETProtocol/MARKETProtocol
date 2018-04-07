@@ -20,6 +20,7 @@ module.exports = function(deployer, network) {
         const marketTokenToLockForTrading = 0;    // for testing purposes, require no lock
         const marketTokenAmountForContractCreation = 0;   //for testing purposes require no balance
         const marketContractExpiration = Math.floor(Date.now() / 1000) + 60 * 15; // expires in 15 minutes.
+        var gasLimit = 5700000;
 
         // deploy primary instance of market contract
         deployer.deploy(
@@ -28,7 +29,6 @@ module.exports = function(deployer, network) {
             marketTokenAmountForContractCreation
         ).then(function() {
             return deployer.deploy(CollateralToken, "CollateralToken", "CTK", 10000, 18).then(function() {
-                let gasLimit = 5800000;  // gas limit for development network
                 let block = web3.eth.getBlock("latest");
                 if (block.gasLimit > 7000000) {  // coverage network
                     gasLimit = block.gasLimit;
@@ -62,7 +62,7 @@ module.exports = function(deployer, network) {
             return MarketToken.deployed().then(function() {
                 return CollateralToken.deployed().then(function() {
 
-                    let gasLimit = 5800000;  // gas limit for development network
+                    gasLimit = 5700000;  
                     let block = web3.eth.getBlock("latest");
                     if (block.gasLimit > 7000000) {  // coverage network allows for more gas.
                         gasLimit = block.gasLimit;
