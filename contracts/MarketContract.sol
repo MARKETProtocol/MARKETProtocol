@@ -50,7 +50,6 @@ contract MarketContract is Creatable {
 
     string public CONTRACT_NAME;
     address public BASE_TOKEN_ADDRESS;
-    ERC20 public BASE_TOKEN;
     uint public PRICE_CAP;
     uint public PRICE_FLOOR;
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
@@ -125,7 +124,6 @@ contract MarketContract is Creatable {
 
         CONTRACT_NAME = contractName;
         BASE_TOKEN_ADDRESS = baseTokenAddress;
-        BASE_TOKEN = ERC20(baseTokenAddress);
     }
 
     /*
