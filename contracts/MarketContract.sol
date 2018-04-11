@@ -22,8 +22,8 @@ import "./libraries/OrderLib.sol";
 import "./libraries/MathLib.sol";
 import "./tokens/MarketToken.sol";
 
-import "zeppelin-solidity/contracts/token/ERC20.sol";
-import "zeppelin-solidity/contracts/token/SafeERC20.sol";
+import "zeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 
 
 /// @title MarketContract base contract implement all needed functionality for trading.
