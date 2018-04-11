@@ -32,17 +32,17 @@ pragma solidity ^0.4.0;//please import oraclizeAPI_pre0.4.sol when solidity < 0.
 
 contract OraclizeI {
     address public cbAddress;
-    function query(uint _timestamp, string _datasource, string _arg) payable returns (bytes32 _id);
-    function query_withGasLimit(uint _timestamp, string _datasource, string _arg, uint _gaslimit) payable returns (bytes32 _id);
-    function getPrice(string _datasource) returns (uint _dsprice);
-    function getPrice(string _datasource, uint gaslimit) returns (uint _dsprice);
-    function useCoupon(string _coupon);
-    function setProofType(byte _proofType);
-    function setConfig(bytes32 _config);
-    function setCustomGasPrice(uint _gasPrice);
+    function query(uint _timestamp, string _datasource, string _arg) public payable returns (bytes32 _id);
+    function query_withGasLimit(uint _timestamp, string _datasource, string _arg, uint _gaslimit) public payable returns (bytes32 _id);
+    function getPrice(string _datasource) public returns (uint _dsprice);
+    function getPrice(string _datasource, uint gaslimit) public returns (uint _dsprice);
+    function useCoupon(string _coupon) public;
+    function setProofType(byte _proofType) public;
+    function setConfig(bytes32 _config) public;
+    function setCustomGasPrice(uint _gasPrice) public;
 }
 contract OraclizeAddrResolverI {
-    function getAddress() returns (address _addr);
+    function getAddress() public returns (address _addr);
 }
 contract usingOraclize {
     byte constant proofType_TLSNotary = 0x10;
@@ -107,10 +107,10 @@ contract usingOraclize {
         return false;
     }
 
-    function __callback(bytes32 myid, string result) {
+    function __callback(bytes32 myid, string result) public {
         __callback(myid, result, new bytes(0));
     }
-    function __callback(bytes32 myid, string result, bytes proof) {
+    function __callback(bytes32 myid, string result, bytes proof) public {
     }
 
     function oraclize_useCoupon(string code) oraclizeAPI internal {
@@ -165,7 +165,7 @@ contract usingOraclize {
         }
     }
     // parseInt(parseFloat*10^_b)
-    function parseInt(string _a, uint _b) internal returns (uint) {
+    function parseInt(string _a, uint _b) pure internal returns (uint) {
         bytes memory bresult = bytes(_a);
         uint mint = 0;
         bool decimals = false;

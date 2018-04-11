@@ -22,8 +22,8 @@ import "./libraries/OrderLib.sol";
 import "./libraries/MathLib.sol";
 import "./tokens/MarketToken.sol";
 
-import "zeppelin-solidity/contracts/token/ERC20.sol";
-import "zeppelin-solidity/contracts/token/SafeERC20.sol";
+import "zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
+import "zeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 
 /// @title MarketContract base contract implement all needed functionality for trading.
@@ -168,13 +168,13 @@ contract MarketContract is Creatable {
 
 
         if (now >= order.expirationTimeStamp) {
-            Error(ErrorCodes.ORDER_EXPIRED, order.orderHash);
+            emit Error(ErrorCodes.ORDER_EXPIRED, order.orderHash);
             return 0;
         }
 
         int remainingQty = orderQty.subtract(getQtyFilledOrCancelledFromOrder(order.orderHash));
         if (remainingQty == 0) { // there is no qty remaining  - cannot fill!
-            Error(ErrorCodes.ORDER_DEAD, order.orderHash);
+            emit Error(ErrorCodes.ORDER_DEAD, order.orderHash);
             return 0;
         }
 
@@ -213,7 +213,7 @@ contract MarketContract is Creatable {
             }
         }
 
-        OrderFilled(
+        emit OrderFilled(
             order.maker,
             msg.sender,
             order.feeRecipient,
@@ -244,19 +244,19 @@ contract MarketContract is Creatable {
         OrderLib.Order memory order = address(this).createOrder(orderAddresses, unsignedOrderValues, orderQty);
         require(order.maker == msg.sender);                                // only maker can cancel standing order
         if (now >= order.expirationTimeStamp) {
-            Error(ErrorCodes.ORDER_EXPIRED, order.orderHash);
+            emit Error(ErrorCodes.ORDER_EXPIRED, order.orderHash);
             return 0;
         }
 
         int remainingQty = orderQty.subtract(getQtyFilledOrCancelledFromOrder(order.orderHash));
         if (remainingQty == 0) { // there is no qty remaining to cancel order is dead
-            Error(ErrorCodes.ORDER_DEAD, order.orderHash);
+            emit Error(ErrorCodes.ORDER_DEAD, order.orderHash);
             return 0;
         }
 
         qtyCancelled = MathLib.absMin(qtyToCancel, remainingQty);   // we can only cancel what remains
         orderMappings.addCancelledQtyToOrder(order.orderHash, qtyCancelled);
-        OrderCancelled(
+        emit OrderCancelled(
             order.maker,
             order.feeRecipient,
             qtyCancelled,
@@ -329,6 +329,6 @@ contract MarketContract is Creatable {
     /// @param finalSettlementPrice final query price at time of settlement
     function settleContract(uint finalSettlementPrice) private {
         settlementPrice = finalSettlementPrice;
-        ContractSettled(finalSettlementPrice);
+        emit ContractSettled(finalSettlementPrice);
     }
 }

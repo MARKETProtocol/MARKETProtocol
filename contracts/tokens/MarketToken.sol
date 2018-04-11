@@ -17,7 +17,7 @@
 pragma solidity ^0.4.18;
 
 import "../Creatable.sol";
-import "zeppelin-solidity/contracts/token/StandardToken.sol";
+import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 
 
 /// @title Market Token
@@ -42,7 +42,7 @@ contract MarketToken is StandardToken, Creatable {
     function MarketToken(uint qtyToLockForTrading, uint minBalanceForCreation) public {
         lockQtyToAllowTrading = qtyToLockForTrading;
         minBalanceToAllowContractCreation = minBalanceForCreation;
-        totalSupply = INITIAL_SUPPLY;
+        totalSupply_ = INITIAL_SUPPLY;
 
         balances[msg.sender] = INITIAL_SUPPLY; // for now allocate all tokens to creator
     }
