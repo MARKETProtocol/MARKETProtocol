@@ -21,8 +21,8 @@ import "./tokens/MarketToken.sol";
 import "./Linkable.sol";
 import "./MarketContract.sol";
 
-import "zeppelin-solidity/contracts/token/SafeERC20.sol";
-import "zeppelin-solidity/contracts/token/ERC20.sol";
+import "zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
+import "zeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 
 /// @title MarketCollateralPool is a contract controlled by a specific Market Contract.  It holds collateral balances
