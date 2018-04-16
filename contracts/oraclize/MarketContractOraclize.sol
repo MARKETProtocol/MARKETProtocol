@@ -90,6 +90,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
             ORACLE_QUERY,
             QUERY_CALLBACK_GAS
         );
+        require(queryId != 0);
         validQueryIDs[queryId] = true;
     }
 
@@ -131,6 +132,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
             ORACLE_QUERY,
             QUERY_CALLBACK_GAS
         );
+        require(queryId != 0);
         validQueryIDs[queryId] = true;
     }
 }

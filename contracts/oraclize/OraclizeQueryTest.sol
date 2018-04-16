@@ -59,6 +59,7 @@ contract OraclizeQueryTest is usingOraclize {
             oracleQuery,
             QUERY_CALLBACK_GAS
         );
+        require(queryId != 0);
         validScheduledQueryIDs[queryId] = true;
         QueryScheduled(queryId);
         return queryId;
