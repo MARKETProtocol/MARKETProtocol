@@ -1,8 +1,9 @@
-<img src="https://image.ibb.co/mzSFa7/MARKET_logo_URL.png" align="middle">
+<img src="https://github.com/MARKETProtocol/dApp/blob/master/src/img/MARKETProtocol-Light.png?raw=true" align="middle">
+
 
 [![Build Status](https://travis-ci.org/MARKETProtocol/MARKETProtocol.svg?branch=master)](https://travis-ci.org/MARKETProtocol/MARKETProtocol) [![Coverage Status](https://coveralls.io/repos/github/MARKETProtocol/MARKETProtocol/badge.svg?branch=master&service=github)](https://coveralls.io/github/MARKETProtocol/MARKETProtocol?branch=master)
 
-MARKET Protocol provides the first opportunity for crypto holders to gain exposure to real-world or crypto assets through derivatives. A derivative is a contract between two parties with its value derived from an underlying asset. MARKET users will be able to design and implement contracts deriving value from digital and non-digital assets settling on the Ethereum blockchain. Users are not limited to owned or existing ERC20 tokens. MARKET is designed to facilitate risk transference and trading in a trustless manner.  Take a look at our [FAQ](https://github.com/MARKETProtocol/MARKETProtocol/wiki/Frequently-Asked-Questions) or [docs](http://docs.marketprotocol.io) for a little more explanation.
+MARKET Protocol has been created to provide a secure, flexible, open source foundation for decentralized trading on the Ethereum blockchain. We provide the pieces necessary to create a decentralized exchange, including the requisite clearing and collateral pool infrastructure, enabling third parties to build applications for trading. Take a look at our [FAQ](https://github.com/MARKETProtocol/MARKETProtocol/wiki/Frequently-Asked-Questions) or [docs](http://docs.marketprotocol.io) for a little more explanation.
 
 Join our [Discord Community](https://www.marketprotocol.io/discord) to interact with members of our dev staff and other contributors.
 
