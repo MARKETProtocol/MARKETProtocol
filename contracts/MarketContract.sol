@@ -321,7 +321,7 @@ contract MarketContract is Creatable {
         } else if (lastPrice >= PRICE_CAP) {    // price is greater or equal to our cap, settle to CAP price
             isSettled = true;
             settlementPrice = PRICE_CAP;
-        } else if( lastPrice <= PRICE_FLOOR) {  // price is lesser or equal to our floor, settle to floor price
+        } else if( lastPrice <= PRICE_FLOOR) {  // price is lesser or equal to our floor, settle to FLOOR price
             isSettled = true;
             settlementPrice = PRICE_FLOOR;
         }
