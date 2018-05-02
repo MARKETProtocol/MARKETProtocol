@@ -19,6 +19,10 @@ $ git clone https://github.com/MARKETProtocol/MARKETProtocol.git
 $ cd MARKETProtocol
 $ npm install
 ```
+If you get an error on the `node-gyp rebuild` line during `npm install`, `node-gyp` doesn't support Python v3.x.x; v2.7 is recommended. There are several solutions based upon your platform.
+
+The easiest solution? Use `npm install --python=python2.7` above to specify the Python version, see [stack overflow](https://stackoverflow.com/questions/20454199/how-to-use-a-different-version-of-python-during-npm-install) or the [npm node-gyp project](https://github.com/nodejs/node-gyp) for details.
+
 
 
 ## Tests
