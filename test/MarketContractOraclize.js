@@ -380,7 +380,7 @@ contract('MarketContractOraclize', function(accounts) {
             [entryOrderPrice, orderQty, orderToFill],
             isExpired
         );
-        await tradeHelper.settleOrderWithPrice(settlementPrice);
+        await tradeHelper.attemptToSettleContract(settlementPrice);
 
         let error;
         try {
@@ -462,7 +462,7 @@ contract('MarketContractOraclize', function(accounts) {
             [entryOrderPrice, orderQty, orderToCancel],
             true
         );
-        await tradeHelper.settleOrderWithPrice(settlementPrice);
+        await tradeHelper.attemptToSettleContract(settlementPrice);
 
         let error;
         try {
