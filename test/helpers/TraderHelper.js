@@ -74,7 +74,13 @@ module.exports = async function(MarketContractOraclize, OrderLib, CollateralToke
         return { orderHash };
     }
 
-    async function settleOrderWithPrice(settlementPrice) {
+    /**
+    * Attempts to settle our testable market contract.  If a settlement price is entered that is above or below
+    * the given PRICE_CAP or PRICE_FLOOR, this will force the contract into settlement.
+    *
+    * @param settlementPrice - price to attempt to settle contract with (must be above or below CAP / FLOOR)
+    */
+    async function attemptToSettleContract(settlementPrice) {
         await marketContract.updateLastPrice(settlementPrice)
     }
 
@@ -89,24 +95,30 @@ module.exports = async function(MarketContractOraclize, OrderLib, CollateralToke
      * @param settlementPrice
      * @return {Promise.<void>}
      */
-    async function calculateSettlementToken(address, priceFloor, priceCap, qtyMultiplier, orderToFill, settlementPrice) {
-        const accountsTokenBalance = await collateralToken.balanceOf.call(address);
-        const collateralBalance = await collateralPool.getUserAccountBalance.call(address);
-        const collateralLeft = utility.calculateCollateral(
+    async function calculateSettlementToken(
+      address,
+      priceFloor,
+      priceCap,
+      qtyMultiplier,
+      orderQtyToFill,
+      settlementPrice
+    ) {
+        const tokenBalanceOfUser = await collateralToken.balanceOf.call(address);
+        const userAccountBalance = await collateralPool.getUserAccountBalance.call(address);
+        const collateralLeft = utility.calculateNeededCollateral(
             priceFloor,
             priceCap,
             qtyMultiplier,
-            orderToFill,
+            orderQtyToFill,
             settlementPrice
         )
-
-        return accountsTokenBalance.plus(collateralBalance).plus(collateralLeft)
+        return tokenBalanceOfUser.plus(userAccountBalance).plus(collateralLeft)
     }
 
     return {
         tradeOrder,
         cancelOrder,
-        settleOrderWithPrice,
+        attemptToSettleContract,
         calculateSettlementToken,
     }
 }

@@ -173,7 +173,7 @@ contract('MarketCollateralPool', function(accounts) {
         assert.ok(error instanceof Error, "didn't fail with inadequate locked market tokens for Taker");
 
         await marketToken.unlockTokens(marketContract.address, 10, {from:accountMaker});
-        // 
+        //
         //  try to withdraw collateral without adequate locked tokens
         //
         try {
@@ -192,7 +192,7 @@ contract('MarketCollateralPool', function(accounts) {
         }
         assert.ok(error instanceof Error, "didn't fail depositTokens with inadequate locked market tokens for Maker");
 
-        //  clear out the lockqty 
+        //  clear out the lockqty
         await marketToken.setLockQtyToAllowTrading(0);
     });
 
@@ -403,33 +403,33 @@ contract('MarketCollateralPool', function(accounts) {
         const entryOrderPrice = 3000;
         const settlementPrice = 20000; // force to settlement with price below price floor (20155)
         const orderQty = 2;
-        const orderToFill = 1;
+        const orderQtyToFill = 1;
 
         await tradeHelper.tradeOrder(
             [accounts[0], accounts[1], accounts[2]],
-            [entryOrderPrice, orderQty, orderToFill]
+            [entryOrderPrice, orderQty, orderQtyToFill]
         );
-        await tradeHelper.settleOrderWithPrice(settlementPrice);
+        await tradeHelper.attemptToSettleContract(settlementPrice); // this should push our contract into settlement.
 
-        const expectedMakersTokenAfterSettlement = await tradeHelper.calculateSettlementToken(
+        const expectedMakersTokenBalanceAfterSettlement = await tradeHelper.calculateSettlementToken(
             accounts[0],
             priceFloor,
             priceCap,
             qtyMultiplier,
-            orderToFill,
+            orderQtyToFill,
             settlementPrice
         )
 
-        const expectedTakersTokenAfterSettlement = await tradeHelper.calculateSettlementToken(
+        const expectedTakersTokenBalanceAfterSettlement = await tradeHelper.calculateSettlementToken(
             accounts[1],
             priceFloor,
             priceCap,
             qtyMultiplier,
-            -orderToFill,
+            -orderQtyToFill,
             settlementPrice
         )
 
-// test for inadequate locked tokens      
+        // test for inadequate locked tokens
         await marketToken.setLockQtyToAllowTrading(10);
         try {
             await collateralPool.settleAndClose({ from: accounts[0] });
@@ -438,8 +438,9 @@ contract('MarketCollateralPool', function(accounts) {
         }
         assert.ok(error instanceof Error, "didn't fail settleAndClose for inadequate locked market tokens for Taker");
         await marketToken.setLockQtyToAllowTrading(0);
-// end test for inadequate locked tokens
+        // end test for inadequate locked tokens
 
+        // each account now calls settle and close, returning to them all collateral.
         await collateralPool.settleAndClose({ from: accounts[0] });
         await collateralPool.settleAndClose({ from: accounts[1] });
         await collateralPool.settleAndClose({ from: accounts[3] });
@@ -455,14 +456,14 @@ contract('MarketCollateralPool', function(accounts) {
         const makersTokenBalanceAfterSettlement = await collateralToken.balanceOf.call(accounts[0]);
         assert.equal(
             makersTokenBalanceAfterSettlement.toNumber(),
-            expectedMakersTokenAfterSettlement.toNumber(),
+            expectedMakersTokenBalanceAfterSettlement.toNumber(),
             'Makers account incorrectly settled'
         );
 
         const takersTokenBalanceAfterSettlement = await collateralToken.balanceOf.call(accounts[1]);
         assert.equal(
             takersTokenBalanceAfterSettlement.toNumber(),
-            expectedTakersTokenAfterSettlement.toNumber(),
+            expectedTakersTokenBalanceAfterSettlement.toNumber(),
             'Takers account incorrectly settled'
         );
 

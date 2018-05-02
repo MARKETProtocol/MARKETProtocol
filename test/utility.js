@@ -36,6 +36,8 @@ module.exports = {
   },
 
   /**
+   * Given a specific set of contract specifications and an execution price, this function returns
+   * the needed collateral a user must post in order to execute a trade at that price.
    *
    * @param priceFloor
    * @param priceCap
@@ -44,7 +46,7 @@ module.exports = {
    * @param price
    * @return {number}
    */
-  calculateCollateral(priceFloor, priceCap, qtyMultiplier, qty, price){
+  calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, qty, price){
     const zero = 0;
     let maxLoss;
     if (qty > zero) {
