@@ -52,7 +52,8 @@ contract TestableMarketContractOraclize is MarketContractOraclize {
         contractSpecs,
         oracleDataSource,
         oracleQuery
-    ) public payable { }
+    ) public payable
+    { }
 
     /// @notice allows the creator of the contract to manually set a last price and check for settlement
     /// @param price lastPrice to be set

@@ -20,7 +20,8 @@ contract CollateralToken is StandardToken {
         string tokenSymbol,
         uint256 initialSupply,
         uint8 tokenDecimals
-    ) public {
+    ) public
+    {
         name = tokenName;
         symbol = tokenSymbol;
         decimals = tokenDecimals;

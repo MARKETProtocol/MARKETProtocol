@@ -53,6 +53,18 @@ truffle(develop)> test
 If this fails due to a `revert` , please be sure the bridge is listening prior to attempting the migration.
 
 
+## Solium
+
+### To run `solium` on the solidity smart contracts
+ensure you have solium installed with `solium -V` if not install 
+```
+$ npm install -g solium
+``` 
+and then
+```
+$ solium --dir ./
+```  
+
 
 ## Contact us
 We would love to hear your feedback and suggestions. We are also actively seeking community members who want to get involved in the project.  Please reach out to us at info@marketprotocol.io
