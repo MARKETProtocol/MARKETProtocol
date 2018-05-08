@@ -3,9 +3,9 @@
 
 [![Build Status](https://travis-ci.org/MARKETProtocol/MARKETProtocol.svg?branch=master)](https://travis-ci.org/MARKETProtocol/MARKETProtocol) [![Coverage Status](https://coveralls.io/repos/github/MARKETProtocol/MARKETProtocol/badge.svg?branch=master&service=github)](https://coveralls.io/github/MARKETProtocol/MARKETProtocol?branch=master)
 
-MARKET Protocol has been created to provide a secure, flexible, open source foundation for decentralized trading on the Ethereum blockchain. We provide the pieces necessary to create a decentralized exchange, including the requisite clearing and collateral pool infrastructure, enabling third parties to build applications for trading. Take a look at our [FAQ](https://github.com/MARKETProtocol/MARKETProtocol/wiki/Frequently-Asked-Questions) or [docs](http://docs.marketprotocol.io) for a little more explanation.
+MARKET Protocol has been created to provide a secure, flexible, open source foundation for decentralized trading on the Ethereum blockchain. We provide the pieces necessary to create a decentralized exchange, including the requisite clearing and collateral pool infrastructure, enabling third parties to build applications for trading. Take a look at our [FAQ](https://docs.marketprotocol.io/#faq-general) or [docs](https://docs.marketprotocol.io) for a little more explanation.
 
-Join our [Discord Community](https://www.marketprotocol.io/discord) to interact with members of our dev staff and other contributors.
+Join our [Discord Community](https://marketprotocol.io/discord) to interact with members of our dev staff and other contributors.
 
 ## Getting Started
 Assuming you have npm already, Install truffle
@@ -75,4 +75,4 @@ Ready to jump in? Check [docs.marketprotocol.io/#contributing](https://docs.mark
 
 ## Questions?
 
-Join our [Discord Community](https://www.marketprotocol.io/discord) to get in touch with our dev staff and other contributors.
+Join our [Discord Community](https://marketprotocol.io/discord) to get in touch with our dev staff and other contributors.
