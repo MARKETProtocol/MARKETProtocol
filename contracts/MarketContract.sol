@@ -314,20 +314,20 @@ contract MarketContract is Creatable {
         if (isSettled)   // already settled.
             return;
 
-        uint settlementPrice;
+        uint newSettlementPrice;
         if (now > EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
             isSettled = true;                   // time based expiration has occurred.
-            settlementPrice = lastPrice;
+            newSettlementPrice = lastPrice;
         } else if (lastPrice >= PRICE_CAP) {    // price is greater or equal to our cap, settle to CAP price
             isSettled = true;
-            settlementPrice = PRICE_CAP;
+            newSettlementPrice = PRICE_CAP;
         } else if( lastPrice <= PRICE_FLOOR) {  // price is lesser or equal to our floor, settle to FLOOR price
             isSettled = true;
-            settlementPrice = PRICE_FLOOR;
+            newSettlementPrice = PRICE_FLOOR;
         }
 
         if (isSettled) {
-            settleContract(settlementPrice);
+            settleContract(newSettlementPrice);
         }
     }
 

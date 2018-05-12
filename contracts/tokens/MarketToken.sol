@@ -16,21 +16,20 @@
 
 pragma solidity ^0.4.18;
 
-import "../Creatable.sol";
-import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+import "./UpgradableToken.sol";
 
 
 /// @title Market Token
 /// @notice Our membership token.  Users must lock tokens to enable trading for a given Market Contract
 /// as well as have a minimum balance of tokens to create new Market Contracts.
 /// @author Phil Elsasser <phil@marketprotocol.io>
-contract MarketToken is StandardToken, Creatable {
+contract MarketToken is UpgradeableToken {
 
     string public constant name = "Market Token";
     string public constant symbol = "MKT";
     uint8 public constant decimals = 18;
 
-    uint public constant INITIAL_SUPPLY = 10**27; // 1 billion w. 18 decimals
+    uint public constant INITIAL_SUPPLY = 600000000 * 10**uint(decimals); // 600 million tokens with 18 decimals (6e+26)
 
     uint public lockQtyToAllowTrading;
     uint public minBalanceToAllowContractCreation;
@@ -42,7 +41,7 @@ contract MarketToken is StandardToken, Creatable {
     function MarketToken(uint qtyToLockForTrading, uint minBalanceForCreation) public {
         lockQtyToAllowTrading = qtyToLockForTrading;
         minBalanceToAllowContractCreation = minBalanceForCreation;
-        totalSupply_ = INITIAL_SUPPLY;
+        totalSupply_ = INITIAL_SUPPLY;  //note totalSupply_ and INITIAL_SUPPLY may vary as token's are burnt.
 
         balances[msg.sender] = INITIAL_SUPPLY; // for now allocate all tokens to creator
     }
@@ -105,13 +104,13 @@ contract MarketToken is StandardToken, Creatable {
     /// @notice allows the creator to set the qty each user address needs to lock in
     /// order to trade a given MarketContract
     /// @param qtyToLock qty needed to enable trading
-    function setLockQtyToAllowTrading(uint qtyToLock) external onlyCreator {
+    function setLockQtyToAllowTrading(uint qtyToLock) external onlyOwner {
         lockQtyToAllowTrading = qtyToLock;
     }
 
     /// @notice allows the creator to set minimum balance a user must have in order to create MarketContracts
     /// @param minBalance balance to enable contract creation
-    function setMinBalanceForContractCreation(uint minBalance) external onlyCreator {
+    function setMinBalanceForContractCreation(uint minBalance) external onlyOwner {
         minBalanceToAllowContractCreation = minBalance;
     }
 
@@ -126,5 +125,4 @@ contract MarketToken is StandardToken, Creatable {
         balances[msg.sender] = balances[msg.sender].add(qtyToUnlock);
         Transfer(this, msg.sender, qtyToUnlock);
     }
-
 }
