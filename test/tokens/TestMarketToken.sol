@@ -18,6 +18,7 @@ pragma solidity ^0.4.18;
 
 import "truffle/Assert.sol";
 import "../../contracts/tokens/MarketToken.sol";
+import "../../contracts/tokens/UpgradeableTokenMock.sol";
 
 
 /// @title TestMarketToken
@@ -164,6 +165,30 @@ contract TestMarketToken {
             0,
             marketToken.getLockedBalanceForUser(fakeMarketContractAddress, this),
             "contract reporting incorrect locked balance after unlock"
+        );
+    }
+
+    function testBurnTokens() public {
+        MarketToken marketToken = new MarketToken(0, 0);
+
+        Assert.equal(
+            marketToken.balanceOf(this),
+            marketToken.INITIAL_SUPPLY(),
+            "Unexpected initial supply allocation"
+        );
+
+        Assert.equal(
+            marketToken.totalSupply(),
+            marketToken.INITIAL_SUPPLY(),
+            "Unexpected initial supply allocation"
+        );
+
+        marketToken.burn(marketToken.INITIAL_SUPPLY() / 2);
+
+        Assert.equal(
+            marketToken.totalSupply(),
+            marketToken.INITIAL_SUPPLY() / 2,
+            "Unexpected supply after burn"
         );
     }
 

@@ -43,7 +43,7 @@ contract UpgradeableToken is Ownable, BurnableToken, StandardToken {
         require(upgradeableTarget != address(0));
 
         burn(value);                    // burn tokens as we migrate them.
-        totalUpgraded.add(value);
+        totalUpgraded = totalUpgraded.add(value);
 
         UpgradeableTarget(upgradeableTarget).upgradeFrom(msg.sender, value);
         Upgraded(msg.sender, upgradeableTarget, value);

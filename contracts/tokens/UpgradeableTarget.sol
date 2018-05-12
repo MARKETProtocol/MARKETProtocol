@@ -21,5 +21,5 @@ pragma solidity ^0.4.18;
 /// to allow us to upgrade our token's functionality.
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract UpgradeableTarget {
-    function upgradeFrom(address from, uint256 value) public; // note: implementation should require(from == oldToken)
+    function upgradeFrom(address from, uint256 value) external; // note: implementation should require(from == oldToken)
 }
