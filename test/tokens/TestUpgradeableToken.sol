@@ -79,5 +79,11 @@ contract TestUpgradeableToken {
             "Entire supply not upgraded in old contract"
         );
 
+        Assert.equal(
+            upgradedToken.balanceOf(this),
+            upgradedToken.totalSupply(),
+            "Supply not allocated to user"
+        );
+
     }
 }
