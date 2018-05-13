@@ -25,7 +25,7 @@ import "./UpgradableToken.sol";
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketToken is UpgradeableToken {
 
-    string public constant name = "Market Token";
+    string public constant name = "MARKET Protocol Token";
     string public constant symbol = "MKT";
     uint8 public constant decimals = 18;
 
