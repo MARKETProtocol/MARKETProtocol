@@ -52,7 +52,6 @@ contract UpgradeableToken is Ownable, BurnableToken, StandardToken {
     /// @notice Set address of upgrade target process.
     /// @param upgradeAddress The address of the UpgradeableTarget contract.
     function setUpgradeableTarget(address upgradeAddress) external onlyOwner {
-        require(upgradeAddress != address(0));
         upgradeableTarget = upgradeAddress;
     }
 

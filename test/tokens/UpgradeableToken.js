@@ -130,7 +130,7 @@ contract('UpgradeableToken', function(accounts) {
     } catch (err) {
       error = err;
     }
-    assert.ok(error instanceof Error, "didn't fail when attempting to burn upgrade tokens than owned");
+    assert.ok(error instanceof Error, "didn't fail when attempting to upgrade more tokens than owned");
 
     const amountToUpgrade = initialBalance / 2;
     await marketToken.upgrade(amountToUpgrade, {from: accountUser});
@@ -155,4 +155,19 @@ contract('UpgradeableToken', function(accounts) {
       "user account should have correct balance after upgrade in new token"
     );
   });
+
+  it("Cannot upgrade without a target", async function() {
+
+    await marketToken.setUpgradeableTarget(0);                  // set target to null address
+
+    error = null
+    try {
+      await marketToken.upgrade(1, {from: accountOwner});
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(error instanceof Error, "didn't fail when attempting to upgrade without a target");
+
+  });
+
 });
