@@ -62,9 +62,97 @@ contract('UpgradeableToken', function(accounts) {
       upgradeableToken.address,
       "Upgrade target should point at new token"
     );
+
+
   });
 
-  //TODO: add
-  // burn test
-  // test for conversion
+  it("Can only burn owned tokens", async function() {
+
+    const initialBalance = 50000000;
+
+    await marketToken.transfer(accountUser, initialBalance, {from: accounts[0]});
+    let currentBalance = await marketToken.balanceOf.call(accountUser).valueOf();
+
+    assert.equal(
+      initialBalance,
+      currentBalance,
+      "user account should have correct balance"
+    );
+
+    error = null
+    try {
+      await marketToken.burn(initialBalance + 5000, {from: accountUser});
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(error instanceof Error, "didn't fail when attempting to burn more tokens than owned");
+
+    const amountToBurn = initialBalance / 2;
+    await marketToken.burn(amountToBurn, {from: accountUser});
+
+    currentBalance = await marketToken.balanceOf.call(accountUser).valueOf();
+    assert.equal(
+      initialBalance - amountToBurn,
+      currentBalance,
+      "user account should have correct balance after burn"
+    );
+
+    const initialSupply = await marketToken.INITIAL_SUPPLY.call().valueOf();
+    let currentSupply = await marketToken.totalSupply.call().valueOf();
+
+    assert.equal(
+      initialSupply - amountToBurn,
+      currentSupply,
+      "current supply doesn't match after burn"
+    );
+
+  });
+
+
+  it("Can only upgrade owned tokens", async function() {
+
+    const initialBalance = await marketToken.balanceOf.call(accountUser).valueOf();
+    await marketToken.setUpgradeableTarget(
+      upgradeableToken.address,
+      {from: accountOwner}
+    );
+
+    const upgradeableTarget = await marketToken.upgradeableTarget.call();
+    assert.equal(
+      upgradeableTarget,
+      upgradeableToken.address,
+      "Upgrade target should point at new token"
+    );
+
+    error = null
+    try {
+      await marketToken.upgrade(initialBalance + 5000, {from: accountUser});
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(error instanceof Error, "didn't fail when attempting to burn upgrade tokens than owned");
+
+    const amountToUpgrade = initialBalance / 2;
+    await marketToken.upgrade(amountToUpgrade, {from: accountUser});
+
+    assert.equal(
+      upgradeableTarget,
+      upgradeableToken.address,
+      "Upgrade target should point at new token"
+    );
+
+    const balanceAfterUpgrade = await marketToken.balanceOf.call(accountUser).valueOf();
+    assert.equal(
+      initialBalance - amountToUpgrade,
+      balanceAfterUpgrade,
+      "user account should have correct balance after upgrade"
+    );
+
+    const totalUpgradeTokenBalance = await upgradeableToken.balanceOf.call(accountUser).valueOf();
+    assert.equal(
+      amountToUpgrade,
+      totalUpgradeTokenBalance,
+      "user account should have correct balance after upgrade in new token"
+    );
+  });
 });
