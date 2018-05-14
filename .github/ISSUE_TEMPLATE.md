@@ -3,7 +3,7 @@ Hello!
 
 Please use the template below for issue ideas or bugs found within MARKET Protocol.
 If it is general support you need, reach out to us at
-https://www.marketprotocol.io/discord
+https://marketprotocol.io/discord
 
 Provide a general summary of the issue in the title above and use relevant fields below to define the problem.
 -->
@@ -50,7 +50,13 @@ Provide a general summary of the issue in the title above and use relevant field
 
 <!--
 ## Before you `start work`
+
+Please read our contribution [guidelines](https://docs.marketprotocol.io/#contributing) and if there is a bounty involved  please also see [here](https://docs.marketprotocol.io/#gitcoin-and-bounties)
+
 If you have ongoing work from other bounties with us where funding has not been released, please do not pick up a new issue.  We would like to involve as many contributors as possible and parallelize the work flow as much as possible.
 
+Please make sure to comment in the issue here immediately after starting work so we know your plans for implementation and a timeline.
+
 Please also note that in order for work to be accepted, all code must be accompanied by test cases as well.
+
 -->
