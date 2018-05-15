@@ -123,6 +123,6 @@ contract MarketToken is UpgradeableToken {
     function transferLockedTokensBackToUser(uint qtyToUnlock) private {
         balances[this] = balances[this].sub(qtyToUnlock);
         balances[msg.sender] = balances[msg.sender].add(qtyToUnlock);
-        Transfer(this, msg.sender, qtyToUnlock);
+        emit Transfer(this, msg.sender, qtyToUnlock);
     }
 }
