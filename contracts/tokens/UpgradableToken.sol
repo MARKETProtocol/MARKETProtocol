@@ -17,9 +17,9 @@
 pragma solidity ^0.4.23;
 
 import "./UpgradeableTarget.sol";
-import "zeppelin-solidity/contracts/token/ERC20/BurnableToken.sol";
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
-import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/BurnableToken.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 
 
 /// @title Upgradeable Token

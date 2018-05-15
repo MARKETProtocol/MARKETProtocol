@@ -17,7 +17,7 @@
 pragma solidity ^0.4.23;
 
 import "./MarketContract.sol";
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 /// @title MarketContractRegistry
