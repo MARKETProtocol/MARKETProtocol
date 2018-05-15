@@ -42,7 +42,6 @@ contract OraclizeI {
     function getPrice(string _datasource, uint gaslimit) public returns (uint _dsprice);
     function setProofType(byte _proofType) external;
     function setCustomGasPrice(uint _gasPrice) external;
-    function randomDS_getSessionPubKeyHash() external constant returns(bytes32);
 }
 
 contract OraclizeAddrResolverI {
@@ -161,16 +160,11 @@ contract usingOraclize {
     function oraclize_setCustomGasPrice(uint gasPrice) oraclizeAPI internal {
         return oraclize.setCustomGasPrice(gasPrice);
     }
-
-    function oraclize_randomDS_getSessionPubKeyHash() oraclizeAPI internal returns (bytes32){
-        return oraclize.randomDS_getSessionPubKeyHash();
-    }
     function getCodeSize(address _addr) constant internal returns(uint _size) {
         assembly {
             _size := extcodesize(_addr)
         }
     }
-    // parseInt(parseFloat*10^_b)
     function parseInt(string _a, uint _b) internal pure returns (uint) {
         bytes memory bresult = bytes(_a);
         uint mint = 0;
