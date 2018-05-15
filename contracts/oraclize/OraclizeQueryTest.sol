@@ -61,7 +61,7 @@ contract OraclizeQueryTest is usingOraclize {
         );
         require(queryId != 0);
         validScheduledQueryIDs[queryId] = true;
-        QueryScheduled(queryId);
+        emit QueryScheduled(queryId);
         return queryId;
     }
 
@@ -89,6 +89,6 @@ contract OraclizeQueryTest is usingOraclize {
         require(validScheduledQueryIDs[queryID]);
         delete validScheduledQueryIDs[queryID];
         queryResults[queryID] = result; //save result
-        QueryCompleted(queryID);    // fire event so user can retrieve the result.
+        emit QueryCompleted(queryID);    // fire event so user can retrieve the result.
     }
 }

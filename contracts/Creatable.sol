@@ -32,7 +32,7 @@ contract Creatable {
 
     function transferCreator(address newCreator) onlyCreator public {
         require(newCreator != address(0));
-        CreatorTransferred(creator, newCreator);
+        emit CreatorTransferred(creator, newCreator);
         creator = newCreator;
     }
 

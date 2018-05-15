@@ -46,7 +46,7 @@ contract UpgradeableToken is Ownable, BurnableToken, StandardToken {
         totalUpgraded = totalUpgraded.add(value);
 
         UpgradeableTarget(upgradeableTarget).upgradeFrom(msg.sender, value);
-        Upgraded(msg.sender, upgradeableTarget, value);
+        emit Upgraded(msg.sender, upgradeableTarget, value);
     }
 
     /// @notice Set address of upgrade target process.

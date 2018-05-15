@@ -74,7 +74,7 @@ contract MarketToken is UpgradeableToken {
         );
         transfer(this, qtyToLock);
         contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender] = lockedBalance;
-        UpdatedUserLockedBalance(marketContractAddress, msg.sender, lockedBalance);
+        emit UpdatedUserLockedBalance(marketContractAddress, msg.sender, lockedBalance);
     }
 
     /// @notice allows user to unlock tokens previously allocated to trading a MarketContract
@@ -86,7 +86,7 @@ contract MarketToken is UpgradeableToken {
         );  // no need to check balance, sub() will ensure sufficient balance to unlock!
         contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender] = balanceAfterUnLock;        // update balance before external call!
         transferLockedTokensBackToUser(qtyToUnlock);
-        UpdatedUserLockedBalance(marketContractAddress, msg.sender, balanceAfterUnLock);
+        emit UpdatedUserLockedBalance(marketContractAddress, msg.sender, balanceAfterUnLock);
     }
 
     /// @notice get the currently locked balance for a user given the specific contract address
