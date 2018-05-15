@@ -50,14 +50,7 @@ contract OraclizeAddrResolverI {
 }
 
 contract usingOraclize {
-    uint constant day = 60*60*24;
-    uint constant week = 60*60*24*7;
-    uint constant month = 60*60*24*30;
-    byte constant proofType_NONE = 0x00;
     byte constant proofType_TLSNotary = 0x10;
-    byte constant proofType_Android = 0x20;
-    byte constant proofType_Ledger = 0x30;
-    byte constant proofType_Native = 0xF0;
     byte constant proofStorage_IPFS = 0x01;
     uint8 constant networkID_auto = 0;
     uint8 constant networkID_mainnet = 1;
@@ -177,12 +170,6 @@ contract usingOraclize {
             _size := extcodesize(_addr)
         }
     }
-
-    // parseInt
-    function parseInt(string _a) internal pure returns (uint) {
-        return parseInt(_a, 0);
-    }
-
     // parseInt(parseFloat*10^_b)
     function parseInt(string _a, uint _b) internal pure returns (uint) {
         bytes memory bresult = bytes(_a);
