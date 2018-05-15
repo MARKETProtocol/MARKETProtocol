@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 
 // Contract creators may be rewarded in the future with bounties or other special privileges.  Additionally

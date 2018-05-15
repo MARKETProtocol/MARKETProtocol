@@ -13,7 +13,7 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 
 /// @title Math function library with overflow protection inspired by Open Zeppelin
