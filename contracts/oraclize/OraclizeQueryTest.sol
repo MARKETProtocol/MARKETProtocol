@@ -90,5 +90,6 @@ contract OraclizeQueryTest is usingOraclize {
         delete validScheduledQueryIDs[queryID];
         queryResults[queryID] = result; //save result
         emit QueryCompleted(queryID);    // fire event so user can retrieve the result.
+        proof;  // silence compiler warnings
     }
 }

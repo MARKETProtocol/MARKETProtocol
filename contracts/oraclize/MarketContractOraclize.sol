@@ -110,6 +110,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
         emit UpdatedLastPrice(result);
         checkSettlement();  // Verify settlement at expiration or requested early settlement.
         delete validQueryIDs[queryID];
+        proof;  // silence compiler warnings
     }
 
     /*
