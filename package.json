@@ -11,12 +11,15 @@
     "openzeppelin-solidity": "1.9.0"
   },
   "devDependencies": {
-    "solidity-coverage": "^0.5.0",
     "coveralls": "^3.0.0",
+    "eslint": "^4.19.1",
+    "prettier-eslint-cli": "^4.7.1",
+    "solidity-coverage": "^0.5.0",
     "solium": "^1.0.5"
   },
   "scripts": {
-    "test": "truffle test"
+    "test": "truffle test",
+    "lint": "prettier-eslint --write './**/*.js' --ignore './node_modules/**'"
   },
   "repository": {
     "type": "git",
