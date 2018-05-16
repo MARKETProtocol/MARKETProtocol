@@ -49,7 +49,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"
     /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
-    function MarketContractOraclize(
+    constructor(
         string contractName,
         address marketTokenAddress,
         address baseTokenAddress,

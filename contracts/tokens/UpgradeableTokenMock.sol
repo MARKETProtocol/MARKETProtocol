@@ -26,7 +26,7 @@ contract UpgradeableTokenMock is UpgradeableToken, UpgradeableTarget {
 
     address public PREVIOUS_TOKEN_ADDRESS;
 
-    function UpgradeableTokenMock(address previousTokenAddress) public {
+    constructor(address previousTokenAddress) public {
         PREVIOUS_TOKEN_ADDRESS = previousTokenAddress;
     }
 

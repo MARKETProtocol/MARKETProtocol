@@ -15,7 +15,7 @@ contract CollateralToken is StandardToken {
     /**
      * @dev Constructor that gives msg.sender all of existing tokens.
      */
-    function CollateralToken(
+    constructor(
         string tokenName,
         string tokenSymbol,
         uint256 initialSupply,

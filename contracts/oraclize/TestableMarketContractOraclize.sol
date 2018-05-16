@@ -38,7 +38,7 @@ contract TestableMarketContractOraclize is MarketContractOraclize {
     /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"dv
     /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
-    function TestableMarketContractOraclize(
+    constructor(
         string contractName,
         address marketTokenAddress,
         address baseTokenAddress,

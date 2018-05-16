@@ -38,7 +38,7 @@ contract MarketToken is UpgradeableToken {
 
     event UpdatedUserLockedBalance(address indexed contractAddress, address indexed userAddress, uint balance);
 
-    function MarketToken(uint qtyToLockForTrading, uint minBalanceForCreation) public {
+    constructor(uint qtyToLockForTrading, uint minBalanceForCreation) public {
         lockQtyToAllowTrading = qtyToLockForTrading;
         minBalanceToAllowContractCreation = minBalanceForCreation;
         totalSupply_ = INITIAL_SUPPLY;  //note totalSupply_ and INITIAL_SUPPLY may vary as token's are burnt.

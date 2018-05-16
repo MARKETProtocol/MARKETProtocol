@@ -56,7 +56,7 @@ contract MarketCollateralPool is Linkable {
     /// @dev instantiates a collateral pool that is unique to the supplied address of a MarketContract. This pairing
     /// is 1:1
     /// @param marketContractAddress deployed address of a MarketContract
-    function MarketCollateralPool(address marketContractAddress) Linkable(marketContractAddress) public {
+    constructor(address marketContractAddress) Linkable(marketContractAddress) public {
         MKT_CONTRACT = MarketContract(marketContractAddress);
         MKT_TOKEN_ADDRESS = MKT_CONTRACT.MKT_TOKEN_ADDRESS();
     }

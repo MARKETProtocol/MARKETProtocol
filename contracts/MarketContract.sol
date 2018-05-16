@@ -103,7 +103,7 @@ contract MarketContract is Creatable {
     /// an integer
     /// qtyMultiplier multiply traded qty by this value from base units of collateral token.
     /// expirationTimeStamp - seconds from epoch that this contract expires and enters settlement
-    function MarketContract(
+    constructor(
         string contractName,
         address marketTokenAddress,
         address baseTokenAddress,

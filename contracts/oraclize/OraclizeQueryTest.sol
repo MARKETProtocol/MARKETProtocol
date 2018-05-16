@@ -37,7 +37,7 @@ contract OraclizeQueryTest is usingOraclize {
     event QueryScheduled(bytes32 indexed queryIDScheduled);
     event QueryPrice(uint value);
 
-    function OraclizeQueryTest() public {
+    constructor() public {
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS); //set proof to match main contracts
     }
 
