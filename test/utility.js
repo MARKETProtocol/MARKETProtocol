@@ -1,19 +1,19 @@
 module.exports = {
-    /**
-     * Signs a message.
-     *
-     * @param web3
-     * @param address
-     * @param message
-     * @return {[*,*,*]}
-     */
-  signMessage (web3, address, message) {
+  /**
+   * Signs a message.
+   *
+   * @param web3
+   * @param address
+   * @param message
+   * @return {[*,*,*]}
+   */
+  signMessage(web3, address, message) {
     const signature = web3.eth.sign(address, message);
     const r = signature.slice(0, 66);
     const s = `0x${signature.slice(66, 130)}`;
     let v = web3.toDecimal(`0x${signature.slice(130, 132)}`);
     if (v !== 27 && v !== 28) v += 27;
-    return [v,r,s];
+    return [v, r, s];
   },
 
   /**
@@ -28,9 +28,9 @@ module.exports = {
       const event = contract[eventName]();
       event.get((error, logs) => {
         if (error) {
-          return reject(error)
+          return reject(error);
         }
-        return resolve(logs)
+        return resolve(logs);
       });
     });
   },
@@ -46,7 +46,7 @@ module.exports = {
    * @param price
    * @return {number}
    */
-  calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, qty, price){
+  calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, qty, price) {
     const zero = 0;
     let maxLoss;
     if (qty > zero) {
@@ -64,4 +64,4 @@ module.exports = {
     }
     return maxLoss * Math.abs(qty) * qtyMultiplier;
   }
-}
+};

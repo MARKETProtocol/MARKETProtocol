@@ -1,6 +1,5 @@
-
-const TradeHelper = require('./TraderHelper')
+const TradeHelper = require('./TraderHelper');
 
 module.exports = {
-    TradeHelper,
-}
+  TradeHelper
+};
