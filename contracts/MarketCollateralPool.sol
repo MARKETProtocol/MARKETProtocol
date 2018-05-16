@@ -14,15 +14,15 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./libraries/MathLib.sol";
 import "./tokens/MarketToken.sol";
 import "./Linkable.sol";
 import "./MarketContract.sol";
 
-import "zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
-import "zeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 
 /// @title MarketCollateralPool is a contract controlled by a specific Market Contract.  It holds collateral balances
@@ -56,7 +56,7 @@ contract MarketCollateralPool is Linkable {
     /// @dev instantiates a collateral pool that is unique to the supplied address of a MarketContract. This pairing
     /// is 1:1
     /// @param marketContractAddress deployed address of a MarketContract
-    function MarketCollateralPool(address marketContractAddress) Linkable(marketContractAddress) public {
+    constructor(address marketContractAddress) Linkable(marketContractAddress) public {
         MKT_CONTRACT = MarketContract(marketContractAddress);
         MKT_TOKEN_ADDRESS = MKT_CONTRACT.MKT_TOKEN_ADDRESS();
     }
@@ -87,7 +87,7 @@ contract MarketCollateralPool is Linkable {
         uint256 balanceAfterDeposit = userAddressToAccountBalance[msg.sender].add(depositAmount);
         ERC20(MKT_CONTRACT.BASE_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, this, depositAmount);
         userAddressToAccountBalance[msg.sender] = balanceAfterDeposit;
-        UpdatedUserBalance(msg.sender, balanceAfterDeposit);
+        emit UpdatedUserBalance(msg.sender, balanceAfterDeposit);
     }
 
     // @notice called by a user after settlement has occurred.  This function will finalize all accounting around any
@@ -146,7 +146,7 @@ contract MarketCollateralPool is Linkable {
         uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
         userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
         ERC20(MKT_CONTRACT.BASE_TOKEN_ADDRESS()).safeTransfer(msg.sender, withdrawAmount);
-        UpdatedUserBalance(msg.sender, balanceAfterWithdrawal);
+        emit UpdatedUserBalance(msg.sender, balanceAfterWithdrawal);
     }
 
     /*
@@ -167,8 +167,8 @@ contract MarketCollateralPool is Linkable {
         uint newBalance = userAddressToAccountBalance[fromAddress].subtract(collateralAmount);
         userAddressToAccountBalance[fromAddress] = newBalance;
         collateralPoolBalance = collateralPoolBalance.add(collateralAmount);
-        UpdatedUserBalance(fromAddress, newBalance);
-        UpdatedPoolBalance(collateralPoolBalance);
+        emit UpdatedUserBalance(fromAddress, newBalance);
+        emit UpdatedPoolBalance(collateralPoolBalance);
     }
 
     /// @notice withdraws collateral from pool to a user account upon exit or trade settlement
@@ -184,8 +184,8 @@ contract MarketCollateralPool is Linkable {
         uint newBalance = userAddressToAccountBalance[toAddress].add(collateralAmount);
         userAddressToAccountBalance[toAddress] = newBalance;
         collateralPoolBalance = collateralPoolBalance.subtract(collateralAmount);
-        UpdatedUserBalance(toAddress, newBalance);
-        UpdatedPoolBalance(collateralPoolBalance);
+        emit UpdatedUserBalance(toAddress, newBalance);
+        emit UpdatedPoolBalance(collateralPoolBalance);
     }
 
     /// @dev handles all needed internal accounting when a user enters into a new trade

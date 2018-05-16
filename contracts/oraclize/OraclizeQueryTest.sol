@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./oraclizeAPI.sol";
 import "../libraries/MathLib.sol";
@@ -37,7 +37,7 @@ contract OraclizeQueryTest is usingOraclize {
     event QueryScheduled(bytes32 indexed queryIDScheduled);
     event QueryPrice(uint value);
 
-    function OraclizeQueryTest() public {
+    constructor() public {
         oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS); //set proof to match main contracts
     }
 
@@ -61,7 +61,7 @@ contract OraclizeQueryTest is usingOraclize {
         );
         require(queryId != 0);
         validScheduledQueryIDs[queryId] = true;
-        QueryScheduled(queryId);
+        emit QueryScheduled(queryId);
         return queryId;
     }
 
@@ -89,6 +89,7 @@ contract OraclizeQueryTest is usingOraclize {
         require(validScheduledQueryIDs[queryID]);
         delete validScheduledQueryIDs[queryID];
         queryResults[queryID] = result; //save result
-        QueryCompleted(queryID);    // fire event so user can retrieve the result.
+        emit QueryCompleted(queryID);    // fire event so user can retrieve the result.
+        proof;  // silence compiler warnings
     }
 }

@@ -1,6 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
-import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 
 
 // dummy ERC20 token for testing purposes
@@ -15,7 +15,7 @@ contract CollateralToken is StandardToken {
     /**
      * @dev Constructor that gives msg.sender all of existing tokens.
      */
-    function CollateralToken(
+    constructor(
         string tokenName,
         string tokenSymbol,
         uint256 initialSupply,

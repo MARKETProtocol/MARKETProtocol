@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "truffle/Assert.sol";
 import "../../contracts/libraries/MathLib.sol";
@@ -67,8 +67,8 @@ contract TestMathLib {
 
     function testSubtract() public {
         Assert.equal(MathLib.subtract(uint(1), uint(1)), 0, "1 - 1 does not equal 0");
-        bytes4 abi = bytes4(keccak256("failSubtractWhenALessThanB()"));
-        Assert.isFalse(this.call(abi), "Should assert");
+        bytes4 test_abi = bytes4(keccak256("failSubtractWhenALessThanB()"));
+        Assert.isFalse(address(this).call(test_abi), "Should assert");
     }
 
     function failSafeAddWhenGreaterThanIntMax() public pure returns(int256) {
@@ -84,8 +84,8 @@ contract TestMathLib {
         Assert.equal(MathLib.add(int256(0), signedIntMax), signedIntMax, "add 0 to int256 max should equal int256 max");
         Assert.equal(MathLib.add(int256(0), signedIntMin), signedIntMin, "add 0 to int256 min should equal int256 min");
 
-        bytes4 abi = bytes4(keccak256("failSafeAddWhenGreaterThanIntMax()"));
-        Assert.isFalse(this.call(abi), "Should assert");
+        bytes4 test_abi = bytes4(keccak256("failSafeAddWhenGreaterThanIntMax()"));
+        Assert.isFalse(address(this).call(test_abi), "Should assert");
         }
 
     function failDivideFractionalByZero() public pure returns(uint256) {
@@ -98,8 +98,8 @@ contract TestMathLib {
         Assert.equal(MathLib.divideFractional(3, 6, 10), 1, "18 / 10 = 1");
         Assert.equal(MathLib.divideFractional(4, 6, 10), 2, "24 / 10 = 2");
 
-        bytes4 abi = bytes4(keccak256("failDivideFractionalByZero()"));
-        Assert.isFalse(this.call(abi), "Should assert");
+        bytes4 test_abi = bytes4(keccak256("failDivideFractionalByZero()"));
+        Assert.isFalse(address(this).call(test_abi), "Should assert");
     }
 
     function testCalculateNeededCollateral() public {

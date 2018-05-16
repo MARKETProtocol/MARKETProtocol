@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 
 /// @title Linkable
@@ -25,7 +25,7 @@ contract Linkable {
 
     address public linkedAddress;
 
-    function Linkable(address addressToLink) public {
+    constructor(address addressToLink) public {
         require(addressToLink != address(0));
         linkedAddress = addressToLink;
     }
