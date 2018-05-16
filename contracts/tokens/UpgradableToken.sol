@@ -14,12 +14,12 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./UpgradeableTarget.sol";
-import "zeppelin-solidity/contracts/token/ERC20/BurnableToken.sol";
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
-import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/BurnableToken.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 
 
 /// @title Upgradeable Token
@@ -46,7 +46,7 @@ contract UpgradeableToken is Ownable, BurnableToken, StandardToken {
         totalUpgraded = totalUpgraded.add(value);
 
         UpgradeableTarget(upgradeableTarget).upgradeFrom(msg.sender, value);
-        Upgraded(msg.sender, upgradeableTarget, value);
+        emit Upgraded(msg.sender, upgradeableTarget, value);
     }
 
     /// @notice Set address of upgrade target process.

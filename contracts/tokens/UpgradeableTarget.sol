@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 /// @title Upgradeable Target
 /// @notice A contract (or a token itself) that can facilitate the upgrade from an existing deployed token

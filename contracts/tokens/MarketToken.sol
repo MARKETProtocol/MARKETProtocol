@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./UpgradableToken.sol";
 
@@ -38,7 +38,7 @@ contract MarketToken is UpgradeableToken {
 
     event UpdatedUserLockedBalance(address indexed contractAddress, address indexed userAddress, uint balance);
 
-    function MarketToken(uint qtyToLockForTrading, uint minBalanceForCreation) public {
+    constructor(uint qtyToLockForTrading, uint minBalanceForCreation) public {
         lockQtyToAllowTrading = qtyToLockForTrading;
         minBalanceToAllowContractCreation = minBalanceForCreation;
         totalSupply_ = INITIAL_SUPPLY;  //note totalSupply_ and INITIAL_SUPPLY may vary as token's are burnt.
@@ -74,7 +74,7 @@ contract MarketToken is UpgradeableToken {
         );
         transfer(this, qtyToLock);
         contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender] = lockedBalance;
-        UpdatedUserLockedBalance(marketContractAddress, msg.sender, lockedBalance);
+        emit UpdatedUserLockedBalance(marketContractAddress, msg.sender, lockedBalance);
     }
 
     /// @notice allows user to unlock tokens previously allocated to trading a MarketContract
@@ -86,7 +86,7 @@ contract MarketToken is UpgradeableToken {
         );  // no need to check balance, sub() will ensure sufficient balance to unlock!
         contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender] = balanceAfterUnLock;        // update balance before external call!
         transferLockedTokensBackToUser(qtyToUnlock);
-        UpdatedUserLockedBalance(marketContractAddress, msg.sender, balanceAfterUnLock);
+        emit UpdatedUserLockedBalance(marketContractAddress, msg.sender, balanceAfterUnLock);
     }
 
     /// @notice get the currently locked balance for a user given the specific contract address
@@ -123,6 +123,6 @@ contract MarketToken is UpgradeableToken {
     function transferLockedTokensBackToUser(uint qtyToUnlock) private {
         balances[this] = balances[this].sub(qtyToUnlock);
         balances[msg.sender] = balances[msg.sender].add(qtyToUnlock);
-        Transfer(this, msg.sender, qtyToUnlock);
+        emit Transfer(this, msg.sender, qtyToUnlock);
     }
 }

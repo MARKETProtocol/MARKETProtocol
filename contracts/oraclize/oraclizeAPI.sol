@@ -28,22 +28,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-pragma solidity ^0.4.0;//please import oraclizeAPI_pre0.4.sol when solidity < 0.4.0
+pragma solidity ^0.4.23;
 
 contract OraclizeI {
     address public cbAddress;
-    function query(uint _timestamp, string _datasource, string _arg) public payable returns (bytes32 _id);
-    function query_withGasLimit(uint _timestamp, string _datasource, string _arg, uint _gaslimit) public payable returns (bytes32 _id);
+    function query(uint _timestamp, string _datasource, string _arg) external payable returns (bytes32 _id);
+    function query_withGasLimit(uint _timestamp, string _datasource, string _arg, uint _gaslimit) external payable returns (bytes32 _id);
     function getPrice(string _datasource) public returns (uint _dsprice);
     function getPrice(string _datasource, uint gaslimit) public returns (uint _dsprice);
-    function useCoupon(string _coupon) public;
-    function setProofType(byte _proofType) public;
-    function setConfig(bytes32 _config) public;
-    function setCustomGasPrice(uint _gasPrice) public;
+    function setProofType(byte _proofType) external;
+    function setCustomGasPrice(uint _gasPrice) external;
 }
+
 contract OraclizeAddrResolverI {
     function getAddress() public returns (address _addr);
 }
+
 contract usingOraclize {
     byte constant proofType_TLSNotary = 0x10;
     byte constant proofStorage_IPFS = 0x01;
@@ -58,20 +58,23 @@ contract usingOraclize {
     OraclizeI oraclize;
     modifier oraclizeAPI {
         if((address(OAR)==0)||(getCodeSize(address(OAR))==0))
-        oraclize_setNetwork(networkID_auto);
+            oraclize_setNetwork(networkID_auto);
 
         if(address(oraclize) != OAR.getAddress())
-        oraclize = OraclizeI(OAR.getAddress());
+            oraclize = OraclizeI(OAR.getAddress());
 
         _;
     }
     modifier coupon(string code){
         oraclize = OraclizeI(OAR.getAddress());
-        oraclize.useCoupon(code);
         _;
     }
 
     function oraclize_setNetwork(uint8 networkID) internal returns(bool){
+      return oraclize_setNetwork();
+      networkID; // silence the warning and remain backwards compatible
+    }
+    function oraclize_setNetwork() internal returns(bool){
         if (getCodeSize(0x1d3B2638a7cC9f2CB3D298A3DA7a90B67E5506ed)>0){ //mainnet
             OAR = OraclizeAddrResolverI(0x1d3B2638a7cC9f2CB3D298A3DA7a90B67E5506ed);
             oraclize_setNetworkName("eth_mainnet");
@@ -111,10 +114,8 @@ contract usingOraclize {
         __callback(myid, result, new bytes(0));
     }
     function __callback(bytes32 myid, string result, bytes proof) public {
-    }
-
-    function oraclize_useCoupon(string code) oraclizeAPI internal {
-        oraclize.useCoupon(code);
+      return;
+      myid; result; proof; // Silence compiler warnings
     }
 
     function oraclize_getPrice(string datasource) oraclizeAPI internal returns (uint){
@@ -127,22 +128,22 @@ contract usingOraclize {
 
     function oraclize_query(string datasource, string arg) oraclizeAPI internal returns (bytes32 id){
         uint price = oraclize.getPrice(datasource);
-        if (price > 1 ether + tx.gasprice*200000) return 0; // unexpectedly high price
+        // if (price > 1 ether + tx.gasprice*200000) return 0; // unexpectedly high price
         return oraclize.query.value(price)(0, datasource, arg);
     }
     function oraclize_query(uint timestamp, string datasource, string arg) oraclizeAPI internal returns (bytes32 id){
         uint price = oraclize.getPrice(datasource);
-        if (price > 1 ether + tx.gasprice*200000) return 0; // unexpectedly high price
+        // if (price > 1 ether + tx.gasprice*200000) return 0; // unexpectedly high price
         return oraclize.query.value(price)(timestamp, datasource, arg);
     }
     function oraclize_query(uint timestamp, string datasource, string arg, uint gaslimit) oraclizeAPI internal returns (bytes32 id){
         uint price = oraclize.getPrice(datasource, gaslimit);
-        if (price > 1 ether + tx.gasprice*gaslimit) return 0; // unexpectedly high price
+        // if (price > 1 ether + tx.gasprice*gaslimit) return 0; // unexpectedly high price
         return oraclize.query_withGasLimit.value(price)(timestamp, datasource, arg, gaslimit);
     }
     function oraclize_query(string datasource, string arg, uint gaslimit) oraclizeAPI internal returns (bytes32 id){
         uint price = oraclize.getPrice(datasource, gaslimit);
-        if (price > 1 ether + tx.gasprice*gaslimit) return 0; // unexpectedly high price
+        // if (price > 1 ether + tx.gasprice*gaslimit) return 0; // unexpectedly high price
         return oraclize.query_withGasLimit.value(price)(0, datasource, arg, gaslimit);
     }
 
@@ -155,24 +156,19 @@ contract usingOraclize {
     function oraclize_setCustomGasPrice(uint gasPrice) oraclizeAPI internal {
         return oraclize.setCustomGasPrice(gasPrice);
     }
-    function oraclize_setConfig(bytes32 config) oraclizeAPI internal {
-        return oraclize.setConfig(config);
-    }
-
     function getCodeSize(address _addr) constant internal returns(uint _size) {
         assembly {
-        _size := extcodesize(_addr)
+            _size := extcodesize(_addr)
         }
     }
-    // parseInt(parseFloat*10^_b)
-    function parseInt(string _a, uint _b) pure internal returns (uint) {
+    function parseInt(string _a, uint _b) internal pure returns (uint) {
         bytes memory bresult = bytes(_a);
         uint mint = 0;
         bool decimals = false;
         for (uint i=0; i<bresult.length; i++){
             if ((bresult[i] >= 48)&&(bresult[i] <= 57)){
                 if (decimals){
-                    if (_b == 0) break;
+                   if (_b == 0) break;
                     else _b--;
                 }
                 mint *= 10;
@@ -182,13 +178,12 @@ contract usingOraclize {
         if (_b > 0) mint *= 10**_b;
         return mint;
     }
-
     string oraclize_network_name;
     function oraclize_setNetworkName(string _network_name) internal {
         oraclize_network_name = _network_name;
     }
 
-    function oraclize_getNetworkName() view internal returns (string) {
+    function oraclize_getNetworkName() internal view returns (string) {
         return oraclize_network_name;
     }
 }

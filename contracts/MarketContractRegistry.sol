@@ -14,10 +14,10 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./MarketContract.sol";
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 /// @title MarketContractRegistry
@@ -55,7 +55,7 @@ contract MarketContractRegistry is Ownable {
         // push the last item in array to replace the address we are removing and then trim the array.
         addressWhiteList[whiteListIndex] = addressWhiteList[addressWhiteList.length - 1];
         addressWhiteList.length -= 1;
-        AddressRemovedFromWhitelist(contractAddress);
+        emit AddressRemovedFromWhitelist(contractAddress);
     }
 
     /// @dev allows for the owner to add a white listed contract, eventually ownership could transition to
@@ -66,6 +66,6 @@ contract MarketContractRegistry is Ownable {
         require(MarketContract(contractAddress).isCollateralPoolContractLinked());
         isWhiteListed[contractAddress] = true;
         addressWhiteList.push(contractAddress);
-        AddressAddedToWhitelist(contractAddress);
+        emit AddressAddedToWhitelist(contractAddress);
     }
 }

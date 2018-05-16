@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "truffle/Assert.sol";
 import "../contracts/Creatable.sol";
@@ -52,7 +52,7 @@ contract TestCreatable {
     }
 
     function testThrowOnTransferToNullAddress() public {
-        bool result = this.call(bytes4(keccak256("shouldThrowOnAttemptToTransferToNullAddress()")));
+        bool result = address(this).call(bytes4(keccak256("shouldThrowOnAttemptToTransferToNullAddress()")));
         Assert.isFalse(result, "Should require address not to be null address");
     }
 
@@ -63,7 +63,7 @@ contract TestCreatable {
     }
 
     function testThrowOnTransferWhenNotCreator() public {
-        bool result = this.call(bytes4(keccak256("shouldThrowOnAttemptToTransferWhenNotOwner()")));
+        bool result = address(this).call(bytes4(keccak256("shouldThrowOnAttemptToTransferWhenNotOwner()")));
         Assert.isFalse(result, "Able to transfer creator when not creator!");
     }
 }

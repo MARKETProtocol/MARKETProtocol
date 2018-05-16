@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./oraclizeAPI.sol";
 import "../libraries/MathLib.sol";
@@ -49,7 +49,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"
     /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
-    function MarketContractOraclize(
+    constructor(
         string contractName,
         address marketTokenAddress,
         address baseTokenAddress,
@@ -107,9 +107,10 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
         require(validQueryIDs[queryID]);  // At expiration or early settlement.
         lastPriceQueryResult = result;
         lastPrice = parseInt(result, PRICE_DECIMAL_PLACES);
-        UpdatedLastPrice(result);
+        emit UpdatedLastPrice(result);
         checkSettlement();  // Verify settlement at expiration or requested early settlement.
         delete validQueryIDs[queryID];
+        proof;  // silence compiler warnings
     }
 
     /*

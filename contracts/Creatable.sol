@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 
 // Contract creators may be rewarded in the future with bounties or other special privileges.  Additionally
@@ -24,7 +24,7 @@ contract Creatable {
 
     address public creator;
 
-    function Creatable() public {
+    constructor() public {
         creator = msg.sender;
     }
 
@@ -32,7 +32,7 @@ contract Creatable {
 
     function transferCreator(address newCreator) onlyCreator public {
         require(newCreator != address(0));
-        CreatorTransferred(creator, newCreator);
+        emit CreatorTransferred(creator, newCreator);
         creator = newCreator;
     }
 

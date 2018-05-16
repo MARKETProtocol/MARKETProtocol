@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./UpgradeableTarget.sol";
 import "./UpgradableToken.sol";
@@ -26,7 +26,7 @@ contract UpgradeableTokenMock is UpgradeableToken, UpgradeableTarget {
 
     address public PREVIOUS_TOKEN_ADDRESS;
 
-    function UpgradeableTokenMock(address previousTokenAddress) public {
+    constructor(address previousTokenAddress) public {
         PREVIOUS_TOKEN_ADDRESS = previousTokenAddress;
     }
 
@@ -37,6 +37,6 @@ contract UpgradeableTokenMock is UpgradeableToken, UpgradeableTarget {
         require(msg.sender == PREVIOUS_TOKEN_ADDRESS);    // this can only be called from the  previous token!
         balances[from] = balances[from].add(value);         // credit new balance from upgrade.
         totalSupply_ = totalSupply_.add(value);             // keep track of total supply
-        Transfer(address(0), from, value);
+        emit Transfer(address(0), from, value);
     }
 }
