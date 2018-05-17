@@ -87,7 +87,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
       new Promise((r, j) => {
         var check = () => {
           if (txReceipt) r();
-          else if ((ms -= 1000) < 0) j('Oraclize time out!');
+          else if ((ms -= 1000) < 0) j(new Error('Oraclize time out!'));
           else {
             setTimeout(check, 1000);
           }
