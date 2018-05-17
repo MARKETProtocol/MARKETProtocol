@@ -24,3 +24,5 @@ script:
   - docker-compose ps
   - docker-compose exec eth-bridge scripts/wait_for_oraclize_connector.sh
   - docker-compose exec eth-bridge-coverage scripts/wait_for_oraclize_connector.sh
+  - docker-compose logs eth-bridge
+  - docker-compose logs eth-bridge-coverage
