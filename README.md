@@ -8,20 +8,31 @@ MARKET Protocol has been created to provide a secure, flexible, open source foun
 Join our [Discord Community](https://marketprotocol.io/discord) to interact with members of our dev staff and other contributors.
 
 ## Getting Started
+
+A Makefile is provided for easy setup of the environment.
+
+Some pre-requisites are required in order to utilize the Makefile.
+
+```
+$ git clone https://github.com/MARKETProtocol/MARKETProtocol.git  # clone this repository
+$ git clone https://github.com/MARKETProtocol/ethereum-bridge.git # and the needed oraclize.it bridge (for local test rpc)
+```
+From here you will be able to use make commands assuming npm is already installed.
+
 Assuming you have npm already, Install truffle
 ```
-$ npm install -g truffle
+$ make install_truffle
 ```
 
 Clone this repository and use npm to install needed dependencies
 ```
 $ git clone https://github.com/MARKETProtocol/MARKETProtocol.git
 $ cd MARKETProtocol
-$ npm install
+$ make install_deps
 ```
-If you get an error on the `node-gyp rebuild` line during `npm install`, `node-gyp` doesn't support Python v3.x.x; v2.7 is recommended. There are several solutions based upon your platform.
+If you get an error on the `node-gyp rebuild` line during `make install_deps`, `node-gyp` doesn't support Python v3.x.x; v2.7 is recommended. There are several solutions based upon your platform.
 
-The easiest solution? Use `npm install --python=python2.7` above to specify the Python version, see [stack overflow](https://stackoverflow.com/questions/20454199/how-to-use-a-different-version-of-python-during-npm-install) or the [npm node-gyp project](https://github.com/nodejs/node-gyp) for details.
+The easiest solution? Use `make install_deps_python2.7` to use Python 2.7, see [stack overflow](https://stackoverflow.com/questions/20454199/how-to-use-a-different-version-of-python-during-npm-install) or the [npm node-gyp project](https://github.com/nodejs/node-gyp) for details.
 
 
 
@@ -31,15 +42,14 @@ running. Information on installation can be found [here](https://github.com/MARK
 
 Start truffle and its development blockchain with
 ```
-$ truffle develop
+$ make start_console
 ```
 
 and then start the ethereum bridge (in a separate console) to run connected
-to the development blockchain you just started, note the account you use (in this example account 9 is used)
+to the development blockchain you just started. (in this example account 9 is used)
 
 ```
-$ cd ethereum-bridge/
-$ node bridge -H localhost:9545 -a 9 --dev
+$ make start_bridge
 ```
 
 Once the bridge has fully initialized, you should be able to run the example migrations as well
@@ -56,14 +66,14 @@ If this fails due to a `revert` , please be sure the bridge is listening prior t
 ## Solium
 
 ### To run `solium` on the solidity smart contracts
-ensure you have solium installed with `solium -V` if not install 
+ensure you have solium installed with `solium -V` if not install
 ```
 $ npm install -g solium
-``` 
+```
 and then
 ```
 $ solium --dir ./
-```  
+```
 
 ## Contributing
 
@@ -71,7 +81,7 @@ Want to hack on MARKET Protocol? Awesome!
 
 MARKET Protocol is an Open Source project and we welcome contributions of all sorts. There are many ways to help, from reporting issues, contributing code, and helping us improve our community.
 
-Ready to jump in? Check [docs.marketprotocol.io/#contributing](https://docs.marketprotocol.io/#contributing). 
+Ready to jump in? Check [docs.marketprotocol.io/#contributing](https://docs.marketprotocol.io/#contributing).
 
 ## Questions?
 
