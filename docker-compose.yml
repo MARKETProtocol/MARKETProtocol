@@ -19,12 +19,13 @@ services:
     image: marketproject/ethereum-bridge:0.5.6
     entrypoint: >
       /bin/bash -c "
-        while ! node bridge -H ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} -a 9 --dev;
+        while ! curl ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} &>/dev/null;
         do
-          echo sleeping;
+          echo Waiting for Ethereum node...;
           sleep 1;
         done;
-        echo Ethereum Bridge Connected!;
+        echo Ethereum node ready, connecting the Oraclize Bridge!;
+        node bridge -H ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} -a 9 --dev;
       "
     restart: unless-stopped
     depends_on:
@@ -51,13 +52,15 @@ services:
     image: marketproject/ethereum-bridge:0.5.6
     entrypoint: >
       /bin/bash -c "
-        while ! node bridge -H ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} -a 9 --dev;
+        while ! curl ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} &>/dev/null;
         do
-          echo sleeping;
+          echo Waiting for Ethereum node...;
           sleep 1;
         done;
-        echo Ethereum Bridge Connected!;
+        echo Ethereum node ready, connecting the Oraclize Bridge!;
+        node bridge -H ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} -a 9 --dev;
       "
+
     restart: unless-stopped
     depends_on:
       - truffle-coverage
