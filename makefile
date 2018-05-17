@@ -20,8 +20,13 @@ install_truffle:
 
 # install required dependencies
 install_deps:
-	npm install # for MARKETPRotocol
+	npm install # for MARKETProtocol
 	cd $(EB_PATH) ; npm install # for ethereum-bridge
+
+install_deps_python2.7:
+	npm install --python=python2.7 # for MARKETProtocol with python 2.7
+	cd $(EB_PATH) ; npm install # for ethereum-bridge
+
 
 # open truffle console with a local development blockchain
 start_console:
@@ -37,4 +42,3 @@ start_bridge:
 #   migrate
 #   test
 #
-
