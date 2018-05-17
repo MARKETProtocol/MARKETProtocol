@@ -15,27 +15,20 @@ services:
     tty: true
     stdin_open: true
 
-  truffle-guard:
-    image: node:alpine
-    depends_on:
-      - truffle
-    command: >
-      /bin/sh -c "
-        npm install -g truffle;
-        while ! truffle console;
+  eth-bridge:
+    image: marketproject/ethereum-bridge:0.5.6
+    entrypoint: >
+      /bin/bash -c "
+        while ! node bridge -H ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} -a 9 --dev;
         do
           echo sleeping;
           sleep 1;
         done;
-        echo Truffle Connected!;
+        echo Ethereum Bridge Connected!;
       "
-
-  eth-bridge:
-    image: marketproject/ethereum-bridge:0.5.6
-    command: -H ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} -a 9 --dev
     restart: unless-stopped
     depends_on:
-      - truffle-guard
+      - truffle
     links:
       - truffle
 
@@ -53,27 +46,20 @@ services:
         target: /app
     tty: true
     stdin_open: true
-
-  truffle-coverage-guard:
-    image: node:alpine
-    depends_on:
-      - truffle-coverage
-    command: >
-      /bin/sh -c "
-        npm install -g truffle;
-        while ! truffle console --network coverage;
+  
+  eth-bridge-coverage:
+    image: marketproject/ethereum-bridge:0.5.6
+    entrypoint: >
+      /bin/bash -c "
+        while ! node bridge -H ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} -a 9 --dev;
         do
           echo sleeping;
           sleep 1;
         done;
-        echo Truffle Connected!;
+        echo Ethereum Bridge Connected!;
       "
-
-  eth-bridge-coverage:
-    image: marketproject/ethereum-bridge:0.5.6
-    command: -H ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} -a 9 --dev
     restart: unless-stopped
     depends_on:
-      - truffle-coverage-guard
+      - truffle-coverage
     links:
       - truffle-coverage
