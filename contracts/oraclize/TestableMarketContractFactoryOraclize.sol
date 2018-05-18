@@ -16,17 +16,25 @@
 
 pragma solidity ^0.4.23;
 
-import "./MarketContractOraclize.sol";
+import "./TestableMarketContractOraclize.sol";
+import "../MarketContractRegistryInterface.sol";
 
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
+/// @title TestableMarketContractFactoryOraclize
+/// @author Phil Elsasser <phil@marketprotocol.io>
+contract TestableMarketContractFactoryOraclize is Ownable {
 
-/// @title Testable version of MarketContractOraclize that exposes a function to manually update last price.
-/// This is deployed to the test network in place of the actual MarketContractOraclize
-/// @author Perfect Makanju <root@perfect.engineering>
-contract TestableMarketContractOraclize is MarketContractOraclize {
+    address public marketContractRegistry;
 
+    event MarketContractCreated(address indexed contractAddress);
+
+    constructor(address registryAddress) public {
+        marketContractRegistry = registryAddress;
+    }
+
+    /// @dev Deploys a new instance of a market contract and adds it to the whitelist.
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
-    /// @param creatorAddress address of the person creating the contract
     /// @param marketTokenAddress address of our member token
     /// @param baseTokenAddress address of the ERC20 token that will be used for collateral and pricing
     /// @param contractSpecs array of unsigned integers including:
@@ -36,32 +44,35 @@ contract TestableMarketContractOraclize is MarketContractOraclize {
     /// an integer
     /// qtyMultiplier multiply traded qty by this value from base units of collateral token.
     /// expirationTimeStamp - seconds from epoch that this contract expires and enters settlement
-    /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"dv
+    /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"
     /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
-    constructor(
+    function deployMarketContractOraclize(
         string contractName,
-        address creatorAddress,
         address marketTokenAddress,
         address baseTokenAddress,
         uint[5] contractSpecs,
         string oracleDataSource,
         string oracleQuery
-    ) MarketContractOraclize(
-        contractName,
-        creatorAddress,
-        marketTokenAddress,
-        baseTokenAddress,
-        contractSpecs,
-        oracleDataSource,
-        oracleQuery
-    ) public payable
-    { }
+    ) external
+    {
+        MarketContractOraclize mktContract = new TestableMarketContractOraclize(
+            contractName,
+            msg.sender,
+            marketTokenAddress,
+            baseTokenAddress,
+            contractSpecs,
+            oracleDataSource,
+            oracleQuery
+        );
+        MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(mktContract);
+        emit MarketContractCreated(address(mktContract));
+    }
 
-    /// @notice allows the creator of the contract to manually set a last price and check for settlement
-    /// @param price lastPrice to be set
-    function updateLastPrice(uint price) public {
-        lastPrice = price;
-        checkSettlement();
+    /// @dev allows for the owner to set the desired registry for contract creation.
+    /// @param registryAddress desired registry address.
+    function setRegistryAddress(address registryAddress) external onlyOwner {
+        require(registryAddress != address(0));
+        marketContractRegistry = registryAddress;
     }
 }

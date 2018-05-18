@@ -1,5 +1,6 @@
 const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
+const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const MarketToken = artifacts.require('MarketToken');
 const CollateralToken = artifacts.require('CollateralToken');
 const OrderLib = artifacts.require('OrderLib');
@@ -16,6 +17,7 @@ contract('MarketContractOraclize', function(accounts) {
   let collateralPool;
   let marketToken;
   let marketContract;
+  let marketContractRegistry;
   let collateralToken;
   let orderLib;
   let makerAccountBalanceBeforeTrade;
@@ -28,14 +30,16 @@ contract('MarketContractOraclize', function(accounts) {
   beforeEach(async function() {
     collateralPool = await MarketCollateralPool.deployed();
     marketToken = await MarketToken.deployed();
-    marketContract = await MarketContractOraclize.deployed();
+    marketContractRegistry = await MarketContractRegistry.deployed();
+    var whiteList = await marketContractRegistry.getAddressWhiteList.call();
+    marketContract = await MarketContractOraclize.at(whiteList[1]);
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
     tradeHelper = await Helpers.TradeHelper(
-      MarketContractOraclize,
-      OrderLib,
-      CollateralToken,
-      MarketCollateralPool
+      marketContract,
+      orderLib,
+      collateralToken,
+      collateralPool
     );
   });
 
@@ -45,7 +49,7 @@ contract('MarketContractOraclize', function(accounts) {
     const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
     const orderQty = 5; // user is attempting to buy 5
     const orderHash = await orderLib.createOrderHash.call(
-      MarketContractOraclize.address,
+      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
@@ -204,7 +208,7 @@ contract('MarketContractOraclize', function(accounts) {
     const orderQty = 5; // user is attempting to buy 5
     const qtyToFill = 10; // order is to be filled by 10
     const orderHash = await orderLib.createOrderHash.call(
-      MarketContractOraclize.address,
+      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
@@ -314,7 +318,7 @@ contract('MarketContractOraclize', function(accounts) {
     const zeroOrderQty = 0;
     const qtyToFill = 4;
     const orderHash = await orderLib.createOrderHash.call(
-      MarketContractOraclize.address,
+      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       zeroOrderQty
@@ -349,7 +353,7 @@ contract('MarketContractOraclize', function(accounts) {
     const orderQty = 5;
     const qtyToFill = 1; // order is to be filled by 1
     const orderHash = await orderLib.createOrderHash.call(
-      MarketContractOraclize.address,
+      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
@@ -382,7 +386,7 @@ contract('MarketContractOraclize', function(accounts) {
     const orderQty = 5;
     const qtyToFill = 1; // order is to be filled by 1
     const orderHash = await orderLib.createOrderHash.call(
-      MarketContractOraclize.address,
+      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
@@ -549,6 +553,7 @@ contract('MarketContractOraclize.Fees', function(accounts) {
   let collateralToken;
   let marketToken;
   let marketContract;
+  let marketContractRegistry;
 
   let collateralPoolBalanceBeforeTrade;
   let makerAccountBalanceBeforeTrade;
@@ -574,14 +579,16 @@ contract('MarketContractOraclize.Fees', function(accounts) {
   before(async function() {
     collateralPool = await MarketCollateralPool.deployed();
     marketToken = await MarketToken.deployed();
-    marketContract = await MarketContractOraclize.deployed();
+    marketContractRegistry = await MarketContractRegistry.deployed();
+    var whiteList = await marketContractRegistry.getAddressWhiteList.call();
+    marketContract = await MarketContractOraclize.at(whiteList[1]);
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
     tradeHelper = await Helpers.TradeHelper(
-      MarketContractOraclize,
-      OrderLib,
-      CollateralToken,
-      MarketCollateralPool
+      marketContract,
+      orderLib,
+      collateralToken,
+      collateralPool
     );
 
     // transfer half of the collateral tokens to the second account.

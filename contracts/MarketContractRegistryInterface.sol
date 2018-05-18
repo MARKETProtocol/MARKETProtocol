@@ -16,11 +16,6 @@
 
 pragma solidity ^0.4.23;
 
-
-/// @title Upgradeable Target
-/// @notice A contract (or a token itself) that can facilitate the upgrade from an existing deployed token
-/// to allow us to upgrade our token's functionality.
-/// @author Phil Elsasser <phil@marketprotocol.io>
-contract UpgradeableTarget {
-    function upgradeFrom(address from, uint256 value) external; // note: implementation should require(from == oldToken)
+contract MarketContractRegistryInterface {
+    function addAddressToWhiteList(address contractAddress) external;
 }

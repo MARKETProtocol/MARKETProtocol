@@ -1,5 +1,6 @@
 const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
+const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const CollateralToken = artifacts.require('CollateralToken');
 const MarketToken = artifacts.require('MarketToken');
 const OrderLib = artifacts.require('OrderLib');
@@ -13,6 +14,7 @@ contract('MarketCollateralPool', function(accounts) {
   let initBalance;
   let collateralPool;
   let marketContract;
+  let marketContractRegistry;
   let marketToken;
   let orderLib;
   let qtyMultiplier;
@@ -26,17 +28,20 @@ contract('MarketCollateralPool', function(accounts) {
   beforeEach(async function() {
     collateralPool = await MarketCollateralPool.deployed();
     marketToken = await MarketToken.deployed();
-    marketContract = await MarketContractOraclize.deployed();
+    marketContractRegistry = await MarketContractRegistry.deployed();
+    var whiteList = await marketContractRegistry.getAddressWhiteList.call();
+    marketContract = await MarketContractOraclize.at(whiteList[1]);
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
     qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
     priceFloor = await marketContract.PRICE_FLOOR.call();
     priceCap = await marketContract.PRICE_CAP.call();
+
     tradeHelper = await Helpers.TradeHelper(
-      MarketContractOraclize,
-      OrderLib,
-      CollateralToken,
-      MarketCollateralPool
+      marketContract,
+      orderLib,
+      collateralToken,
+      collateralPool
     );
   });
 
@@ -231,14 +236,14 @@ contract('MarketCollateralPool', function(accounts) {
     var orderQty = 10; // user is attempting to buy 10
     // set up 2 different trades (different trading partners)
     const orderHash = await orderLib.createOrderHash.call(
-      MarketContractOraclize.address,
+      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
     );
     // this one designed to fail
     const smallOrderHash = await orderLib.createOrderHash.call(
-      MarketContractOraclize.address,
+      marketContract.address,
       smallAddress,
       unsignedOrderValues,
       orderQty
@@ -363,7 +368,7 @@ contract('MarketCollateralPool', function(accounts) {
     );
     orderQty = -10; // user is attempting to sell 10
     const secondOrderHash = await orderLib.createOrderHash.call(
-      MarketContractOraclize.address,
+      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty

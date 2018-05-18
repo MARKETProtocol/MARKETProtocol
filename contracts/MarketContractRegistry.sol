@@ -16,20 +16,27 @@
 
 pragma solidity ^0.4.23;
 
-import "./MarketContract.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "./MarketContractRegistryInterface.sol";
 
 
 /// @title MarketContractRegistry
 /// @author Phil Elsasser <phil@marketprotocol.io>
-contract MarketContractRegistry is Ownable {
+contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
 
     mapping(address => bool) isWhiteListed;
-    address[] addressWhiteList;            // record of currently deployed addresses;
+    address[] addressWhiteList;                             // record of currently deployed addresses;
+    mapping(address => bool) factoryAddressWhiteList;       // record of authorized factories
 
     // events
     event AddressAddedToWhitelist(address indexed contractAddress);
     event AddressRemovedFromWhitelist(address indexed contractAddress);
+    event FactoryAddressAdded(address indexed factoryAddress);
+    event FactoryAddressRemoved(address indexed factoryAddress);
+
+    /*
+    // External Methods
+    */
 
     /// @notice determines if an address is a valid MarketContract
     /// @return false if the address is not white listed.
@@ -47,7 +54,11 @@ contract MarketContractRegistry is Ownable {
     /// a decentralized smart contract of community members to vote
     /// @param contractAddress contract to removed from white list
     /// @param whiteListIndex of the contractAddress in the addressWhiteList to be removed.
-    function removeContractFromWhiteList(address contractAddress, uint whiteListIndex) external onlyOwner returns (bool) {
+    function removeContractFromWhiteList(
+        address contractAddress,
+        uint whiteListIndex
+    ) external onlyOwner returns (bool)
+    {
         require(isWhiteListed[contractAddress]);
         require(addressWhiteList[whiteListIndex] == contractAddress);
         isWhiteListed[contractAddress] = false;
@@ -58,14 +69,30 @@ contract MarketContractRegistry is Ownable {
         emit AddressRemovedFromWhitelist(contractAddress);
     }
 
-    /// @dev allows for the owner to add a white listed contract, eventually ownership could transition to
+    /// @dev allows for the owner or factory to add a white listed contract, eventually ownership could transition to
     /// a decentralized smart contract of community members to vote
     /// @param contractAddress contract to removed from white list
-    function addAddressToWhiteList(address contractAddress) external onlyOwner {
+    function addAddressToWhiteList(address contractAddress) external {
+        require(msg.sender == owner || factoryAddressWhiteList[msg.sender]);
         require(!isWhiteListed[contractAddress]);
-        require(MarketContract(contractAddress).isCollateralPoolContractLinked());
         isWhiteListed[contractAddress] = true;
         addressWhiteList.push(contractAddress);
         emit AddressAddedToWhitelist(contractAddress);
+    }
+
+    /// @dev allows for the owner to add a new address of a factory responsible for creating new market contracts
+    /// @param factoryAddress address of factory to be allowed to add contracts to whitelist
+    function addFactoryAddress(address factoryAddress) external onlyOwner {
+        require(!factoryAddressWhiteList[factoryAddress]);
+        factoryAddressWhiteList[factoryAddress] = true;
+        emit FactoryAddressAdded(factoryAddress);
+    }
+
+    /// @dev allows for the owner to remove an address of a factory
+    /// @param factoryAddress address of factory to be removed
+    function removeFactoryAddress(address factoryAddress) external onlyOwner {
+        require(factoryAddressWhiteList[factoryAddress]);
+        factoryAddressWhiteList[factoryAddress] = false;
+        emit FactoryAddressRemoved(factoryAddress);
     }
 }
