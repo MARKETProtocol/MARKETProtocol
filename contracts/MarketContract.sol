@@ -94,6 +94,7 @@ contract MarketContract is Creatable {
 
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
+    /// @param creatorAddress address of the person creating the contract
     /// @param marketTokenAddress address of our member token
     /// @param baseTokenAddress address of the ERC20 token that will be used for collateral and pricing
     /// @param contractSpecs array of unsigned integers including:
@@ -105,6 +106,7 @@ contract MarketContract is Creatable {
     /// expirationTimeStamp - seconds from epoch that this contract expires and enters settlement
     constructor(
         string contractName,
+        address creatorAddress,
         address marketTokenAddress,
         address baseTokenAddress,
         uint[5] contractSpecs
@@ -124,6 +126,7 @@ contract MarketContract is Creatable {
 
         CONTRACT_NAME = contractName;
         BASE_TOKEN_ADDRESS = baseTokenAddress;
+        creator = creatorAddress;
     }
 
     /*
@@ -321,7 +324,7 @@ contract MarketContract is Creatable {
         } else if (lastPrice >= PRICE_CAP) {    // price is greater or equal to our cap, settle to CAP price
             isSettled = true;
             newSettlementPrice = PRICE_CAP;
-        } else if( lastPrice <= PRICE_FLOOR) {  // price is lesser or equal to our floor, settle to FLOOR price
+        } else if (lastPrice <= PRICE_FLOOR) {  // price is lesser or equal to our floor, settle to FLOOR price
             isSettled = true;
             newSettlementPrice = PRICE_FLOOR;
         }

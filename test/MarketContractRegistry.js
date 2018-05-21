@@ -16,12 +16,13 @@ contract('MarketContractRegistry', function(accounts) {
   beforeEach(async function() {
     collateralPool = await MarketCollateralPool.deployed();
     marketToken = await MarketToken.deployed();
-    marketContract = await MarketContractOraclize.deployed();
-    collateralToken = await CollateralToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
+    var whiteList = await marketContractRegistry.getAddressWhiteList.call();
+    marketContract = await MarketContractOraclize.at(whiteList[1]);
+    collateralToken = await CollateralToken.deployed();
   });
 
-  it('Only owner is able to add or remove contracts to the white list', async function() {
+  it('Only owner is able to remove contracts to the white list', async function() {
     const ownerAddress = await marketContractRegistry.owner.call();
     assert.equal(accounts[0], ownerAddress, "owner isn't our first account");
 

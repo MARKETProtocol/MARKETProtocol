@@ -13,12 +13,7 @@
 
 const utility = require('../utility');
 
-module.exports = async function(MarketContractOraclize, OrderLib, CollateralToken, CollateralPool) {
-  const marketContract = await MarketContractOraclize.deployed();
-  const orderLib = await OrderLib.deployed();
-  const collateralToken = await CollateralToken.deployed();
-  const collateralPool = await CollateralPool.deployed();
-
+module.exports = async function(marketContract, orderLib, collateralToken, collateralPool) {
   async function tradeOrder(
     [accountMaker, accountTaker, feeAccount],
     [orderPrice, orderQty, qtyToFill],
@@ -30,7 +25,7 @@ module.exports = async function(MarketContractOraclize, OrderLib, CollateralToke
     const orderAddresses = [accountMaker, accountTaker, feeAccount];
     const unsignedOrderValues = [makerFee, takerFee, orderPrice, timeStamp, 1];
     const orderHash = await orderLib.createOrderHash.call(
-      MarketContractOraclize.address,
+      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
@@ -59,7 +54,7 @@ module.exports = async function(MarketContractOraclize, OrderLib, CollateralToke
     const orderAddresses = [accountMaker, accountTaker, feeAccount];
     const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
     const orderHash = await orderLib.createOrderHash.call(
-      MarketContractOraclize.address,
+      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty

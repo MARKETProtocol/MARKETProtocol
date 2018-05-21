@@ -37,6 +37,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     mapping(bytes32 => bool) validQueryIDs;
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
+    /// @param creatorAddress address of the person creating the contract
     /// @param marketTokenAddress address of our member token
     /// @param baseTokenAddress address of the ERC20 token that will be used for collateral and pricing
     /// @param contractSpecs array of unsigned integers including:
@@ -51,6 +52,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
     constructor(
         string contractName,
+        address creatorAddress,
         address marketTokenAddress,
         address baseTokenAddress,
         uint[5] contractSpecs,
@@ -58,6 +60,7 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
         string oracleQuery
     ) MarketContract(
         contractName,
+        creatorAddress,
         marketTokenAddress,
         baseTokenAddress,
         contractSpecs

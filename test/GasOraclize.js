@@ -1,5 +1,6 @@
 const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
+const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const MarketToken = artifacts.require('MarketToken');
 const CollateralToken = artifacts.require('CollateralToken');
 const OrderLib = artifacts.require('OrderLib');
@@ -11,6 +12,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
   let tradeHelper;
   let collateralPool;
   let collateralToken;
+  let marketContractRegistry;
   let marketToken;
   let marketContract;
   let marketContractInstance;
@@ -21,14 +23,16 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
   before(async function() {
     collateralPool = await MarketCollateralPool.deployed();
     marketToken = await MarketToken.deployed();
-    marketContract = await MarketContractOraclize.deployed();
+    marketContractRegistry = await MarketContractRegistry.deployed();
+    var whiteList = await marketContractRegistry.getAddressWhiteList.call();
+    marketContract = await MarketContractOraclize.at(whiteList[1]);
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
     tradeHelper = await Helpers.TradeHelper(
-      MarketContractOraclize,
-      OrderLib,
-      CollateralToken,
-      MarketCollateralPool
+      marketContract,
+      orderLib,
+      collateralToken,
+      collateralPool
     );
   });
 
@@ -46,6 +50,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
 
     MarketContractOraclize.new(
       'ETHUSD-10',
+      accountMaker,
       marketToken.address,
       collateralToken.address,
       [priceFloor, priceCap, 2, 1, marketContractExpirationInTenSeconds],
@@ -117,6 +122,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
     try {
       await MarketContractOraclize.new(
         'ETHUSD-EQUALPRICECAPPRICEFLOOR',
+        accountMaker,
         marketToken.address,
         collateralToken.address,
         [100000, 100000, 2, 1, marketContractExpirationInTenSeconds],
@@ -136,6 +142,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
     try {
       await MarketContractOraclize.new(
         'ETHUSD-EQUALPRICECAPPRICEFLOOR',
+        accountMaker,
         marketToken.address,
         collateralToken.address,
         [10, 100, 2, 1, marketContractExpirationTenSecondsAgo],
@@ -156,6 +163,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
     try {
       await MarketContractOraclize.new(
         'ETHUSD-EQUALPRICECAPPRICEFLOOR',
+        accountMaker,
         marketToken.address,
         collateralToken.address,
         [10, 100, 2, 1, marketContractExpirationTenSecondsAgo],
