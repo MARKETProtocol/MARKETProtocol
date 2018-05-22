@@ -56,7 +56,7 @@ Once the bridge has fully initialized, you should be able to run the example mig
 as the accompanying tests inside the truffle console
 
 ```
-truffle(develop)> migrate
+truffle(develop)> migrate --reset
 truffle(develop)> test
 ```
 
