@@ -27,17 +27,21 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 contract MarketContractFactoryOraclize is Ownable {
 
     address public marketContractRegistry;
+    address public MKT_TOKEN_ADDRESS;
 
     event RegistryChanged(address indexed previousRegistry, address indexed newRegistry);
     event MarketContractCreated(address indexed contractAddress);
 
-    constructor(address registryAddress) public {
+    /// @dev deploys our factory and ties it the a supply registry address
+    /// @param registryAddress - MarketContractRegistry address to whitelist contracts
+    /// @param mktTokenAddress - MARKET Token address
+    constructor(address registryAddress, address mktTokenAddress) public {
         marketContractRegistry = registryAddress;
+        MKT_TOKEN_ADDRESS = mktTokenAddress;
     }
 
     /// @dev Deploys a new instance of a market contract and adds it to the whitelist.
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
-    /// @param marketTokenAddress address of our member token
     /// @param baseTokenAddress address of the ERC20 token that will be used for collateral and pricing
     /// @param contractSpecs array of unsigned integers including:
     /// floorPrice minimum tradeable price of this contract, contract enters settlement if breached
@@ -51,7 +55,6 @@ contract MarketContractFactoryOraclize is Ownable {
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
     function deployMarketContractOraclize(
         string contractName,
-        address marketTokenAddress,
         address baseTokenAddress,
         uint[5] contractSpecs,
         string oracleDataSource,
@@ -61,7 +64,7 @@ contract MarketContractFactoryOraclize is Ownable {
         MarketContractOraclize mktContract = new MarketContractOraclize(
             contractName,
             msg.sender,
-            marketTokenAddress,
+            MKT_TOKEN_ADDRESS,
             baseTokenAddress,
             contractSpecs,
             oracleDataSource,

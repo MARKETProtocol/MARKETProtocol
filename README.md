@@ -56,11 +56,54 @@ Once the bridge has fully initialized, you should be able to run the example mig
 as the accompanying tests inside the truffle console
 
 ```
-truffle(develop)> migrate
+truffle(develop)> migrate --reset
 truffle(develop)> test
 ```
 
 If this fails due to a `revert` , please be sure the bridge is listening prior to attempting the migration.
+
+### Running tests with coverage enabled
+
+The most convenient way to run tests with coverage enabled is to run them with help of Docker orchestration. This ensures, that the coverage results will match the ones on Travis CI.
+
+#### Prerequisites
+
+##### Docker and docker-compose
+
+Instructions on how to install both applications are available at  [docker](https://docs.docker.com/install/) and [docker-compose ](https://docs.docker.com/compose/install/) websites. When the applications are installed please make sure that the current user is added to 'docker' group.
+
+#### Environment variables
+
+Docker images use four environment variables that point to host and port on test and coverage Ethereum networks, please export them to your shell environment:
+
+TRUFFLE_DEVELOP_HOST=truffle
+TRUFFLE_DEVELOP_PORT=9545
+TRUFFLE_COVERAGE_HOST=truffle-coverage
+TRUFFLE_COVERAGE_PORT=8555
+
+### Running tests
+
+#### Start containers
+
+```
+docker-compose up
+```
+
+The first run will take a while since images will be pulled from Docker registry. After that images are cached and the start will be much faster.
+Please wait until Oraclize connector initializes and open a second console. Make sure that all four environment variables are available in the second shell.
+
+#### Install dependencies
+
+```
+docker-compose exec truffle-coverage npm install
+
+```
+
+#### Start tests
+
+```
+docker-compose exec truffle-coverage env CONTINUOUS_INTEGRATION=true scripts/coverage_run.sh
+```
 
 
 ## Solium

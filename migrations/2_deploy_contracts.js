@@ -49,7 +49,7 @@ module.exports = function(deployer, network) {
             return MarketContractRegistry.deployed().then(function(registryInstance) {
               // deploy the factory
               return deployer
-                .deploy(MarketContractFactory, registryInstance.address, {
+                .deploy(MarketContractFactory, registryInstance.address, MarketToken.address, {
                   gas: gasLimit,
                   from: web3.eth.accounts[0]
                 })
@@ -58,7 +58,6 @@ module.exports = function(deployer, network) {
 
                   return factory.deployMarketContractOraclize(
                     'ETHXBT',
-                    MarketToken.address,
                     CollateralToken.address,
                     [20155, 60465, 2, 10, marketContractExpiration],
                     'URL',
@@ -91,7 +90,6 @@ module.exports = function(deployer, network) {
                 return MarketContractFactory.deployed().then(async function(factory) {
                   return factory.deployMarketContractOraclize(
                     'ETHXBT-2',
-                    MarketToken.address,
                     CollateralToken.address,
                     [20155, 60465, 2, 10, marketContractExpiration],
                     'URL',
