@@ -1,4 +1,4 @@
-const OrderLib = artifacts.require('OrderLib');
+const OrderLib = artifacts.require('OrderLibMock');
 const utility = require('./utility.js');
 const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
@@ -20,7 +20,7 @@ contract('OrderLib', function(accounts) {
     const unsignedOrderValues = [0, 0, 33025, timeStamp, 0];
     const orderQty = 5; // user is attempting to buy 5
 
-    const orderHash = await orderLib.createOrderHash.call(
+    const orderHash = await orderLib._createOrderHash.call(
       marketContract.address,
       orderAddresses,
       unsignedOrderValues,
@@ -28,7 +28,7 @@ contract('OrderLib', function(accounts) {
     );
     const orderSignature = utility.signMessage(web3, accounts[0], orderHash);
     assert.isTrue(
-      await orderLib.isValidSignature.call(
+      await orderLib._isValidSignature.call(
         accounts[0],
         orderHash,
         orderSignature[0],
@@ -38,7 +38,7 @@ contract('OrderLib', function(accounts) {
       "Order hash doesn't match signer"
     );
     assert.isTrue(
-      !(await orderLib.isValidSignature.call(
+      !(await orderLib._isValidSignature.call(
         accounts[1],
         orderHash,
         orderSignature[0],

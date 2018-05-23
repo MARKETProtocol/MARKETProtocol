@@ -3,7 +3,7 @@ const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const CollateralToken = artifacts.require('CollateralToken');
 const MarketToken = artifacts.require('MarketToken');
-const OrderLib = artifacts.require('OrderLib');
+const OrderLib = artifacts.require('OrderLibMock');
 const Helpers = require('./helpers/Helpers.js');
 const utility = require('./utility.js');
 
@@ -235,14 +235,14 @@ contract('MarketCollateralPool', function(accounts) {
     const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
     var orderQty = 10; // user is attempting to buy 10
     // set up 2 different trades (different trading partners)
-    const orderHash = await orderLib.createOrderHash.call(
+    const orderHash = await orderLib._createOrderHash.call(
       marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
     );
     // this one designed to fail
-    const smallOrderHash = await orderLib.createOrderHash.call(
+    const smallOrderHash = await orderLib._createOrderHash.call(
       marketContract.address,
       smallAddress,
       unsignedOrderValues,
@@ -367,7 +367,7 @@ contract('MarketCollateralPool', function(accounts) {
       'Taker balance is wrong'
     );
     orderQty = -10; // user is attempting to sell 10
-    const secondOrderHash = await orderLib.createOrderHash.call(
+    const secondOrderHash = await orderLib._createOrderHash.call(
       marketContract.address,
       orderAddresses,
       unsignedOrderValues,

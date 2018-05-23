@@ -1,5 +1,6 @@
 const MathLib = artifacts.require('./libraries/MathLib.sol');
 const OrderLib = artifacts.require('./libraries/OrderLib.sol');
+const OrderLibMock = artifacts.require('./mocks/OrderLibMock.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
 const MarketContractOraclize = artifacts.require('./oraclize/TestableMarketContractOraclize.sol');
 const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
@@ -16,6 +17,12 @@ module.exports = function(deployer, network) {
   if (network !== 'live') {
     deployer.deploy(MathLib);
     deployer.deploy(OrderLib);
+
+    deployer.link(OrderLib, OrderLibMock);
+    deployer.link(MathLib, OrderLibMock);
+
+    deployer.deploy(OrderLib);
+    deployer.deploy(OrderLibMock);
     deployer.deploy(MarketContractRegistry);
 
     deployer.link(MathLib, MarketContractOraclize);

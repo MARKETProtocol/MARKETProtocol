@@ -3,7 +3,7 @@ const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const MarketToken = artifacts.require('MarketToken');
 const CollateralToken = artifacts.require('CollateralToken');
-const OrderLib = artifacts.require('OrderLib');
+const OrderLib = artifacts.require('OrderLibMock');
 const Helpers = require('./helpers/Helpers.js');
 
 // test to ensure callback gas is within limits when settling contracts

@@ -3,7 +3,7 @@ const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketToken = artifacts.require('MarketToken');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const CollateralToken = artifacts.require('CollateralToken');
-const OrderLib = artifacts.require('OrderLib');
+const OrderLib = artifacts.require('OrderLibMock');
 const utility = require('./utility.js');
 
 contract('MarketContractRegistry', function(accounts) {
