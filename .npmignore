@@ -4,6 +4,7 @@
 allFiredEvents
 coverage.json
 coverage/
+contracts/mocks
 node_modules/
 docker-compose.yml
 Dockerfile
@@ -17,4 +18,3 @@ truffle.js
 .env.sample
 .git
 .gitignore
-

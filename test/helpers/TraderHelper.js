@@ -24,7 +24,7 @@ module.exports = async function(marketContract, orderLib, collateralToken, colla
     const timeStamp = new Date().getTime() / 1000 + 60 * (isExpired ? -5 : 5); // expires/expired 5 mins (ago)
     const orderAddresses = [accountMaker, accountTaker, feeAccount];
     const unsignedOrderValues = [makerFee, takerFee, orderPrice, timeStamp, 1];
-    const orderHash = await orderLib.createOrderHash.call(
+    const orderHash = await orderLib._createOrderHash.call(
       marketContract.address,
       orderAddresses,
       unsignedOrderValues,
@@ -53,7 +53,7 @@ module.exports = async function(marketContract, orderLib, collateralToken, colla
     const timeStamp = new Date().getTime() / 1000 + 60 * (isExpired ? -5 : 5); // expires/expired 5 mins (ago)
     const orderAddresses = [accountMaker, accountTaker, feeAccount];
     const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
-    const orderHash = await orderLib.createOrderHash.call(
+    const orderHash = await orderLib._createOrderHash.call(
       marketContract.address,
       orderAddresses,
       unsignedOrderValues,

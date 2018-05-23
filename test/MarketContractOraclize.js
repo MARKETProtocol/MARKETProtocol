@@ -3,7 +3,7 @@ const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const MarketToken = artifacts.require('MarketToken');
 const CollateralToken = artifacts.require('CollateralToken');
-const OrderLib = artifacts.require('OrderLib');
+const OrderLib = artifacts.require('OrderLibMock');
 const Helpers = require('./helpers/Helpers.js');
 const utility = require('./utility.js');
 
@@ -48,7 +48,7 @@ contract('MarketContractOraclize', function(accounts) {
     const orderAddresses = [accountMaker, accountTaker, accounts[2]];
     const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
     const orderQty = 5; // user is attempting to buy 5
-    const orderHash = await orderLib.createOrderHash.call(
+    const orderHash = await orderLib._createOrderHash.call(
       marketContract.address,
       orderAddresses,
       unsignedOrderValues,
@@ -207,7 +207,7 @@ contract('MarketContractOraclize', function(accounts) {
     const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
     const orderQty = 5; // user is attempting to buy 5
     const qtyToFill = 10; // order is to be filled by 10
-    const orderHash = await orderLib.createOrderHash.call(
+    const orderHash = await orderLib._createOrderHash.call(
       marketContract.address,
       orderAddresses,
       unsignedOrderValues,
@@ -317,7 +317,7 @@ contract('MarketContractOraclize', function(accounts) {
     const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
     const zeroOrderQty = 0;
     const qtyToFill = 4;
-    const orderHash = await orderLib.createOrderHash.call(
+    const orderHash = await orderLib._createOrderHash.call(
       marketContract.address,
       orderAddresses,
       unsignedOrderValues,
@@ -352,7 +352,7 @@ contract('MarketContractOraclize', function(accounts) {
     const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
     const orderQty = 5;
     const qtyToFill = 1; // order is to be filled by 1
-    const orderHash = await orderLib.createOrderHash.call(
+    const orderHash = await orderLib._createOrderHash.call(
       marketContract.address,
       orderAddresses,
       unsignedOrderValues,
@@ -385,7 +385,7 @@ contract('MarketContractOraclize', function(accounts) {
     const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
     const orderQty = 5;
     const qtyToFill = 1; // order is to be filled by 1
-    const orderHash = await orderLib.createOrderHash.call(
+    const orderHash = await orderLib._createOrderHash.call(
       marketContract.address,
       orderAddresses,
       unsignedOrderValues,
