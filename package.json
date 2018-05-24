@@ -1,13 +1,13 @@
 {
   "name": "market-solidity",
-  "version": "0.0.26",
+  "version": "0.0.28",
   "description": "Decentralized Derivatives Trading Protocol For The Ethereum Blockchain",
   "main": "truffle-config.js",
   "directories": {
     "test": "test"
   },
   "dependencies": {
-    "truffle": "4.1.8",
+    "truffle": "4.1.11",
     "openzeppelin-solidity": "1.9.0"
   },
   "devDependencies": {
