@@ -45,8 +45,10 @@ contract MarketContract is Creatable {
     }
 
     // constants
+    address public MARKET_CONTRACT_FACTORY_ADDRESS;
     address public MKT_TOKEN_ADDRESS;
     MarketToken MKT_TOKEN;
+
 
     string public CONTRACT_NAME;
     address public COLLATERAL_TOKEN_ADDRESS;
@@ -112,6 +114,7 @@ contract MarketContract is Creatable {
         uint[5] contractSpecs
     ) public
     {
+        MARKET_CONTRACT_FACTORY_ADDRESS = msg.sender;
         MKT_TOKEN_ADDRESS = marketTokenAddress;
         MKT_TOKEN = MarketToken(marketTokenAddress);
         require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
@@ -269,10 +272,10 @@ contract MarketContract is Creatable {
         return qtyCancelled;
     }
 
-    /// @notice allows the creator to link a collateral pool contract to this trading contract.
+    /// @notice allows the factory to link a collateral pool contract to this trading contract.
     /// can only be called once if successful.  Trading cannot commence until this is completed.
     /// @param poolAddress deployed address of the unique collateral pool for this contract.
-    function setCollateralPoolContractAddress(address poolAddress) external onlyCreator {
+    function setCollateralPoolContractAddress(address poolAddress) external onlyFactory {
         require(!isCollateralPoolContractLinked); // address has not been set previously
         require(poolAddress != address(0));       // not trying to set it to null addr.
         marketCollateralPool = MarketCollateralPool(poolAddress);
@@ -339,5 +342,11 @@ contract MarketContract is Creatable {
     function settleContract(uint finalSettlementPrice) private {
         settlementPrice = finalSettlementPrice;
         emit ContractSettled(finalSettlementPrice);
+    }
+
+    ///@dev Throws if called by any account other than the factory.
+    modifier onlyFactory() {
+        require(msg.sender == MARKET_CONTRACT_FACTORY_ADDRESS);
+        _;
     }
 }
