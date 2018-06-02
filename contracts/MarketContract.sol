@@ -160,7 +160,7 @@ contract MarketContract is Creatable {
         // taker can be anyone, or specifically the caller!
         require(order.taker == address(0) || order.taker == msg.sender);
         // do not allow self trade
-        require(order.maker != address(0) && order.maker != order.taker);
+        require(order.maker != address(0) && order.maker != msg.sender);
         require(
             order.maker.isValidSignature(
                 order.orderHash,
