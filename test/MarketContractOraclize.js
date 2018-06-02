@@ -379,6 +379,38 @@ contract('MarketContractOraclize', function(accounts) {
     assert.ok(error instanceof Error, 'Order did not fail');
   });
 
+  it('should fail for attempts to self-trade', async function () {
+    const expiredTimestamp = new Date().getTime() / 1000 + 60 * 5;
+    const orderAddresses = [accountMaker, null, accounts[2]];
+    const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
+    const orderQty = 5;
+    const qtyToFill = 1;
+    const orderHash = await orderLib._createOrderHash.call(
+      marketContract.address,
+      orderAddresses,
+      unsignedOrderValues,
+      orderQty
+    );
+
+    const orderSignature = utility.signMessage(web3, accountMaker, orderHash);
+    let error = null;
+    try {
+      await marketContract.tradeOrder.call(
+        orderAddresses,
+        unsignedOrderValues,
+        orderQty,
+        qtyToFill,
+        orderSignature[0],
+        orderSignature[1],
+        orderSignature[2],
+        { from: accountMaker }
+      );
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(error instanceof Error, 'Order did not fail');
+  });
+
   it('should fail for attempts to order and fill with price changed', async function() {
     const expiredTimestamp = new Date().getTime() / 1000 + 60 * 5; // order expires in 5 minutes.
     const orderAddresses = [accountMaker, accountTaker, accounts[2]];
