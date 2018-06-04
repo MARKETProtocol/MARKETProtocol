@@ -85,7 +85,7 @@ contract MarketCollateralPool is Linkable {
         // user must call approve!
         require(MarketToken(MKT_TOKEN_ADDRESS).isUserEnabledForContract(MKT_CONTRACT, msg.sender));
         uint256 balanceAfterDeposit = userAddressToAccountBalance[msg.sender].add(depositAmount);
-        ERC20(MKT_CONTRACT.BASE_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, this, depositAmount);
+        ERC20(MKT_CONTRACT.COLLATERAL_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, this, depositAmount);
         userAddressToAccountBalance[msg.sender] = balanceAfterDeposit;
         emit UpdatedUserBalance(msg.sender, balanceAfterDeposit);
     }
@@ -145,7 +145,7 @@ contract MarketCollateralPool is Linkable {
         //require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);  subtract call below will enforce this
         uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
         userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
-        ERC20(MKT_CONTRACT.BASE_TOKEN_ADDRESS()).safeTransfer(msg.sender, withdrawAmount);
+        ERC20(MKT_CONTRACT.COLLATERAL_TOKEN_ADDRESS()).safeTransfer(msg.sender, withdrawAmount);
         emit UpdatedUserBalance(msg.sender, balanceAfterWithdrawal);
     }
 

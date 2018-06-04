@@ -49,7 +49,7 @@ contract MarketContract is Creatable {
     MarketToken MKT_TOKEN;
 
     string public CONTRACT_NAME;
-    address public BASE_TOKEN_ADDRESS;
+    address public COLLATERAL_TOKEN_ADDRESS;
     uint public PRICE_CAP;
     uint public PRICE_FLOOR;
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
@@ -96,7 +96,7 @@ contract MarketContract is Creatable {
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
     /// @param creatorAddress address of the person creating the contract
     /// @param marketTokenAddress address of our member token
-    /// @param baseTokenAddress address of the ERC20 token that will be used for collateral and pricing
+    /// @param collateralTokenAddress address of the ERC20 token that will be used for collateral and pricing
     /// @param contractSpecs array of unsigned integers including:
     /// floorPrice minimum tradeable price of this contract, contract enters settlement if breached
     /// capPrice maximum tradeable price of this contract, contract enters settlement if breached
@@ -108,7 +108,7 @@ contract MarketContract is Creatable {
         string contractName,
         address creatorAddress,
         address marketTokenAddress,
-        address baseTokenAddress,
+        address collateralTokenAddress,
         uint[5] contractSpecs
     ) public
     {
@@ -125,7 +125,7 @@ contract MarketContract is Creatable {
         require(EXPIRATION > now);
 
         CONTRACT_NAME = contractName;
-        BASE_TOKEN_ADDRESS = baseTokenAddress;
+        COLLATERAL_TOKEN_ADDRESS = collateralTokenAddress;
         creator = creatorAddress;
     }
 
