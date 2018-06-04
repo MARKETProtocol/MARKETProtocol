@@ -68,16 +68,18 @@ library OrderLib {
     ) public pure returns (bytes32)
     {
         return keccak256(
-            contractAddress,
-            orderAddresses[0],
-            orderAddresses[1],
-            orderAddresses[2],
-            unsignedOrderValues[0],
-            unsignedOrderValues[1],
-            unsignedOrderValues[2],
-            unsignedOrderValues[3],
-            unsignedOrderValues[4],
-            orderQty
+            abi.encodePacked(
+                contractAddress,
+                orderAddresses[0],
+                orderAddresses[1],
+                orderAddresses[2],
+                unsignedOrderValues[0],
+                unsignedOrderValues[1],
+                unsignedOrderValues[2],
+                unsignedOrderValues[3],
+                unsignedOrderValues[4],
+                orderQty
+            )
         );
     }
 
@@ -96,7 +98,7 @@ library OrderLib {
     ) public pure returns (bool)
     {
         return signerAddress == ecrecover(
-            keccak256("\x19Ethereum Signed Message:\n32", hash),
+            keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hash)),
             v,
             r,
             s
