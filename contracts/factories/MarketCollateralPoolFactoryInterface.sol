@@ -16,7 +16,7 @@
 
 pragma solidity ^0.4.24;
 
+
 contract MarketCollateralPoolFactoryInterface {
     function deployMarketCollateralPool(address marketContractAddress) external;
-    function getCollateralPoolAddress(address marketContractAddress) external returns (address);
 }

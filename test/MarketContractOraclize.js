@@ -379,7 +379,7 @@ contract('MarketContractOraclize', function(accounts) {
     assert.ok(error instanceof Error, 'Order did not fail');
   });
 
-  it('should fail for attempts to self-trade', async function () {
+  it('should fail for attempts to self-trade', async function() {
     const expiredTimestamp = new Date().getTime() / 1000 + 60 * 5;
     const orderAddresses = [accountMaker, null, accounts[2]];
     const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];

@@ -84,7 +84,8 @@ contract MarketToken is UpgradeableToken {
         uint256 balanceAfterUnLock = contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender].sub(
             qtyToUnlock
         );  // no need to check balance, sub() will ensure sufficient balance to unlock!
-        contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender] = balanceAfterUnLock;        // update balance before external call!
+        // update balance before external call!
+        contractAddressToUserAddressToQtyLocked[marketContractAddress][msg.sender] = balanceAfterUnLock;
         transferLockedTokensBackToUser(qtyToUnlock);
         emit UpdatedUserLockedBalance(marketContractAddress, msg.sender, balanceAfterUnLock);
     }

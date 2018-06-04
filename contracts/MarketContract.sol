@@ -45,7 +45,7 @@ contract MarketContract is Creatable {
     }
 
     // constants
-    address public MARKET_CONTRACT_FACTORY_ADDRESS;
+    address public COLLATERAL_POOL_FACTORY_ADDRESS;
     address public MKT_TOKEN_ADDRESS;
     MarketToken MKT_TOKEN;
 
@@ -99,6 +99,7 @@ contract MarketContract is Creatable {
     /// @param creatorAddress address of the person creating the contract
     /// @param marketTokenAddress address of our member token
     /// @param collateralTokenAddress address of the ERC20 token that will be used for collateral and pricing
+    /// @param collateralPoolFactoryAddress address of the factory creating the collateral pools
     /// @param contractSpecs array of unsigned integers including:
     /// floorPrice minimum tradeable price of this contract, contract enters settlement if breached
     /// capPrice maximum tradeable price of this contract, contract enters settlement if breached
@@ -111,10 +112,11 @@ contract MarketContract is Creatable {
         address creatorAddress,
         address marketTokenAddress,
         address collateralTokenAddress,
+        address collateralPoolFactoryAddress,
         uint[5] contractSpecs
     ) public
     {
-        MARKET_CONTRACT_FACTORY_ADDRESS = msg.sender;
+        COLLATERAL_POOL_FACTORY_ADDRESS = collateralPoolFactoryAddress;
         MKT_TOKEN_ADDRESS = marketTokenAddress;
         MKT_TOKEN = MarketToken(marketTokenAddress);
         require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
@@ -346,7 +348,7 @@ contract MarketContract is Creatable {
 
     ///@dev Throws if called by any account other than the factory.
     modifier onlyFactory() {
-        require(msg.sender == MARKET_CONTRACT_FACTORY_ADDRESS);
+        require(msg.sender == COLLATERAL_POOL_FACTORY_ADDRESS);
         _;
     }
 }

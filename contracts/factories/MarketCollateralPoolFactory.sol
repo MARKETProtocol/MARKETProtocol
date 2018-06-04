@@ -18,31 +18,33 @@ pragma solidity ^0.4.24;
 
 import "../MarketCollateralPool.sol";
 import "./MarketCollateralPoolFactoryInterface.sol";
-
+import "../MarketContractRegistryInterface.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+
 
 contract MarketCollateralPoolFactory is Ownable, MarketCollateralPoolFactoryInterface {
 
+    address public marketContractRegistry;
 
-    address public marketContractFactory;
-    mapping (address => address) public marketContractToCollateralPool;
-
-    constructor() public {
+    /// @dev deploys our factory and ties it the a supply registry address
+    /// @param registryAddress - MarketContractRegistry address to whitelist contracts
+    constructor(address registryAddress) public {
+        marketContractRegistry = registryAddress;
 
     }
 
+    /// @dev creates the needed collateral pool and links it to our market contract.
+    /// @param marketContractAddress address of the newly deployed market contract.
     function deployMarketCollateralPool(address marketContractAddress) external {
-        require(msg.sender == marketContractFactory);
+        require(MarketContractRegistryInterface(marketContractRegistry).isAddressWhiteListed(marketContractAddress));
         MarketCollateralPool marketCollateralPool = new MarketCollateralPool(marketContractAddress);
-        marketContractToCollateralPool[marketContractAddress] = marketCollateralPool;
+        MarketContract(marketContractAddress).setCollateralPoolContractAddress(marketCollateralPool);
     }
 
-    function setMarketContractFactoryAddress(address marketContractFactoryAddress) external onlyOwner {
-        marketContractFactory = marketContractFactoryAddress;
+    /// @dev allows for the owner to set the desired registry for contract creation.
+    /// @param registryAddress desired registry address.
+    function setRegistryAddress(address registryAddress) external onlyOwner {
+        require(registryAddress != address(0));
+        marketContractRegistry = registryAddress;
     }
-
-    function getCollateralPoolAddress(address marketContractAddress) external returns (address) {
-        return marketContractToCollateralPool[marketContractAddress];
-    }
-
 }
