@@ -28,11 +28,11 @@ contract('MarketContractOraclize', function(accounts) {
   const accountTaker = accounts[1];
 
   beforeEach(async function() {
-    collateralPool = await MarketCollateralPool.deployed();
     marketToken = await MarketToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
+    collateralPool = await MarketCollateralPool.at(await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call());
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
     tradeHelper = await Helpers.TradeHelper(
@@ -609,11 +609,11 @@ contract('MarketContractOraclize.Fees', function(accounts) {
   });
 
   before(async function() {
-    collateralPool = await MarketCollateralPool.deployed();
     marketToken = await MarketToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
+    collateralPool = await MarketCollateralPool.at(await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call());
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
     tradeHelper = await Helpers.TradeHelper(

@@ -65,7 +65,7 @@ contract MarketContract is Creatable {
     bool public isCollateralPoolContractLinked = false;
 
     // accounting
-    address public marketCollateralPoolAddress;
+    address public MARKET_COLLATERAL_POOL_ADDRESS;
     MarketCollateralPool marketCollateralPool;
     OrderLib.OrderMappings orderMappings;
 
@@ -282,7 +282,7 @@ contract MarketContract is Creatable {
         require(poolAddress != address(0));       // not trying to set it to null addr.
         marketCollateralPool = MarketCollateralPool(poolAddress);
         require(marketCollateralPool.linkedAddress() == address(this)); // ensure pool set up correctly.
-        marketCollateralPoolAddress = poolAddress;
+        MARKET_COLLATERAL_POOL_ADDRESS = poolAddress;
         isCollateralPoolContractLinked = true;
     }
 
