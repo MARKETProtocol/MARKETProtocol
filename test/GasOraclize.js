@@ -21,11 +21,12 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
   const accountMaker = accounts[0];
 
   before(async function() {
-    collateralPool = await MarketCollateralPool.deployed();
+
     marketToken = await MarketToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
+    collateralPool = await MarketCollateralPool.at(await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call());
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
     tradeHelper = await Helpers.TradeHelper(
@@ -53,6 +54,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
       accountMaker,
       marketToken.address,
       collateralToken.address,
+      collateralPool.address,
       [priceFloor, priceCap, 2, 1, marketContractExpirationInTenSeconds],
       'URL',
       'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
@@ -125,6 +127,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
         accountMaker,
         marketToken.address,
         collateralToken.address,
+        collateralPool.address,
         [100000, 100000, 2, 1, marketContractExpirationInTenSeconds],
         'URL',
         'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
@@ -145,6 +148,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
         accountMaker,
         marketToken.address,
         collateralToken.address,
+        collateralPool.address,
         [10, 100, 2, 1, marketContractExpirationTenSecondsAgo],
         'URL',
         'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
@@ -166,6 +170,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
         accountMaker,
         marketToken.address,
         collateralToken.address,
+        collateralPool.address,
         [10, 100, 2, 1, marketContractExpirationTenSecondsAgo],
         'URL',
         'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',

@@ -17,7 +17,6 @@
 pragma solidity ^0.4.24;
 
 
-contract MarketContractRegistryInterface {
-    function addAddressToWhiteList(address contractAddress) external;
-    function isAddressWhiteListed(address contractAddress) external view returns (bool);
+contract MarketCollateralPoolFactoryInterface {
+    function deployMarketCollateralPool(address marketContractAddress) external;
 }

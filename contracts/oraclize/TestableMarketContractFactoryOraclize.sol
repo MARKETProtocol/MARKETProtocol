@@ -21,21 +21,25 @@ import "../MarketContractRegistryInterface.sol";
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
+
 /// @title TestableMarketContractFactoryOraclize
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract TestableMarketContractFactoryOraclize is Ownable {
 
     address public marketContractRegistry;
+    address public collateralPoolFactoryAddress;
     address public MKT_TOKEN_ADDRESS;
 
     event MarketContractCreated(address indexed contractAddress);
 
     /// @dev deploys our factory and ties it the a supply registry address
-    /// @param registryAddress - MarketContractRegistry address to whitelist contracts
+    /// @param registryAddress - address of our MARKET registry
     /// @param mktTokenAddress - MARKET Token address
-    constructor(address registryAddress, address mktTokenAddress) public {
+    /// @param marketCollateralPoolFactoryAddress - address of collateral pool factory.
+    constructor(address registryAddress, address mktTokenAddress, address marketCollateralPoolFactoryAddress) public {
         marketContractRegistry = registryAddress;
         MKT_TOKEN_ADDRESS = mktTokenAddress;
+        collateralPoolFactoryAddress = marketCollateralPoolFactoryAddress;
     }
 
     /// @dev Deploys a new instance of a market contract and adds it to the whitelist.
@@ -64,12 +68,13 @@ contract TestableMarketContractFactoryOraclize is Ownable {
             msg.sender,
             MKT_TOKEN_ADDRESS,
             collateralTokenAddress,
+            collateralPoolFactoryAddress,
             contractSpecs,
             oracleDataSource,
             oracleQuery
         );
         MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(mktContract);
-        emit MarketContractCreated(address(mktContract));
+        emit MarketContractCreated(mktContract);
     }
 
     /// @dev allows for the owner to set the desired registry for contract creation.
@@ -78,4 +83,13 @@ contract TestableMarketContractFactoryOraclize is Ownable {
         require(registryAddress != address(0));
         marketContractRegistry = registryAddress;
     }
+
+    /*
+    currently adding this function pushes us over the edge for gas, for the time being we can leave it out.
+    /// @dev allows for the owner to set switch out factories
+    /// @param marketCollateralPoolFactoryAddress desired factory address.
+    function setCollateralPoolFactoryAddress(address marketCollateralPoolFactoryAddress) external onlyOwner {
+        collateralPoolFactoryAddress = marketCollateralPoolFactoryAddress;
+    }
+    */
 }

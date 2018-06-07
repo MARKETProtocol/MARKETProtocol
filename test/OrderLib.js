@@ -38,13 +38,13 @@ contract('OrderLib', function(accounts) {
       "Order hash doesn't match signer"
     );
     assert.isTrue(
-      !(await orderLib._isValidSignature.call(
+      !await orderLib._isValidSignature.call(
         accounts[1],
         orderHash,
         orderSignature[0],
         orderSignature[1],
         orderSignature[2]
-      )),
+      ),
       'Order hash matches a non signer'
     );
   });

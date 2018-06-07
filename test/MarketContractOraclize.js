@@ -28,11 +28,11 @@ contract('MarketContractOraclize', function(accounts) {
   const accountTaker = accounts[1];
 
   beforeEach(async function() {
-    collateralPool = await MarketCollateralPool.deployed();
     marketToken = await MarketToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
+    collateralPool = await MarketCollateralPool.at(await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call());
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
     tradeHelper = await Helpers.TradeHelper(
@@ -379,7 +379,7 @@ contract('MarketContractOraclize', function(accounts) {
     assert.ok(error instanceof Error, 'Order did not fail');
   });
 
-  it('should fail for attempts to self-trade', async function () {
+  it('should fail for attempts to self-trade', async function() {
     const expiredTimestamp = new Date().getTime() / 1000 + 60 * 5;
     const orderAddresses = [accountMaker, null, accounts[2]];
     const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
@@ -508,27 +508,22 @@ contract('MarketContractOraclize', function(accounts) {
     const orderToCancel = 2;
     const settlementPrice = 20000;
 
-    let error;
-    try {
-      await tradeHelper.cancelOrder(
-        [accounts[0], accounts[1], accounts[2]],
-        [entryOrderPrice, orderQty, orderToCancel]
-      );
-    } catch (err) {
-      error = err;
-    }
-    let errorEvent = marketContract.Error();
     await tradeHelper.cancelOrder(
       [accounts[0], accounts[1], accounts[2]],
       [entryOrderPrice, orderQty, orderToCancel]
     );
-    errorEvent.watch(async (err, response) => {
-      if (err) {
-        console.log(err);
-      }
-      assert.equal(response.event, 'Error');
-      errorEvent.stopWatching();
-    });
+
+    await tradeHelper.cancelOrder(
+      [accounts[0], accounts[1], accounts[2]],
+      [entryOrderPrice, orderQty, orderToCancel]
+    );
+
+    const events = await utility.getEvent(marketContract, 'Error');
+    assert.equal(
+      ErrorCodes.ORDER_DEAD,
+      events[0].args.errorCode.toNumber(),
+      'Error event is not order dead.'
+    );
   });
 
   it('should fail for attempt to cancel after settlement', async function() {
@@ -609,11 +604,11 @@ contract('MarketContractOraclize.Fees', function(accounts) {
   });
 
   before(async function() {
-    collateralPool = await MarketCollateralPool.deployed();
     marketToken = await MarketToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
+    collateralPool = await MarketCollateralPool.at(await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call());
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
     tradeHelper = await Helpers.TradeHelper(
