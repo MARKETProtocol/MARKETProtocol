@@ -1,5 +1,5 @@
 {
-  "name": "@marketprotocol/marketprotocol",
+  "name": "market-solidity",
   "version": "1.0.0",
   "description": "Decentralized Derivatives Trading Protocol For The Ethereum Blockchain",
   "main": "truffle-config.js",
