@@ -28,9 +28,9 @@
   "keywords": [
     "solidity",
     "ethereum",
-    "smart",
-    "contracts",
-    "protocol"
+    "derivatives",
+    "blockchain",
+    "erc20"
   ],
   "author": "Phil Elsasser <phil@marketprotocol.io>",
   "license": "Apache-2.0",
