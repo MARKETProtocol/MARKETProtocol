@@ -29,6 +29,7 @@ contract TestableMarketContractOraclize is MarketContractOraclize {
     /// @param creatorAddress address of the person creating the contract
     /// @param marketTokenAddress address of our member token
     /// @param collateralTokenAddress address of the ERC20 token that will be used for collateral and pricing
+    /// @param collateralPoolFactoryAddress address of the factory creating the collateral pools
     /// @param contractSpecs array of unsigned integers including:
     /// floorPrice minimum tradeable price of this contract, contract enters settlement if breached
     /// capPrice maximum tradeable price of this contract, contract enters settlement if breached
@@ -44,6 +45,7 @@ contract TestableMarketContractOraclize is MarketContractOraclize {
         address creatorAddress,
         address marketTokenAddress,
         address collateralTokenAddress,
+        address collateralPoolFactoryAddress,
         uint[5] contractSpecs,
         string oracleDataSource,
         string oracleQuery
@@ -52,6 +54,7 @@ contract TestableMarketContractOraclize is MarketContractOraclize {
         creatorAddress,
         marketTokenAddress,
         collateralTokenAddress,
+        collateralPoolFactoryAddress,
         contractSpecs,
         oracleDataSource,
         oracleQuery
