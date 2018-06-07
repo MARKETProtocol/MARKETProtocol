@@ -508,27 +508,22 @@ contract('MarketContractOraclize', function(accounts) {
     const orderToCancel = 2;
     const settlementPrice = 20000;
 
-    let error;
-    try {
-      await tradeHelper.cancelOrder(
-        [accounts[0], accounts[1], accounts[2]],
-        [entryOrderPrice, orderQty, orderToCancel]
-      );
-    } catch (err) {
-      error = err;
-    }
-    let errorEvent = marketContract.Error();
     await tradeHelper.cancelOrder(
       [accounts[0], accounts[1], accounts[2]],
       [entryOrderPrice, orderQty, orderToCancel]
     );
-    errorEvent.watch(async (err, response) => {
-      if (err) {
-        console.log(err);
-      }
-      assert.equal(response.event, 'Error');
-      errorEvent.stopWatching();
-    });
+
+    await tradeHelper.cancelOrder(
+      [accounts[0], accounts[1], accounts[2]],
+      [entryOrderPrice, orderQty, orderToCancel]
+    );
+
+    const events = await utility.getEvent(marketContract, 'Error');
+    assert.equal(
+      ErrorCodes.ORDER_DEAD,
+      events[0].args.errorCode.toNumber(),
+      'Error event is not order dead.'
+    );
   });
 
   it('should fail for attempt to cancel after settlement', async function() {
