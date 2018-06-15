@@ -30,7 +30,7 @@ contract TestableMarketContractFactoryOraclize is Ownable {
     address public collateralPoolFactoryAddress;
     address public MKT_TOKEN_ADDRESS;
 
-    event MarketContractCreated(address indexed contractAddress);
+    event MarketContractCreated(address indexed creator, address indexed contractAddress);
 
     /// @dev deploys our factory and ties it the a supply registry address
     /// @param registryAddress - address of our MARKET registry
@@ -74,7 +74,7 @@ contract TestableMarketContractFactoryOraclize is Ownable {
             oracleQuery
         );
         MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(mktContract);
-        emit MarketContractCreated(mktContract);
+        emit MarketContractCreated(msg.sender, mktContract);
     }
 
     /// @dev allows for the owner to set the desired registry for contract creation.
