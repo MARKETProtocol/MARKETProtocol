@@ -74,7 +74,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
         console.log('Oraclize callback gas used : ' + txReceipt.gasUsed);
         assert.isBelow(
           txReceipt.gasUsed,
-          oraclizeCallbackGasCost,
+          oraclizeCallbackGasCost.toNumber(),
           'Callback tx claims to have used more gas than allowed!'
         );
         contractSettledEvent.stopWatching();
