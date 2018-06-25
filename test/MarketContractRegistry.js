@@ -18,7 +18,9 @@ contract('MarketContractRegistry', function(accounts) {
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
-    collateralPool = await MarketCollateralPool.at(await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call());
+    collateralPool = await MarketCollateralPool.at(
+      await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call()
+    );
     collateralToken = await CollateralToken.deployed();
   });
 

@@ -2,13 +2,12 @@ const CollateralToken = artifacts.require('InitialAllocationCollateralToken');
 
 // basic tests to ensure collateral token allows for initial grant.
 contract('InitialAllocationCollateralToken', function(accounts) {
-
   let collateralToken;
 
   before(async function() {
     return CollateralToken.new('CollateralToken', 'CTK', 100, 18, {
       gas: 2000000,
-      from: web3.eth.accounts[0]
+      from: accounts[0]
     }).then(function(instance) {
       collateralToken = instance;
       return collateralToken;
@@ -25,7 +24,7 @@ contract('InitialAllocationCollateralToken', function(accounts) {
   });
 
   it('account should be able to unlock balance only once', async function() {
-    await collateralToken.getInitialAllocation({from: web3.eth.accounts[1]});
+    await collateralToken.getInitialAllocation({ from: accounts[1] });
     const subAcctBalance = await collateralToken.balanceOf.call(accounts[1]).valueOf();
     const initialAllocation = await collateralToken.INITIAL_TOKEN_ALLOCATION.call().valueOf();
     assert.equal(
@@ -34,13 +33,26 @@ contract('InitialAllocationCollateralToken', function(accounts) {
       'balances should be allocated to called of getInitialAllocation'
     );
 
+    const isAllocationClaimed = await collateralToken.isAllocationClaimed
+      .call(accounts[1])
+      .valueOf();
+    assert.equal(isAllocationClaimed, true, 'allocation not marked as claimed');
+
+    const isAllocationClaimedOfDiffAccount = await collateralToken.isAllocationClaimed
+      .call(accounts[2])
+      .valueOf();
+    assert.equal(
+      isAllocationClaimedOfDiffAccount,
+      false,
+      'allocation marked as claimed for fresh account'
+    );
+
     let error = null;
     try {
-      await collateralToken.getInitialAllocation({from: web3.eth.accounts[1]});
+      await collateralToken.getInitialAllocation({ from: accounts[1] });
     } catch (err) {
       error = err;
     }
     assert.ok(error instanceof Error, 'Caller was able to get initial allocation twice!');
-
   });
 });

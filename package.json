@@ -19,7 +19,7 @@
   },
   "scripts": {
     "test": "truffle test",
-    "lint": "prettier-eslint --write './**/*.js' --ignore './node_modules/**'"
+    "lint": "prettier-eslint --write './**/*.js' --ignore './node_modules/**' --ignore './coverage/**'"
   },
   "repository": {
     "type": "git",

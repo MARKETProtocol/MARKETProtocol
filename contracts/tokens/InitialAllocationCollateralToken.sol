@@ -26,6 +26,8 @@ contract InitialAllocationCollateralToken is CollateralToken {
     uint256 public totalTokenAllocationsRequested;
     mapping(address => bool) isInitialAllocationClaimed;
 
+    event AllocationClaimed(address indexed claimeeAddress);
+
     /// @dev creates a token that allows for all addresses to retrieve an initial token allocation.
     constructor (
         string tokenName,
@@ -47,5 +49,12 @@ contract InitialAllocationCollateralToken is CollateralToken {
         isInitialAllocationClaimed[msg.sender] = true;
         balances[msg.sender] = balances[msg.sender].add(INITIAL_TOKEN_ALLOCATION);
         totalTokenAllocationsRequested++;
+        emit AllocationClaimed(msg.sender);
+    }
+
+    /// @notice check to see if an address has already claimed their initial allocation
+    /// @param claimee address of the user claiming their tokens
+    function isAllocationClaimed(address claimee) external view returns (bool) {
+        return isInitialAllocationClaimed[claimee];
     }
 }
