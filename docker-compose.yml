@@ -16,7 +16,7 @@ services:
     stdin_open: true
 
   eth-bridge:
-    image: marketproject/ethereum-bridge:0.5.6
+    image: cryptomental/ethereum-bridge:latest
     entrypoint: >
       /bin/bash -c "
         while ! curl ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} &>/dev/null;
@@ -26,6 +26,8 @@ services:
         done;
         echo Ethereum node ready, connecting the Oraclize Bridge!;
         sleep 1;
+        echo Wiping old configs...;
+        rm -rf /ethereum-bridge/config/instance/*;
         node bridge -H ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} -a 9 --dev;
       "
     restart: unless-stopped
@@ -50,7 +52,7 @@ services:
     stdin_open: true
 
   eth-bridge-coverage:
-    image: marketproject/ethereum-bridge:0.5.6
+    image: cryptomental/ethereum-bridge:latest
     entrypoint: >
       /bin/bash -c "
         while ! curl ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} &>/dev/null;
@@ -60,6 +62,8 @@ services:
         done;
         echo Ethereum node ready, connecting the Oraclize Bridge!;
         sleep 1;
+        echo Wiping old configs...;
+        rm -rf /ethereum-bridge/config/instance/*;
         node bridge -H ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} -a 9 --dev;
       "
 

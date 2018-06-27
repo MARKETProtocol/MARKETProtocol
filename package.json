@@ -1,6 +1,6 @@
 {
   "name": "market-solidity",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Decentralized Derivatives Trading Protocol For The Ethereum Blockchain",
   "main": "truffle-config.js",
   "directories": {
@@ -19,7 +19,7 @@
   },
   "scripts": {
     "test": "truffle test",
-    "lint": "prettier-eslint --write './**/*.js' --ignore './node_modules/**'"
+    "lint": "prettier-eslint --write './**/*.js' --ignore './node_modules/**' --ignore './coverage/**'"
   },
   "repository": {
     "type": "git",
