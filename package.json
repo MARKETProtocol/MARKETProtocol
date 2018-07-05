@@ -1,5 +1,5 @@
 {
-  "name": "market-solidity",
+  "name": "@marketprotocol/marketprotocol",
   "version": "1.1.0",
   "description": "Decentralized Derivatives Trading Protocol For The Ethereum Blockchain",
   "main": "truffle-config.js",
@@ -7,7 +7,7 @@
     "test": "test"
   },
   "dependencies": {
-    "truffle": "4.1.11",
+    "truffle": "4.1.13",
     "openzeppelin-solidity": "1.9.0"
   },
   "devDependencies": {
