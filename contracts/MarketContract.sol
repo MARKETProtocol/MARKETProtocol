@@ -84,6 +84,7 @@ contract MarketContract is Creatable {
         int filledQty,
         uint paidMakerFee,
         uint paidTakerFee,
+        uint price,
         bytes32 orderHash // should this be indexed?
     );
 
@@ -228,6 +229,7 @@ contract MarketContract is Creatable {
             filledQty,
             paidMakerFee,
             paidTakerFee,
+            order.price,
             order.orderHash
         );
 
