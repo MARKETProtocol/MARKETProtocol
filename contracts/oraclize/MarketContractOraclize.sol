@@ -73,12 +73,10 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
         //oraclize_setCustomGasPrice(QUERY_CALLBACK_GAS_PRICE);  //TODO: allow this to be changed by creator.
         ORACLE_DATA_SOURCE = oracleDataSource;
         ORACLE_QUERY = oracleQuery;
-        require(EXPIRATION > now);         // Require expiration time in the future.
 
         // Future timestamp must be within 60 days from now.
         // https://docs.oraclize.it/#ethereum-quick-start-schedule-a-query-in-the-future
-        uint secondsPerSixtyDays = 60 * 60 * 24 * 60;
-        require(EXPIRATION - now <= secondsPerSixtyDays);
+        require(EXPIRATION - now <= 60 days);
         queryOracle();                      // Schedule a call to oracle at contract expiration time.
     }
 

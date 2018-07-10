@@ -33,6 +33,8 @@ module.exports = function(deployer, network) {
     deployer.link(MathLib, MarketContractFactory);
     deployer.link(OrderLib, MarketContractFactory);
 
+    deployer.link(MathLib, MarketCollateralPoolFactory);
+
     const marketTokenToLockForTrading = 0; // for testing purposes, require no loc
     const marketTokenAmountForContractCreation = 0; //for testing purposes require no balance
     const marketContractExpiration = Math.floor(Date.now() / 1000) + 60 * 15; // expires in 15 minutes.

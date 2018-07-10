@@ -102,13 +102,12 @@ contract TestMathLib {
         Assert.isFalse(address(this).call(test_abi), "Should assert");
     }
 
-    function testCalculateNeededCollateral() public {
+    function testCalculateNeededCollateralLong() public {
         uint priceFloor = 250;
         uint priceCap = 350;
         uint qtyMultiplier = 100;
         uint price = 275;
         int longQty = 2;
-        int shortQty = -5;
         uint neededCollateralForLongPos = MathLib.calculateNeededCollateral(
             priceFloor,
             priceCap,
@@ -121,6 +120,22 @@ contract TestMathLib {
         // so 275-250 is max loss per 1 lot, 25 * longQty * qtyMultiplier should equal 5000
         Assert.equal(neededCollateralForLongPos, 5000, "max loss of 25 and qty of 2 with 100 multiplier should be 5000 units");
 
+        // neededCollateral for a long position and price equal to priceFloor returns zero
+        Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, longQty, priceFloor),
+                     0, "collateral for a long position and price equal to priceFloor should be 0");
+
+        // neededCollateral for a long position and price less than priceFloor returns zero
+        Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, longQty, priceFloor-1),
+                     0, "collateral for a long position and price less than priceFloor should be 0");
+    }
+
+    function testCalculateNeededCollateralShort() public {
+        uint priceFloor = 250;
+        uint priceCap = 350;
+        uint qtyMultiplier = 100;
+        uint price = 275;
+        int shortQty = -5;
+
         uint neededCollateralForShortPos = MathLib.calculateNeededCollateral(
             priceFloor,
             priceCap,
@@ -131,14 +146,6 @@ contract TestMathLib {
         // for a short position we need to look at the priceCeiling from the price, this represents a shorts max loss
         // so 350 - 275 = 75 max loss per unit * 5 units * 100 qtyMultiplier = 62500 collateral units
         Assert.equal(neededCollateralForShortPos, 37500, "max loss of 75 and qty of 5 with 100 multiplier should be 37500 units");
-
-        // neededCollateral for a long position and price equal to priceFloor returns zero
-        Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, longQty, priceFloor),
-                     0, "collateral for a long position and price equal to priceFloor should be 0");
-
-        // neededCollateral for a long position and price less than priceFloor returns zero
-        Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, longQty, priceFloor-1),
-                     0, "collateral for a long position and price less than priceFloor should be 0");
 
         // neededCollateral for a short position and price equal to priceCap returns zero
         Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, shortQty, priceCap),
