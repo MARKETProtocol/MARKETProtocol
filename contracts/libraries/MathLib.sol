@@ -128,9 +128,8 @@ library MathLib {
         uint qtyMultiplier,
         int qty,
         uint price
-    ) pure internal returns (uint neededCollateral)
+    ) pure public returns (uint neededCollateral)
     {
-
         uint maxLoss;
         if (qty > 0) {   // this qty is long, calculate max loss from entry price to floor
             if (price <= priceFloor) {
