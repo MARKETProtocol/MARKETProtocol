@@ -1,6 +1,6 @@
 {
   "name": "@marketprotocol/marketprotocol",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Decentralized Derivatives Trading Protocol For The Ethereum Blockchain",
   "main": "truffle-config.js",
   "directories": {
