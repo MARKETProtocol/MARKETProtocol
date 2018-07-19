@@ -6,7 +6,7 @@ contract('InitialAllocationCollateralToken', function(accounts) {
 
   before(async function() {
     return CollateralToken.new('CollateralToken', 'CTK', 100, 18, {
-      gas: 2000000,
+      gas: 3000000,
       from: accounts[0]
     }).then(function(instance) {
       collateralToken = instance;

@@ -164,7 +164,6 @@ contract('MarketCollateralPool', function(accounts) {
 
   it('test lock marketToken', async function() {
     const entryOrderPrice = 3000;
-    const settlementPrice = 20000; // force to settlement with price below price floor (20155)
     const orderQty = 2;
     const orderToFill = 1;
 
@@ -295,10 +294,24 @@ contract('MarketCollateralPool', function(accounts) {
     }
     assert.ok(error instanceof Error, "didn't fail a trade order");
 
-    var makerNetPos = await collateralPool.getUserPosition.call(accountMaker);
-    var takerNetPos = await collateralPool.getUserPosition.call(accountTaker);
+    var makerNetPos = await collateralPool.getUserNetPosition.call(accountMaker);
+    var takerNetPos = await collateralPool.getUserNetPosition.call(accountTaker);
     assert.equal(makerNetPos.toNumber(), 1, 'Maker should be long 1');
     assert.equal(takerNetPos.toNumber(), -1, 'Taker should be short 1');
+
+    var makerPosCount = await collateralPool.getUserPositionCount.call(accountMaker);
+    var takerPosCount = await collateralPool.getUserPositionCount.call(accountTaker);
+    assert.equal(makerPosCount.toNumber(), 1, 'Maker should have one position struct');
+    assert.equal(takerPosCount.toNumber(), 1, 'Taker should have one position struct');
+
+    var makerPos = await collateralPool.getUserPosition.call(accountMaker, 0);
+    var takerPos = await collateralPool.getUserPosition.call(accountTaker, 0);
+
+    assert.equal(makerPos[0].toNumber(), entryOrderPrice, 'Maker should have one position from entryOrderPrice');
+    assert.equal(takerPos[0].toNumber(), entryOrderPrice, 'Maker should have one position from entryOrderPrice');
+    assert.equal(makerPos[1].toNumber(), 1, 'Maker should have one position, long +1');
+    assert.equal(takerPos[1].toNumber(), -1, 'Taker should have one position, short -1');
+
 
     var qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
     assert.equal(qtyFilled.toNumber(), 1, "Fill Qty doesn't match expected");
@@ -316,8 +329,8 @@ contract('MarketCollateralPool', function(accounts) {
       { from: accountTaker }
     );
 
-    makerNetPos = await collateralPool.getUserPosition.call(accountMaker);
-    takerNetPos = await collateralPool.getUserPosition.call(accountTaker);
+    makerNetPos = await collateralPool.getUserNetPosition.call(accountMaker);
+    takerNetPos = await collateralPool.getUserNetPosition.call(accountTaker);
     assert.equal(makerNetPos.toNumber(), 3, 'Maker should be long 3');
     assert.equal(takerNetPos.toNumber(), -3, 'Taker should be short 3');
 
@@ -391,8 +404,8 @@ contract('MarketCollateralPool', function(accounts) {
       orderSignature[2], // s
       { from: accountTaker }
     );
-    makerNetPos = await collateralPool.getUserPosition.call(accountMaker);
-    takerNetPos = await collateralPool.getUserPosition.call(accountTaker);
+    makerNetPos = await collateralPool.getUserNetPosition.call(accountMaker);
+    takerNetPos = await collateralPool.getUserNetPosition.call(accountTaker);
     assert.equal(makerNetPos.toNumber(), 2, 'Maker should be long 2');
     assert.equal(takerNetPos.toNumber(), -2, 'Taker should be short 2');
 

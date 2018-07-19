@@ -34,7 +34,6 @@ contract MarketCollateralPool is Linkable {
     using SafeERC20 for ERC20;
 
     struct UserNetPosition {
-        address userAddress;
         Position[] positions;   // all open positions (lifo upon exit - allows us to not reindex array!)
         int netPosition;        // net position across all prices / executions
     }
@@ -64,8 +63,26 @@ contract MarketCollateralPool is Linkable {
     /// @notice get the net position for a give user address
     /// @param userAddress address to return position for
     /// @return the users current open position.
-    function getUserPosition(address userAddress) external view returns (int) {
+    function getUserNetPosition(address userAddress) external view returns (int) {
         return addressToUserPosition[userAddress].netPosition;
+    }
+
+    /// @notice gets the number of positions currently held by this address. Useful for iterating
+    /// over the positions array in order to retrieve all users data.
+    /// @param userAddress address of user
+    /// @return number of open unique positions in the array.
+    function getUserPositionCount(address userAddress) external view returns (uint) {
+        return addressToUserPosition[userAddress].positions.length;
+    }
+
+    /// @notice Allows for retrieval of user position struct (since solidity cannot return the struct) we return
+    /// the data as a tuple of (uint, int) that represents (price, qty)
+    /// @param userAddress address of user
+    /// @param index 0 based index of position in array (older positions are lower indexes)
+    /// @return (price, qty) tuple
+    function getUserPosition(address userAddress, uint index) external view returns (uint, int) {
+        Position pos = addressToUserPosition[userAddress].positions[index];
+        return (pos.price, pos.qty);
     }
 
     /// @param userAddress address of user
