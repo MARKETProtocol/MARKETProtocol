@@ -88,8 +88,8 @@ contract('MarketContractOraclize', function(accounts) {
       { from: accountTaker }
     );
 
-    const makerNetPos = await collateralPool.getUserPosition.call(accountMaker);
-    const takerNetPos = await collateralPool.getUserPosition.call(accountTaker);
+    const makerNetPos = await collateralPool.getUserNetPosition.call(accountMaker);
+    const takerNetPos = await collateralPool.getUserNetPosition.call(accountTaker);
     assert.equal(makerNetPos.toNumber(), 1, 'Maker should be long 1');
     assert.equal(takerNetPos.toNumber(), -1, 'Taker should be short 1');
 
@@ -156,8 +156,8 @@ contract('MarketContractOraclize', function(accounts) {
       qtyToFill
     ]);
 
-    const makerNetPos = await collateralPool.getUserPosition.call(accountMaker);
-    const takerNetPos = await collateralPool.getUserPosition.call(accountTaker);
+    const makerNetPos = await collateralPool.getUserNetPosition.call(accountMaker);
+    const takerNetPos = await collateralPool.getUserNetPosition.call(accountTaker);
     assert.equal(makerNetPos.toNumber(), 0, 'Maker should be flat');
     assert.equal(takerNetPos.toNumber(), 0, 'Taker should be flat');
 
