@@ -71,8 +71,12 @@ contract('MarketContractOraclize', function(accounts) {
     await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[0] });
     await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[1] });
 
-    makerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(accounts[0]);
-    takerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(accounts[1]);
+    makerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(
+      accounts[0]
+    );
+    takerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(
+      accounts[1]
+    );
 
     // Execute trade between maker and taker for partial amount of order.
     const qtyToFill = 1;
@@ -600,8 +604,12 @@ contract('MarketContractOraclize.Fees', function(accounts) {
 
   beforeEach(async function() {
     collateralPoolBalanceBeforeTrade = await collateralPool.collateralPoolBalance.call();
-    makerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(accountMaker);
-    takerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(accountTaker);
+    makerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(
+      accountMaker
+    );
+    takerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(
+      accountTaker
+    );
     feeRecipientAccountBalanceBeforeTrade = await marketToken.balanceOf.call(accountFeeRecipient);
   });
 
@@ -644,8 +652,12 @@ contract('MarketContractOraclize.Fees', function(accounts) {
 
   async function collectBalancesAfterTrade() {
     collateralPoolBalanceAfterTrade = await collateralPool.collateralPoolBalance.call();
-    makerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(accountMaker);
-    takerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(accountTaker);
+    makerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
+      accountMaker
+    );
+    takerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
+      accountTaker
+    );
     feeRecipientAccountBalanceAfterTrade = await marketToken.balanceOf.call(accountFeeRecipient);
   }
 

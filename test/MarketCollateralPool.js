@@ -259,8 +259,12 @@ contract('MarketCollateralPool', function(accounts) {
     await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[0] });
     await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[1] });
 
-    makerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(accounts[0]);
-    takerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(accounts[1]);
+    makerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(
+      accounts[0]
+    );
+    takerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(
+      accounts[1]
+    );
 
     // Execute trade between maker and taker for partial amount of order.
     var qtyToFill = 1;
@@ -307,11 +311,18 @@ contract('MarketCollateralPool', function(accounts) {
     var makerPos = await collateralPool.getUserPosition.call(accountMaker, 0);
     var takerPos = await collateralPool.getUserPosition.call(accountTaker, 0);
 
-    assert.equal(makerPos[0].toNumber(), entryOrderPrice, 'Maker should have one position from entryOrderPrice');
-    assert.equal(takerPos[0].toNumber(), entryOrderPrice, 'Maker should have one position from entryOrderPrice');
+    assert.equal(
+      makerPos[0].toNumber(),
+      entryOrderPrice,
+      'Maker should have one position from entryOrderPrice'
+    );
+    assert.equal(
+      takerPos[0].toNumber(),
+      entryOrderPrice,
+      'Maker should have one position from entryOrderPrice'
+    );
     assert.equal(makerPos[1].toNumber(), 1, 'Maker should have one position, long +1');
     assert.equal(takerPos[1].toNumber(), -1, 'Taker should have one position, short -1');
-
 
     var qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
     assert.equal(qtyFilled.toNumber(), 1, "Fill Qty doesn't match expected");
