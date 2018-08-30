@@ -123,9 +123,9 @@ contract('MarketCollateralPool', function(accounts) {
     // end trigger requires
 
     // ensure balances are now inside the contract.
-    const tradingBalanceAcctOne = await collateralPool.getUserAccountBalance.call(accounts[0]);
-    const tradingBalanceAcctTwo = await collateralPool.getUserAccountBalance.call(accounts[1]);
-    const tradingBalanceAcctFour = await collateralPool.getUserAccountBalance.call(accounts[3]);
+    const tradingBalanceAcctOne = await collateralPool.getUserUnallocatedBalance.call(accounts[0]);
+    const tradingBalanceAcctTwo = await collateralPool.getUserUnallocatedBalance.call(accounts[1]);
+    const tradingBalanceAcctFour = await collateralPool.getUserUnallocatedBalance.call(accounts[3]);
     assert.equal(tradingBalanceAcctOne, amountToDeposit, "Balance doesn't equal tokens deposited");
     assert.equal(tradingBalanceAcctTwo, amountToDeposit, "Balance doesn't equal tokens deposited");
     assert.equal(tradingBalanceAcctFour, fourBalance, "4 Balance doesn't equal tokens deposited");
@@ -137,8 +137,8 @@ contract('MarketCollateralPool', function(accounts) {
     await collateralPool.withdrawTokens(amountToWithdraw, { from: accounts[0] });
     await collateralPool.withdrawTokens(amountToWithdraw, { from: accounts[1] });
     // ensure balances are now correct inside the contract.
-    let tradingBalanceAcctOne = await collateralPool.getUserAccountBalance.call(accounts[0]);
-    let tradingBalanceAcctTwo = await collateralPool.getUserAccountBalance.call(accounts[1]);
+    let tradingBalanceAcctOne = await collateralPool.getUserUnallocatedBalance.call(accounts[0]);
+    let tradingBalanceAcctTwo = await collateralPool.getUserUnallocatedBalance.call(accounts[1]);
 
     assert.equal(
       tradingBalanceAcctOne,
@@ -259,8 +259,8 @@ contract('MarketCollateralPool', function(accounts) {
     await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[0] });
     await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[1] });
 
-    makerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accounts[0]);
-    takerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accounts[1]);
+    makerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(accounts[0]);
+    takerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(accounts[1]);
 
     // Execute trade between maker and taker for partial amount of order.
     var qtyToFill = 1;
@@ -364,10 +364,10 @@ contract('MarketCollateralPool', function(accounts) {
       "Collateral pool isn't funded correctly"
     );
 
-    const makerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(
+    const makerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
       accounts[0]
     );
-    const takerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(
+    const takerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
       accounts[1]
     );
 
@@ -414,10 +414,10 @@ contract('MarketCollateralPool', function(accounts) {
     const elongCollateral = (entryOrderPrice - priceFloor) * qtyMultiplier * qtyFilled;
     const eshortCollateral = (priceCap - entryOrderPrice) * qtyMultiplier * qtyFilled;
 
-    const emakerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(
+    const emakerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
       accounts[0]
     );
-    const etakerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(
+    const etakerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
       accounts[1]
     );
 
@@ -507,10 +507,10 @@ contract('MarketCollateralPool', function(accounts) {
     await collateralPool.settleAndClose({ from: accounts[3] });
 
     // makers and takers collateral pool balance is cleared
-    const makersCollateralBalanceAfterSettlement = await collateralPool.getUserAccountBalance.call(
+    const makersCollateralBalanceAfterSettlement = await collateralPool.getUserUnallocatedBalance.call(
       accounts[0]
     );
-    const takersCollateralBalanceAfterSettlement = await collateralPool.getUserAccountBalance.call(
+    const takersCollateralBalanceAfterSettlement = await collateralPool.getUserUnallocatedBalance.call(
       accounts[1]
     );
 

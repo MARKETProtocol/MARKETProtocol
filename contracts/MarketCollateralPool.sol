@@ -87,7 +87,7 @@ contract MarketCollateralPool is Linkable {
 
     /// @param userAddress address of user
     /// @return the users currently unallocated token balance
-    function getUserAccountBalance(address userAddress) external view returns (uint) {
+    function getUserUnallocatedBalance(address userAddress) external view returns (uint) {
         return userAddressToAccountBalance[userAddress];
     }
 
