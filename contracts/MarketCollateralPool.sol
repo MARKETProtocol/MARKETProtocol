@@ -81,13 +81,13 @@ contract MarketCollateralPool is Linkable {
     /// @param index 0 based index of position in array (older positions are lower indexes)
     /// @return (price, qty) tuple
     function getUserPosition(address userAddress, uint index) external view returns (uint, int) {
-        Position pos = addressToUserPosition[userAddress].positions[index];
+        Position storage pos = addressToUserPosition[userAddress].positions[index];
         return (pos.price, pos.qty);
     }
 
     /// @param userAddress address of user
     /// @return the users currently unallocated token balance
-    function getUserAccountBalance(address userAddress) external view returns (uint) {
+    function getUserUnallocatedBalance(address userAddress) external view returns (uint) {
         return userAddressToAccountBalance[userAddress];
     }
 
