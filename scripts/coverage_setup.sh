@@ -20,7 +20,7 @@ start_testrpc() {
     --account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501209,1000000000000000000000000"
   )
 
-ganache-cli --allowUnlimitedContractSize --hostname 0.0.0.0 --gasLimit 0xfffffffffff --gasPrice 0x01 --port "$testrpc_port" "${accounts[@]} "
+testrpc-sc --gasLimit 0xfffffffffff --gasPrice 1 --port "$testrpc_port" "${accounts[@]}"
 }
 
 echo "Starting our own testrpc instance"
