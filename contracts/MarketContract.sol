@@ -70,7 +70,7 @@ contract MarketContract is Creatable {
     OrderLib.OrderMappings orderMappings;
 
     // events
-    event UpdatedLastPrice(string price);
+    event UpdatedLastPrice(uint256 price);
     event ContractSettled(uint settlePrice);
     event UpdatedUserBalance(address indexed user, uint balance);
     event UpdatedPoolBalance(uint balance);

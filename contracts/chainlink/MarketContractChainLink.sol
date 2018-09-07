@@ -18,45 +18,33 @@ pragma solidity ^0.4.24;
 
 import "../MarketContract.sol";
 import "../libraries/StringLib.sol";
+import "./src/ChainlinkLib.sol";
+import "./src/Chainlinked.sol";
 
 /// @title MarketContract first example of a MarketProtocol contract using ChainLink
 /// @author Phil Elsasser <phil@marketprotocol.io>
-contract MarketContractChainLink is MarketContract, chainLinked {
+contract MarketContractChainLink is MarketContract, Chainlinked {
     using StringLib for *;
 
-    bytes32 internal requestId;
-    bytes32 internal jobId;
+    string public ORACLE_QUERY_URL;
+    string public ORACLE_QUERY_PATH;
+    string[] public ORACLE_QUERY_RUN_PATH;
 
-    constructor(address _link, address _oracle, bytes32 _jobId) public {
-        setLinkToken(_link);
-        setOracle(_oracle);
-        jobId = _jobId;
-    }
+    bytes32 internal REQUEST_ID;
+    bytes32 internal JOB_ID;
 
-    /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
-    /// @param creatorAddress address of the person creating the contract
-    /// @param marketTokenAddress address of our member token
-    /// @param collateralTokenAddress address of the ERC20 token that will be used for collateral and pricing
-    /// @param collateralPoolFactoryAddress address of the factory creating the collateral pools
-    /// @param contractSpecs array of unsigned integers including:
-    /// floorPrice minimum tradeable price of this contract, contract enters settlement if breached
-    /// capPrice maximum tradeable price of this contract, contract enters settlement if breached
-    /// priceDecimalPlaces number of decimal places to convert our queried price from a floating point to
-    /// an integer
-    /// qtyMultiplier multiply traded qty by this value from base units of collateral token.
-    /// expirationTimeStamp - seconds from epoch that this contract expires and enters settlement
-    /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"
-    /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
-    /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
     constructor(
         string contractName,
         address creatorAddress,
         address marketTokenAddress,
         address collateralTokenAddress,
         address collateralPoolFactoryAddress,
+        address linkTokenAddress,
+        address oracleAddress,
+        bytes32 jobId,
         uint[5] contractSpecs,
-        string oracleDataSource,
-        string oracleQuery
+        string oracleQueryURL,
+        string oracleQueryPath
     ) MarketContract(
         contractName,
         creatorAddress,
@@ -66,26 +54,43 @@ contract MarketContractChainLink is MarketContract, chainLinked {
         contractSpecs
     )  public
     {
+        ORACLE_QUERY_URL = oracleQueryURL;
+        ORACLE_QUERY_PATH = oracleQueryPath;
 
+        StringLib.slice memory pathSlice = oracleQueryPath.toSlice();
+        StringLib.slice memory delim = ".".toSlice();
+        ORACLE_QUERY_RUN_PATH = new string[](pathSlice.count(delim) + 1);
+        for(uint i = 0; i < ORACLE_QUERY_RUN_PATH.length; i++) {
+            ORACLE_QUERY_RUN_PATH[i] = pathSlice.split(delim).toString();
+        }
+
+        setLinkToken(linkTokenAddress);
+        setOracle(oracleAddress);
+        JOB_ID = jobId;
+        queryOracle();
     }
 
 
-    function callback(bytes32 requestId, bytes32 price) public checkChainlinkFulfillment(requestId)
+    function callback(bytes32 requestId, uint256 price) public checkChainlinkFulfillment(requestId)
     {
-        lastPriceQueryResult = price;
-        lastPrice = price; //parseInt(result, PRICE_DECIMAL_PLACES);
+        lastPrice = price;
         emit UpdatedLastPrice(price);
         checkSettlement();  // Verify settlement at expiration or requested early settlement.
     }
 
-    function queryOracle(string _currency) public onlyOwner {
-        ChainlinkLib.Run memory run = newRun(jobId, this, "callback(bytes32,bytes32)");
-        run.add("url", "https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD,EUR,JPY");
-        string[] memory path = new string[](1);
-        path[0] = _currency;
-        run.addStringArray("path", path);
-        run.addInt("times", 100);
-        requestId = chainlinkRequest(run, LINK(1));
+    function queryOracle() public onlyCreator {
+        ChainlinkLib.Run memory run = newRun(JOB_ID, this, "callback(bytes32,uint256)");
+        run.add("url", ORACLE_QUERY_URL);
+        run.addStringArray("path", ORACLE_QUERY_RUN_PATH);
+        run.addInt("times", PRICE_DECIMAL_PLACES);
+        REQUEST_ID = chainlinkRequest(run, LINK(1));
     }
 
+    /*
+    TODO:
+    1. figure out LINK abstraction with factory
+    2. add testing
+    3. Modify constructor for arrays for addresses
+    4. understand how to create on demand calls, jobid, request ids, sleep
+    */
 }
