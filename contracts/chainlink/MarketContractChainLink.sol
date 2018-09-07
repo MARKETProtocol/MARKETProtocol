@@ -17,11 +17,12 @@
 pragma solidity ^0.4.24;
 
 import "../MarketContract.sol";
-import "chainlink/solidity/contracts/Chainlinked.sol";
+import "../libraries/StringLib.sol";
 
 /// @title MarketContract first example of a MarketProtocol contract using ChainLink
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketContractChainLink is MarketContract, chainLinked {
+    using StringLib for *;
 
     bytes32 internal requestId;
     bytes32 internal jobId;
@@ -67,10 +68,6 @@ contract MarketContractChainLink is MarketContract, chainLinked {
     {
 
     }
-
-
-
-
 
 
     function callback(bytes32 requestId, bytes32 price) public checkChainlinkFulfillment(requestId)
