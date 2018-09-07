@@ -7,7 +7,6 @@
     "test": "test"
   },
   "dependencies": {
-    "chainlink": "github:smartcontractkit/chainlink",
     "openzeppelin-solidity": "1.9.0",
     "truffle": "4.1.13"
   },
