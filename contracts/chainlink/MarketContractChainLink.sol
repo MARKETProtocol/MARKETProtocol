@@ -82,7 +82,7 @@ contract MarketContractChainLink is MarketContract, Chainlinked {
         ChainlinkLib.Run memory run = newRun(JOB_ID, this, "callback(bytes32,uint256)");
         run.add("url", ORACLE_QUERY_URL);
         run.addStringArray("path", ORACLE_QUERY_RUN_PATH);
-        run.addInt("times", PRICE_DECIMAL_PLACES);
+        run.addUint("times", PRICE_DECIMAL_PLACES);
         REQUEST_ID = chainlinkRequest(run, LINK(1));
     }
 

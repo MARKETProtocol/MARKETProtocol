@@ -19,17 +19,20 @@ pragma solidity ^0.4.24;
 import "../OracleHub.sol";
 import "./src/Chainlinked.sol";
 import "../libraries/StringLib.sol";
-
+import "../MarketContract.sol";
 
 contract OracleHubChainLink is OracleHub, Chainlinked {
+    using StringLib for *;
 
     struct ChainLinkQuery {
+        address marketContractAddress;
         string oracleQueryURL;
         string oracleQueryPath;
         string[] oracleQueryRunPath; // cheaper to store or just re-create if needed for on-demand queries?
     }
 
     mapping(address => ChainLinkQuery) contractAddressToChainLinkQuery;
+    mapping(bytes32 => ChainLinkQuery) requestIDToChainLinkQuery;
 
     constructor() public {
 
@@ -40,54 +43,50 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
     }
 
 
-    function callback(bytes32 requestId, uint256 price) public checkChainlinkFulfillment(requestId)
-    {
-        lastPrice = price;
-        emit UpdatedLastPrice(price);
-        checkSettlement();  // Verify settlement at expiration or requested early settlement.
+    function callback(bytes32 requestId, uint256 price) public checkChainlinkFulfillment(requestId) {
+        // NOTE: event is emitted by chainlink upon call above to checkChainlinkFulfillment
+        ChainLinkQuery memory chainLinkQuery = requestIDToChainLinkQuery[requestId];
+        require(chainLinkQuery.marketContractAddress != address(0), "market contract address can not be null!");
+        //MarketContract(chainLinkQuery.marketContractAddress)
     }
 
-
-    function createQueryRunPath(string oracleQueryPath) internal returns (string[]) {
-        StringLib.slice memory pathSlice = oracleQueryPath.toSlice();
-        StringLib.slice memory delim = ".".toSlice();
-        string[] memory runPath = new string[](pathSlice.count(delim) + 1);
-        for(uint i = 0; i < runPath.length; i++) {
-            runPath[i] = pathSlice.split(delim).toString();
-        }
-        return runPath;
-    }
-
-    function createRun(bytes32 jobId) returns (ChainlinkLib.Run) {
-        ChainlinkLib.Run memory run = newRun(JOB_ID, jobId, "callback(bytes32,uint256)");
-        run.add("url", oracleQueryURL);
+    function createRunAndRequest(bytes32 jobId, ChainLinkQuery memory chainLinkQuery) internal returns (bytes32) {
+        ChainlinkLib.Run memory run = newRun(jobId, this, "callback(bytes32,uint256)");
+        run.add("url", chainLinkQuery.oracleQueryURL);
         run.addStringArray("path", chainLinkQuery.oracleQueryRunPath);
-        run.addInt("times", PRICE_DECIMAL_PLACES); // TODO: get price decimal places from MarketContract
-        return run;
-    }
-
-    function requestQuery(string oracleQueryURL, string oracleQueryPath) {
-        // TODO check this address if whitelisted? (if not anyone could call this costing us link!)
-        ChainLinkQuery storage chainLinkQuery = contractAddressToChainLinkQuery[msg.sender];
-        chainLinkQuery.oracleQueryURL = oracleQueryURL;
-        chainLinkQuery.oracleQueryPath = oracleQueryPath;
-        chainLinkQuery.oracleQueryRunPath = createQueryRunPath(oracleQueryPath);
-
-
-        REQUEST_ID = chainlinkRequest(run, LINK(1));
+        run.addUint("times", MarketContract(chainLinkQuery.marketContractAddress).PRICE_DECIMAL_PLACES());
+        bytes32 requestID = chainlinkRequest(run, LINK(1));
         // TODO: figure out handling of JOB_ID and REQUEST_ID
         // TODO: add sleep adapter
+
+        return requestID;
     }
 
-    function requestOnDemandQuery(address marketContractAddress) public {
+    function requestQuery(string oracleQueryURL, string oracleQueryPath) external {
+        // TODO check this address if whitelisted? (if not anyone could call this costing us link!)
+        // perhaps this can only be called by the factory? that may be best.
+        ChainLinkQuery storage chainLinkQuery = contractAddressToChainLinkQuery[msg.sender];
+        chainLinkQuery.marketContractAddress = msg.sender;
+        chainLinkQuery.oracleQueryURL = oracleQueryURL;
+        chainLinkQuery.oracleQueryPath = oracleQueryPath;
+
+        // NOTE: currently this cannot be seperated into its own function due to constraints around
+        // return types and the current version of solidity.
+        StringLib.slice memory pathSlice = oracleQueryPath.toSlice();
+        StringLib.slice memory delim = ".".toSlice();
+        chainLinkQuery.oracleQueryRunPath = new string[](pathSlice.count(delim) + 1);
+        for(uint i = 0; i < chainLinkQuery.oracleQueryRunPath.length; i++) {
+            chainLinkQuery.oracleQueryRunPath[i] = pathSlice.split(delim).toString();
+        }
+        bytes32 jobId;
+        createRunAndRequest(jobId, chainLinkQuery);
+    }
+
+    function requestOnDemandQuery(address marketContractAddress) external {
         // TODO: enforce ETH payment to cover LINK, refund if settled?
         ChainLinkQuery memory chainLinkQuery = contractAddressToChainLinkQuery[msg.sender];
-        ChainlinkLib.Run memory run = newRun(JOB_ID, this, "callback(bytes32,uint256)");
-        run.add("url", oracleQueryURL);
-        run.addStringArray("path", chainLinkQuery.oracleQueryRunPath);
-        run.addInt("times", PRICE_DECIMAL_PLACES);
-        REQUEST_ID = chainlinkRequest(run, LINK(1));
-        // TODO: figure out handling of JOB_ID and REQUEST_ID
+        bytes32 jobId;
+        createRunAndRequest(jobId, chainLinkQuery);
         // if we refund for pushing to settlement we will need to record the caller of this function
         // since it will be asynchronous with the callback
     }
