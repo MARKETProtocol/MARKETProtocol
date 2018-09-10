@@ -28,20 +28,14 @@ contract MarketContractChainLink is MarketContract {
 
     constructor(
         string contractName,
-        address creatorAddress,
-        address marketTokenAddress,
-        address collateralTokenAddress,
-        address collateralPoolFactoryAddress,
+        address[4] baseAddresses,
         address oracleHubAddress,
         uint[5] contractSpecs,
         string oracleQueryURL,
         string oracleQueryPath
     ) MarketContract(
         contractName,
-        creatorAddress,
-        marketTokenAddress,
-        collateralTokenAddress,
-        collateralPoolFactoryAddress,
+        baseAddresses,
         contractSpecs
     )  public
     {
@@ -50,7 +44,7 @@ contract MarketContractChainLink is MarketContract {
         ORACLE_HUB_ADDRESS = oracleHubAddress;
     }
 
-    function oracleCallback(uint256 price) public onlyOracleHub {
+    function oracleCallBack(uint256 price) public onlyOracleHub {
         require(!isSettled);
         lastPrice = price;
         emit UpdatedLastPrice(price);

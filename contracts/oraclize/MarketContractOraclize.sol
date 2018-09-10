@@ -37,10 +37,11 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     mapping(bytes32 => bool) validQueryIDs;
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
-    /// @param creatorAddress address of the person creating the contract
-    /// @param marketTokenAddress address of our member token
-    /// @param collateralTokenAddress address of the ERC20 token that will be used for collateral and pricing
-    /// @param collateralPoolFactoryAddress address of the factory creating the collateral pools
+    /// @param baseAddresses array of 4 addresses needed for our contract including:
+    /// creatorAddress                  address of the person creating the contract
+    /// marketTokenAddress              address of our member token
+    /// collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
+    /// collateralPoolFactoryAddress    address of the factory creating the collateral pools
     /// @param contractSpecs array of unsigned integers including:
     /// floorPrice minimum tradeable price of this contract, contract enters settlement if breached
     /// capPrice maximum tradeable price of this contract, contract enters settlement if breached
@@ -53,19 +54,13 @@ contract MarketContractOraclize is MarketContract, usingOraclize {
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
     constructor(
         string contractName,
-        address creatorAddress,
-        address marketTokenAddress,
-        address collateralTokenAddress,
-        address collateralPoolFactoryAddress,
+        address[4] baseAddresses,
         uint[5] contractSpecs,
         string oracleDataSource,
         string oracleQuery
     ) MarketContract(
         contractName,
-        creatorAddress,
-        marketTokenAddress,
-        collateralTokenAddress,
-        collateralPoolFactoryAddress,
+        baseAddresses,
         contractSpecs
     )  public
     {

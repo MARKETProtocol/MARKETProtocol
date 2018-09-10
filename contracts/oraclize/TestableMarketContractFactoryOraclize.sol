@@ -65,10 +65,7 @@ contract TestableMarketContractFactoryOraclize is Ownable {
     {
         MarketContractOraclize mktContract = new TestableMarketContractOraclize(
             contractName,
-            msg.sender,
-            MKT_TOKEN_ADDRESS,
-            collateralTokenAddress,
-            collateralPoolFactoryAddress,
+            [msg.sender, MKT_TOKEN_ADDRESS, collateralTokenAddress, collateralPoolFactoryAddress],
             contractSpecs,
             oracleDataSource,
             oracleQuery
