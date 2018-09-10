@@ -17,21 +17,14 @@
 pragma solidity ^0.4.24;
 
 import "../MarketContract.sol";
-import "../libraries/StringLib.sol";
-import "./src/ChainlinkLib.sol";
-import "./src/Chainlinked.sol";
 
 /// @title MarketContract first example of a MarketProtocol contract using ChainLink
 /// @author Phil Elsasser <phil@marketprotocol.io>
-contract MarketContractChainLink is MarketContract, Chainlinked {
-    using StringLib for *;
+contract MarketContractChainLink is MarketContract {
 
     string public ORACLE_QUERY_URL;
     string public ORACLE_QUERY_PATH;
-    string[] public ORACLE_QUERY_RUN_PATH;
-
-    bytes32 internal REQUEST_ID;
-    bytes32 internal JOB_ID;
+    address public ORACLE_HUB_ADDRESS;
 
     constructor(
         string contractName,
@@ -39,9 +32,7 @@ contract MarketContractChainLink is MarketContract, Chainlinked {
         address marketTokenAddress,
         address collateralTokenAddress,
         address collateralPoolFactoryAddress,
-        address linkTokenAddress,
-        address oracleAddress,
-        bytes32 jobId,
+        address oracleHubAddress,
         uint[5] contractSpecs,
         string oracleQueryURL,
         string oracleQueryPath
@@ -56,41 +47,19 @@ contract MarketContractChainLink is MarketContract, Chainlinked {
     {
         ORACLE_QUERY_URL = oracleQueryURL;
         ORACLE_QUERY_PATH = oracleQueryPath;
-
-        StringLib.slice memory pathSlice = oracleQueryPath.toSlice();
-        StringLib.slice memory delim = ".".toSlice();
-        ORACLE_QUERY_RUN_PATH = new string[](pathSlice.count(delim) + 1);
-        for(uint i = 0; i < ORACLE_QUERY_RUN_PATH.length; i++) {
-            ORACLE_QUERY_RUN_PATH[i] = pathSlice.split(delim).toString();
-        }
-
-        setLinkToken(linkTokenAddress);
-        setOracle(oracleAddress);
-        JOB_ID = jobId;
-        queryOracle();
+        ORACLE_HUB_ADDRESS = oracleHubAddress;
     }
 
-
-    function callback(bytes32 requestId, uint256 price) public checkChainlinkFulfillment(requestId)
-    {
+    function oracleCallback(uint256 price) public onlyOracleHub {
+        require(!isSettled);
         lastPrice = price;
         emit UpdatedLastPrice(price);
         checkSettlement();  // Verify settlement at expiration or requested early settlement.
     }
 
-    function queryOracle() public onlyCreator {
-        ChainlinkLib.Run memory run = newRun(JOB_ID, this, "callback(bytes32,uint256)");
-        run.add("url", ORACLE_QUERY_URL);
-        run.addStringArray("path", ORACLE_QUERY_RUN_PATH);
-        run.addUint("times", PRICE_DECIMAL_PLACES);
-        REQUEST_ID = chainlinkRequest(run, LINK(1));
+    modifier onlyOracleHub() {
+        require(msg.sender == ORACLE_HUB_ADDRESS);
+        _;
     }
 
-    /*
-    TODO:
-    1. figure out LINK abstraction with factory
-    2. add testing
-    3. Modify constructor for arrays for addresses
-    4. understand how to create on demand calls, jobid, request ids, sleep
-    */
 }
