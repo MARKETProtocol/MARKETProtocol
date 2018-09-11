@@ -49,10 +49,10 @@ module.exports = function(deployer, network) {
                           'result.XETHZUSD.c.0',
                           { gas: gasLimit, from: web3.eth.accounts[0] }
                         ).then(function(results) {
-                          // return collateralFactory.deployMarketCollateralPool(
-                          //   results.logs[0].args.contractAddress,
-                          //   { gas: gasLimit }
-                          // );
+                          return collateralFactory.deployMarketCollateralPool(
+                            results.logs[0].args.contractAddress,
+                            { gas: gasLimit }
+                          );
                         });
                       });
                     });
