@@ -55,5 +55,4 @@ contract MarketContractChainLink is MarketContract {
         require(msg.sender == ORACLE_HUB_ADDRESS);
         _;
     }
-
 }

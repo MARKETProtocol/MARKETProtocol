@@ -33,9 +33,12 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
 
     mapping(address => ChainLinkQuery) contractAddressToChainLinkQuery;
     mapping(bytes32 => ChainLinkQuery) requestIDToChainLinkQuery;
+    address public marketContractFactoryAddress;
 
-    constructor() public {
-
+    constructor(address contractFactoryAddress, address linkTokenAddress, address oracleAddress) public {
+        marketContractFactoryAddress = contractFactoryAddress;
+        setLinkToken(linkTokenAddress);
+        setOracle(oracleAddress);
     }
 
     function withdrawLink(address sendTo, uint256 amount) onlyOwner returns (bool) {
@@ -62,15 +65,13 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
         return requestID;
     }
 
-    function requestQuery(string oracleQueryURL, string oracleQueryPath) external {
-        // TODO check this address if whitelisted? (if not anyone could call this costing us link!)
-        // perhaps this can only be called by the factory? that may be best.
+    function requestQuery(string oracleQueryURL, string oracleQueryPath) external onlyFactory {
         ChainLinkQuery storage chainLinkQuery = contractAddressToChainLinkQuery[msg.sender];
         chainLinkQuery.marketContractAddress = msg.sender;
         chainLinkQuery.oracleQueryURL = oracleQueryURL;
         chainLinkQuery.oracleQueryPath = oracleQueryPath;
 
-        // NOTE: currently this cannot be seperated into its own function due to constraints around
+        // NOTE: currently this cannot be separated into its own function due to constraints around
         // return types and the current version of solidity.
         StringLib.slice memory pathSlice = oracleQueryPath.toSlice();
         StringLib.slice memory delim = ".".toSlice();
@@ -91,4 +92,12 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
         // since it will be asynchronous with the callback
     }
 
+    function setFactoryAddress(address contractFactoryAddress) external onlyOwner {
+        marketContractFactoryAddress = contractFactoryAddress;
+    }
+
+    modifier onlyFactory() {
+        require(msg.sender == marketContractFactoryAddress);
+        _;
+    }
 }

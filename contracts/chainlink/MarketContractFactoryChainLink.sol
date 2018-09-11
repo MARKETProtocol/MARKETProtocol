@@ -36,13 +36,11 @@ contract MarketContractFactoryChainLink is Ownable {
     constructor(
         address registryAddress,
         address mktTokenAddress,
-        address marketCollateralPoolFactoryAddress,
-        address hubAddress
+        address marketCollateralPoolFactoryAddress
     ) public {
         marketContractRegistry = registryAddress;
         MKT_TOKEN_ADDRESS = mktTokenAddress;
         collateralPoolFactoryAddress = marketCollateralPoolFactoryAddress;
-        oracleHubAddress = hubAddress;
     }
 
     function deployMarketContractChainLink(
@@ -75,8 +73,7 @@ contract MarketContractFactoryChainLink is Ownable {
     }
 
     function setOracleHubAddress(address hubAddress) external onlyOwner {
-        require(oracleHubAddress != address(0));
+        require(hubAddress != address(0));
         oracleHubAddress = hubAddress;
     }
-
 }
