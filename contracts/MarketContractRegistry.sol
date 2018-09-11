@@ -73,7 +73,7 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
     /// a decentralized smart contract of community members to vote
     /// @param contractAddress contract to removed from white list
     function addAddressToWhiteList(address contractAddress) external {
-        require(msg.sender == owner || factoryAddressWhiteList[msg.sender]);
+        require(msg.sender == owner || factoryAddressWhiteList[msg.sender], "Can only be added by factor or owner");
         require(!isWhiteListed[contractAddress]);
         isWhiteListed[contractAddress] = true;
         addressWhiteList.push(contractAddress);
@@ -83,7 +83,7 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
     /// @dev allows for the owner to add a new address of a factory responsible for creating new market contracts
     /// @param factoryAddress address of factory to be allowed to add contracts to whitelist
     function addFactoryAddress(address factoryAddress) external onlyOwner {
-        require(!factoryAddressWhiteList[factoryAddress]);
+        require(!factoryAddressWhiteList[factoryAddress], "address already added");
         factoryAddressWhiteList[factoryAddress] = true;
         emit FactoryAddressAdded(factoryAddress);
     }

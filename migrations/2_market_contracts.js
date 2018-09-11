@@ -17,37 +17,29 @@ const MarketContractFactory = artifacts.require(
 
 module.exports = function(deployer, network) {
   if (network !== 'live') {
-    deployer.deploy(MathLib);
-    deployer.deploy(OrderLib);
+    deployer.deploy([MathLib, OrderLib, MarketContractRegistry]).then(function(){
 
-    deployer.link(OrderLib, OrderLibMock);
-    deployer.link(MathLib, OrderLibMock);
+      deployer.link(MathLib,
+        [ MarketContractOraclize, MarketContractFactory, MarketCollateralPoolFactory, OrderLibMock ]
+      );
+      deployer.link(OrderLib, [MarketContractOraclize, MarketContractFactory, OrderLibMock]);
 
-    deployer.deploy(OrderLib);
-    deployer.deploy(OrderLibMock);
-    deployer.deploy(MarketContractRegistry);
+      deployer.deploy([OrderLibMock, [MarketCollateralPoolFactory, MarketContractRegistry.address]]);
 
-    deployer.link(MathLib, MarketContractOraclize);
-    deployer.link(OrderLib, MarketContractOraclize);
+      const marketTokenToLockForTrading = 0; // for testing purposes, require no loc
+      const marketTokenAmountForContractCreation = 0; //for testing purposes require no balance
+      var gasLimit = web3.eth.getBlock('latest').gasLimit;
 
-    deployer.link(MathLib, MarketContractFactory);
-    deployer.link(OrderLib, MarketContractFactory);
-
-    deployer.link(MathLib, MarketCollateralPoolFactory);
-
-    const marketTokenToLockForTrading = 0; // for testing purposes, require no loc
-    const marketTokenAmountForContractCreation = 0; //for testing purposes require no balance
-    var gasLimit = web3.eth.getBlock('latest').gasLimit;
-
-    // deploy primary instance of market contract
-    return deployer
-      .deploy(MarketToken, marketTokenToLockForTrading, marketTokenAmountForContractCreation)
-      .then(function() {
-        return deployer
-          .deploy(CollateralToken, 'CollateralToken', 'CTK', 10000, 18, {
-            gas: gasLimit,
-            from: web3.eth.accounts[0]
-          });
-      });
+      // deploy primary instance of market contract
+      return deployer
+        .deploy(MarketToken, marketTokenToLockForTrading, marketTokenAmountForContractCreation)
+        .then(function() {
+          return deployer
+            .deploy(CollateralToken, 'CollateralToken', 'CTK', 10000, 18, {
+              gas: gasLimit,
+              from: web3.eth.accounts[0]
+            });
+        });
+    });
   }
 };

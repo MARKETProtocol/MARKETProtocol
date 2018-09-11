@@ -29,32 +29,34 @@ module.exports = function(deployer, network) {
               collateralFactory.address,
               {gas: gasLimit, from: web3.eth.accounts[0]}
             ).then(function (factory) {
-              return deployer.deploy(
-                OracleHub,
-                factory.address,
-                LinkToken.address,
-                ChainLinkOracle.address,
-                {gas: gasLimit, from: web3.eth.accounts[0]}
-                ).then(function (oracleHub) {
-                  // set the oracle hub address in the factory to allow to request queries.
-                  return factory.setOracleHubAddress(oracleHub.address, {from: web3.eth.accounts[0]}).then(function() {
-                    // transfer link token to hub to pay for queries.
-                    return linkToken.transfer(oracleHub.address, 10e22).then(function () {
-                      factory.deployMarketContractChainLink(
-                        'ETHXBT',
-                        CollateralToken.address,
-                        [20155, 60465, 2, 10, marketContractExpiration],
-                        'https://api.kraken.com/0/public/Ticker?pair=ETHUSD',
-                        'result.XETHZUSD.c.0',
-                        { gas: gasLimit, from: web3.eth.accounts[0] }
-                      ).then(function(results) {
-                        // return collateralFactory.deployMarketCollateralPool(
-                        //   results.logs[0].args.contractAddress,
-                        //   { gas: gasLimit }
-                        // );
+              return registry.addFactoryAddress(factory.address).then(function () {
+                return deployer.deploy(
+                  OracleHub,
+                  factory.address,
+                  LinkToken.address,
+                  ChainLinkOracle.address,
+                  {gas: gasLimit, from: web3.eth.accounts[0]}
+                  ).then(function (oracleHub) {
+                    // set the oracle hub address in the factory to allow to request queries.
+                    return factory.setOracleHubAddress(oracleHub.address, {from: web3.eth.accounts[0]}).then(function() {
+                      // transfer link token to hub to pay for queries.
+                      return linkToken.transfer(oracleHub.address, 10e22).then(function () {
+                        factory.deployMarketContractChainLink(
+                          'ETHXBT',
+                          CollateralToken.address,
+                          [20155, 60465, 2, 10, marketContractExpiration],
+                          'https://api.kraken.com/0/public/Ticker?pair=ETHUSD',
+                          'result.XETHZUSD.c.0',
+                          { gas: gasLimit, from: web3.eth.accounts[0] }
+                        ).then(function(results) {
+                          // return collateralFactory.deployMarketCollateralPool(
+                          //   results.logs[0].args.contractAddress,
+                          //   { gas: gasLimit }
+                          // );
+                        });
                       });
                     });
-                  });
+                });
               });
             });
           });
