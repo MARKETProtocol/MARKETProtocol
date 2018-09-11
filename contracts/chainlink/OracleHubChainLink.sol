@@ -21,6 +21,7 @@ import "./src/Chainlinked.sol";
 import "../libraries/StringLib.sol";
 import "./MarketContractChainLink.sol";
 
+
 contract OracleHubChainLink is OracleHub, Chainlinked {
     using StringLib for *;
 
@@ -76,7 +77,6 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
         marketContractFactoryAddress = contractFactoryAddress;
     }
 
-
     /// @dev called by our factory to create the needed initial query for a new MarketContract
     /// @param marketContractAddress - address of the newly created MarketContract
     /// @param oracleQueryURL   URL of rest end point for data IE 'https://api.kraken.com/0/public/Ticker?pair=ETHUSD'
@@ -85,7 +85,8 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
         address marketContractAddress,
         string oracleQueryURL,
         string oracleQueryPath
-    ) external onlyFactory {
+    ) external onlyFactory
+    {
         ChainLinkQuery storage chainLinkQuery = contractAddressToChainLinkQuery[marketContractAddress];
         chainLinkQuery.marketContractAddress = marketContractAddress;
         chainLinkQuery.oracleQueryURL = oracleQueryURL;
@@ -96,7 +97,7 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
         StringLib.slice memory pathSlice = oracleQueryPath.toSlice();
         StringLib.slice memory delim = ".".toSlice();
         chainLinkQuery.oracleQueryRunPath = new string[](pathSlice.count(delim) + 1);
-        for(uint i = 0; i < chainLinkQuery.oracleQueryRunPath.length; i++) {
+        for (uint i = 0; i < chainLinkQuery.oracleQueryRunPath.length; i++) {
             chainLinkQuery.oracleQueryRunPath[i] = pathSlice.split(delim).toString();
         }
         bytes32 jobId; // TODO: how do we want to generate these?
@@ -128,7 +129,6 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
         // TODO: add sleep adapter
         return requestID;
     }
-
 
     /*
     // MODIFIERS

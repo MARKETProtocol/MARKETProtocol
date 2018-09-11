@@ -63,7 +63,12 @@ contract MarketContractFactoryChainLink is Ownable {
     {
         MarketContractChainLink mktContract = new MarketContractChainLink(
             contractName,
-            [msg.sender, MKT_TOKEN_ADDRESS, collateralTokenAddress, collateralPoolFactoryAddress],
+            [
+                msg.sender,
+                MKT_TOKEN_ADDRESS,
+                collateralTokenAddress,
+                collateralPoolFactoryAddress
+            ],
             oracleHubAddress,
             contractSpecs,
             oracleQueryURL,

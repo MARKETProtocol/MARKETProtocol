@@ -18,6 +18,7 @@ pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
+
 /// @title OracleHub - a base class of our hubs that creates the needed logic from our MarketContracts to interact
 /// with our Oracle providers.  Eventually this could replace the need for the inheritance structure currently employed
 /// in our MarketContracts since all abstraction of different providers could be done in contracts inheriting from this

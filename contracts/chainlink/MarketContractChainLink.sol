@@ -18,6 +18,7 @@ pragma solidity ^0.4.24;
 
 import "../MarketContract.sol";
 
+
 /// @title MarketContract first example of a MarketProtocol contract using ChainLink
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketContractChainLink is MarketContract {
