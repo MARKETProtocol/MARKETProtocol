@@ -19,7 +19,7 @@ pragma solidity ^0.4.24;
 import "../OracleHub.sol";
 import "./src/Chainlinked.sol";
 import "../libraries/StringLib.sol";
-import "../MarketContract.sol";
+import "./MarketContractChainLink.sol";
 
 contract OracleHubChainLink is OracleHub, Chainlinked {
     using StringLib for *;
@@ -110,7 +110,7 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
         // NOTE: event is emitted by chainlink upon call above to checkChainlinkFulfillment
         ChainLinkQuery memory chainLinkQuery = requestIDToChainLinkQuery[requestId];
         require(chainLinkQuery.marketContractAddress != address(0), "market contract address can not be null!");
-        MarketContract(chainLinkQuery.marketContractAddress).oracleCallBack(price);
+        MarketContractChainLink(chainLinkQuery.marketContractAddress).oracleCallBack(price);
     }
 
     /*
@@ -118,8 +118,6 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
     */
 
     /// @dev Creates the needed Run object and initiates the request to ChainLink.
-    /// @param jobId
-    /// @param chainLinkQuery     our query struct.  Passed as a memory copy!
     function createRunAndRequest(bytes32 jobId, ChainLinkQuery memory chainLinkQuery) private returns (bytes32) {
         ChainlinkLib.Run memory run = newRun(jobId, this, "callback(bytes32,uint256)");
         run.add("url", chainLinkQuery.oracleQueryURL);
