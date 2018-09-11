@@ -1,7 +1,4 @@
-const MathLib = artifacts.require('./libraries/MathLib.sol');
-const OrderLib = artifacts.require('./libraries/OrderLib.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
-const MarketContractOraclize = artifacts.require('./oraclize/TestableMarketContractOraclize.sol');
 const MarketCollateralPoolFactory = artifacts.require(
   './factories/MarketCollateralPoolFactory.sol'
 );

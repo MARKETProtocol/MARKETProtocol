@@ -12,9 +12,6 @@ const MarketContractFactory = artifacts.require(
   './oraclize/TestableMarketContractFactoryOraclize.sol'
 );
 
-// NOTE: Currently the factory contract is a version that is deploying a testable MARKET contract, and not the
-// production version.  We should be using inheritance but due to gas constraints that fails.
-
 module.exports = function(deployer, network) {
   if (network !== 'live') {
     deployer.deploy([MathLib, OrderLib, MarketContractRegistry]).then(function(){

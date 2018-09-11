@@ -24,6 +24,7 @@ import "../MarketContract.sol";
 contract OracleHubChainLink is OracleHub, Chainlinked {
     using StringLib for *;
 
+    /// @dev all needed pieces of a chainlink query.
     struct ChainLinkQuery {
         address marketContractAddress;
         string oracleQueryURL;
@@ -35,36 +36,51 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
     mapping(bytes32 => ChainLinkQuery) requestIDToChainLinkQuery;
     address public marketContractFactoryAddress;
 
+
+    /// @dev creates our OracleHub with needed address for ChainLink
+    /// @param contractFactoryAddress       address of our MaretkContractFactory
+    /// @param linkTokenAddress             address of the LINK token
+    /// @param oracleAddress                address of the ChainLink Oracle
     constructor(address contractFactoryAddress, address linkTokenAddress, address oracleAddress) public {
         marketContractFactoryAddress = contractFactoryAddress;
         setLinkToken(linkTokenAddress);
         setOracle(oracleAddress);
     }
 
-    function withdrawLink(address sendTo, uint256 amount) onlyOwner returns (bool) {
+    /*
+    // EXTERNAL METHODS
+    */
+
+    /// @dev allows us to withdraw link as the owner of this contract
+    /// @param sendTo       address of where to send LINK
+    /// @param amount       amount of link (in baseUnits)
+    function withdrawLink(address sendTo, uint256 amount) external onlyOwner returns (bool) {
         return link.transfer(sendTo, amount);
     }
 
-
-    function callback(bytes32 requestId, uint256 price) public checkChainlinkFulfillment(requestId) {
-        // NOTE: event is emitted by chainlink upon call above to checkChainlinkFulfillment
-        ChainLinkQuery memory chainLinkQuery = requestIDToChainLinkQuery[requestId];
-        require(chainLinkQuery.marketContractAddress != address(0), "market contract address can not be null!");
-        //MarketContract(chainLinkQuery.marketContractAddress)
+    /// @notice called by a user requesting an on demand query when they believe that a contract is pushed into
+    /// an expired state.
+    /// @param marketContractAddress - address of the MarketContract
+    function requestOnDemandQuery(address marketContractAddress) external {
+        // TODO: enforce ETH payment to cover LINK, refund if settled?
+        ChainLinkQuery memory chainLinkQuery = contractAddressToChainLinkQuery[msg.sender];
+        bytes32 jobId;
+        createRunAndRequest(jobId, chainLinkQuery);
+        // if we refund for pushing to settlement we will need to record the caller of this function
+        // since it will be asynchronous with the callback
     }
 
-    function createRunAndRequest(bytes32 jobId, ChainLinkQuery memory chainLinkQuery) internal returns (bytes32) {
-        ChainlinkLib.Run memory run = newRun(jobId, this, "callback(bytes32,uint256)");
-        run.add("url", chainLinkQuery.oracleQueryURL);
-        run.addStringArray("path", chainLinkQuery.oracleQueryRunPath);
-        run.addUint("times", MarketContract(chainLinkQuery.marketContractAddress).PRICE_DECIMAL_PLACES());
-        bytes32 requestID = chainlinkRequest(run, LINK(1));
-        // TODO: figure out handling of JOB_ID and REQUEST_ID
-        // TODO: add sleep adapter
-
-        return requestID;
+    /// @dev allows for the owner to set a factory address that is then allowed the priviledge of creating
+    /// queries.
+    function setFactoryAddress(address contractFactoryAddress) external onlyOwner {
+        marketContractFactoryAddress = contractFactoryAddress;
     }
 
+
+    /// @dev called by our factory to create the needed initial query for a new MarketContract
+    /// @param marketContractAddress - address of the newly created MarketContract
+    /// @param oracleQueryURL   URL of rest end point for data IE 'https://api.kraken.com/0/public/Ticker?pair=ETHUSD'
+    /// @param oracleQueryPath  path of data inside json object. IE 'result.XETHZUSD.c.0'
     function requestQuery(
         address marketContractAddress,
         string oracleQueryURL,
@@ -76,30 +92,51 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
         chainLinkQuery.oracleQueryPath = oracleQueryPath;
 
         // NOTE: currently this cannot be separated into its own function due to constraints around
-        // return types and the current version of solidity.
+        // return types and the current version of solidity... is this true for internal / private fxs?
         StringLib.slice memory pathSlice = oracleQueryPath.toSlice();
         StringLib.slice memory delim = ".".toSlice();
         chainLinkQuery.oracleQueryRunPath = new string[](pathSlice.count(delim) + 1);
         for(uint i = 0; i < chainLinkQuery.oracleQueryRunPath.length; i++) {
             chainLinkQuery.oracleQueryRunPath[i] = pathSlice.split(delim).toString();
         }
-        bytes32 jobId;
+        bytes32 jobId; // TODO: how do we want to generate these?
         createRunAndRequest(jobId, chainLinkQuery);
     }
 
-    function requestOnDemandQuery(address marketContractAddress) external {
-        // TODO: enforce ETH payment to cover LINK, refund if settled?
-        ChainLinkQuery memory chainLinkQuery = contractAddressToChainLinkQuery[msg.sender];
-        bytes32 jobId;
-        createRunAndRequest(jobId, chainLinkQuery);
-        // if we refund for pushing to settlement we will need to record the caller of this function
-        // since it will be asynchronous with the callback
+    /// @dev designated callback function to ChainLinks oracles.
+    /// @param requestId id of the request being handed back
+    /// @param price     value being handed back from oracle.
+    function callback(bytes32 requestId, uint256 price) external checkChainlinkFulfillment(requestId) {
+        // NOTE: event is emitted by chainlink upon call above to checkChainlinkFulfillment
+        ChainLinkQuery memory chainLinkQuery = requestIDToChainLinkQuery[requestId];
+        require(chainLinkQuery.marketContractAddress != address(0), "market contract address can not be null!");
+        MarketContract(chainLinkQuery.marketContractAddress).oracleCallBack(price);
     }
 
-    function setFactoryAddress(address contractFactoryAddress) external onlyOwner {
-        marketContractFactoryAddress = contractFactoryAddress;
+    /*
+    // PRIVATE METHODS
+    */
+
+    /// @dev Creates the needed Run object and initiates the request to ChainLink.
+    /// @param jobId
+    /// @param chainLinkQuery     our query struct.  Passed as a memory copy!
+    function createRunAndRequest(bytes32 jobId, ChainLinkQuery memory chainLinkQuery) private returns (bytes32) {
+        ChainlinkLib.Run memory run = newRun(jobId, this, "callback(bytes32,uint256)");
+        run.add("url", chainLinkQuery.oracleQueryURL);
+        run.addStringArray("path", chainLinkQuery.oracleQueryRunPath);
+        run.addUint("times", MarketContract(chainLinkQuery.marketContractAddress).PRICE_DECIMAL_PLACES());
+        bytes32 requestID = chainlinkRequest(run, LINK(1));
+        // TODO: figure out handling of JOB_ID and REQUEST_ID
+        // TODO: add sleep adapter
+        return requestID;
     }
 
+
+    /*
+    // MODIFIERS
+    */
+
+    /// @dev only callable by the designated factory!
     modifier onlyFactory() {
         require(msg.sender == marketContractFactoryAddress);
         _;

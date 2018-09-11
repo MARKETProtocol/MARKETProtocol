@@ -30,7 +30,6 @@ contract MarketContractFactoryChainLink is Ownable {
 
     address public MKT_TOKEN_ADDRESS;
 
-
     event MarketContractCreated(address indexed creator, address indexed contractAddress);
 
     constructor(
@@ -43,6 +42,17 @@ contract MarketContractFactoryChainLink is Ownable {
         collateralPoolFactoryAddress = marketCollateralPoolFactoryAddress;
     }
 
+    /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
+    /// @param collateralTokenAddress address of the ERC20 token that will be used for collateral and pricing
+    /// @param contractSpecs array of unsigned integers including:
+    ///     floorPrice          minimum tradeable price of this contract, contract enters settlement if breached
+    ///     capPrice            maximum tradeable price of this contract, contract enters settlement if breached
+    ///     priceDecimalPlaces  number of decimal places to convert our queried price from a floating point to
+    ///                         an integer
+    ///     qtyMultiplier       multiply traded qty by this value from base units of collateral token.
+    ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
+    /// @param oracleQueryURL   URL of rest end point for data IE 'https://api.kraken.com/0/public/Ticker?pair=ETHUSD'
+    /// @param oracleQueryPath  path of data inside json object. IE 'result.XETHZUSD.c.0'
     function deployMarketContractChainLink(
         string contractName,
         address collateralTokenAddress,
@@ -72,6 +82,9 @@ contract MarketContractFactoryChainLink is Ownable {
         marketContractRegistry = registryAddress;
     }
 
+    /// @dev allows for the owner to set a new oracle hub address which is responsible for providing data to our
+    /// contracts
+    /// @param hubAddress   address of the oracle hub, cannot be null address
     function setOracleHubAddress(address hubAddress) external onlyOwner {
         require(hubAddress != address(0));
         oracleHubAddress = hubAddress;

@@ -98,17 +98,17 @@ contract MarketContract is Creatable {
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
     /// @param baseAddresses array of 4 addresses needed for our contract including:
-    /// creatorAddress                  address of the person creating the contract
-    /// marketTokenAddress              address of our member token
-    /// collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
-    /// collateralPoolFactoryAddress    address of the factory creating the collateral pools
+    ///     creatorAddress                  address of the person creating the contract
+    ///     marketTokenAddress              address of our member token
+    ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
+    ///     collateralPoolFactoryAddress    address of the factory creating the collateral pools
     /// @param contractSpecs array of unsigned integers including:
-    /// floorPrice          minimum tradeable price of this contract, contract enters settlement if breached
-    /// capPrice            maximum tradeable price of this contract, contract enters settlement if breached
-    /// priceDecimalPlaces  number of decimal places to convert our queried price from a floating point to
-    /// an integer
-    /// qtyMultiplier       multiply traded qty by this value from base units of collateral token.
-    /// expirationTimeStamp seconds from epoch that this contract expires and enters settlement
+    ///     floorPrice          minimum tradeable price of this contract, contract enters settlement if breached
+    ///     capPrice            maximum tradeable price of this contract, contract enters settlement if breached
+    ///     priceDecimalPlaces  number of decimal places to convert our queried price from a floating point to
+    ///                         an integer
+    ///     qtyMultiplier       multiply traded qty by this value from base units of collateral token.
+    ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
     constructor(
         string contractName,
         address[4] baseAddresses,
