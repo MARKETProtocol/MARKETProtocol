@@ -60,7 +60,7 @@ contract MarketContractFactoryChainLink is Ownable {
             oracleQueryPath
         );
 
-        OracleHubChainLink(oracleHubAddress).requestQuery(oracleQueryURL, oracleQueryPath);
+        OracleHubChainLink(oracleHubAddress).requestQuery(mktContract, oracleQueryURL, oracleQueryPath);
         MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(mktContract);
         emit MarketContractCreated(msg.sender, mktContract);
     }

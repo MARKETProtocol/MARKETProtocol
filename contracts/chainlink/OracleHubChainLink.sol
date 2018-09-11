@@ -65,9 +65,13 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
         return requestID;
     }
 
-    function requestQuery(string oracleQueryURL, string oracleQueryPath) external onlyFactory {
-        ChainLinkQuery storage chainLinkQuery = contractAddressToChainLinkQuery[msg.sender];
-        chainLinkQuery.marketContractAddress = msg.sender;
+    function requestQuery(
+        address marketContractAddress,
+        string oracleQueryURL,
+        string oracleQueryPath
+    ) external onlyFactory {
+        ChainLinkQuery storage chainLinkQuery = contractAddressToChainLinkQuery[marketContractAddress];
+        chainLinkQuery.marketContractAddress = marketContractAddress;
         chainLinkQuery.oracleQueryURL = oracleQueryURL;
         chainLinkQuery.oracleQueryPath = oracleQueryPath;
 
