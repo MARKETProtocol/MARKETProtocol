@@ -50,6 +50,8 @@ module.exports = function(deployer, network) {
                             [20155, 60465, 2, 10, marketContractExpiration],
                             'https://api.kraken.com/0/public/Ticker?pair=ETHUSD',
                             'result.XETHZUSD.c.0',
+                            'fakeSleepJobId',
+                            'fakeOnDemandJobId',
                             { gas: gasLimit, from: web3.eth.accounts[0] }
                           ).then(function(results) {
                             return collateralFactory.deployMarketCollateralPool(
