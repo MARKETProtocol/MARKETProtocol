@@ -66,7 +66,7 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
     /// @param marketContractAddress - address of the MarketContract
     function requestOnDemandQuery(address marketContractAddress) external {
         // TODO: enforce ETH payment to cover LINK, refund if settled?
-        ChainLinkQuery memory chainLinkQuery = contractAddressToChainLinkQuery[msg.sender];
+        ChainLinkQuery memory chainLinkQuery = contractAddressToChainLinkQuery[marketContractAddress];
         createRunAndRequest(chainLinkQuery, true);
         // if we refund for pushing to settlement we will need to record the caller of this function
         // since it will be asynchronous with the callback
@@ -107,7 +107,8 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
         for (uint i = 0; i < chainLinkQuery.oracleQueryRunPath.length; i++) {
             chainLinkQuery.oracleQueryRunPath[i] = pathSlice.split(delim).toString();
         }
-        createRunAndRequest(chainLinkQuery, false);
+        bytes32 requestId = createRunAndRequest(chainLinkQuery, false);
+        requestIDToChainLinkQuery[requestId] = chainLinkQuery;  // save query struct for later recall on callback.
     }
 
     /// @dev designated callback function to ChainLinks oracles.
