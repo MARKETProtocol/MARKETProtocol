@@ -53,12 +53,16 @@ contract MarketContractFactoryChainLink is Ownable {
     ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
     /// @param oracleQueryURL   URL of rest end point for data IE 'https://api.kraken.com/0/public/Ticker?pair=ETHUSD'
     /// @param oracleQueryPath  path of data inside json object. IE 'result.XETHZUSD.c.0'
+    /// @param sleepJobId  ChainLink job id with their sleep adapter
+    /// @param onDemandJobId  ChainLink job id for on demand user queries
     function deployMarketContractChainLink(
         string contractName,
         address collateralTokenAddress,
         uint[5] contractSpecs,
         string oracleQueryURL,
-        string oracleQueryPath
+        string oracleQueryPath,
+        bytes32 sleepJobId,
+        bytes32 onDemandJobId
     ) external
     {
         MarketContractChainLink mktContract = new MarketContractChainLink(
@@ -75,7 +79,14 @@ contract MarketContractFactoryChainLink is Ownable {
             oracleQueryPath
         );
 
-        OracleHubChainLink(oracleHubAddress).requestQuery(mktContract, oracleQueryURL, oracleQueryPath);
+        OracleHubChainLink(oracleHubAddress).requestQuery(
+            mktContract,
+            oracleQueryURL,
+            oracleQueryPath,
+            sleepJobId,
+            onDemandJobId
+        );
+
         MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(mktContract);
         emit MarketContractCreated(msg.sender, mktContract);
     }

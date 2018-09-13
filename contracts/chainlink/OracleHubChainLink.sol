@@ -31,6 +31,8 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
         string oracleQueryURL;
         string oracleQueryPath;
         string[] oracleQueryRunPath; // cheaper to store or just re-create if needed for on-demand queries?
+        bytes32 sleepJobId;
+        bytes32 onDemandJobId;
     }
 
     mapping(address => ChainLinkQuery) contractAddressToChainLinkQuery;
@@ -65,8 +67,7 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
     function requestOnDemandQuery(address marketContractAddress) external {
         // TODO: enforce ETH payment to cover LINK, refund if settled?
         ChainLinkQuery memory chainLinkQuery = contractAddressToChainLinkQuery[msg.sender];
-        bytes32 jobId;
-        createRunAndRequest(jobId, chainLinkQuery);
+        createRunAndRequest(chainLinkQuery, true);
         // if we refund for pushing to settlement we will need to record the caller of this function
         // since it will be asynchronous with the callback
     }
@@ -81,16 +82,22 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
     /// @param marketContractAddress - address of the newly created MarketContract
     /// @param oracleQueryURL   URL of rest end point for data IE 'https://api.kraken.com/0/public/Ticker?pair=ETHUSD'
     /// @param oracleQueryPath  path of data inside json object. IE 'result.XETHZUSD.c.0'
+    /// @param sleepJobId  ChainLink job id with their sleep adapter
+    /// @param onDemandJobId  ChainLink job id for on demand user queries
     function requestQuery(
         address marketContractAddress,
         string oracleQueryURL,
-        string oracleQueryPath
+        string oracleQueryPath,
+        bytes32 sleepJobId,
+        bytes32 onDemandJobId
     ) external onlyFactory
     {
         ChainLinkQuery storage chainLinkQuery = contractAddressToChainLinkQuery[marketContractAddress];
         chainLinkQuery.marketContractAddress = marketContractAddress;
         chainLinkQuery.oracleQueryURL = oracleQueryURL;
         chainLinkQuery.oracleQueryPath = oracleQueryPath;
+        chainLinkQuery.sleepJobId = sleepJobId;
+        chainLinkQuery.onDemandJobId = onDemandJobId;
 
         // NOTE: currently this cannot be separated into its own function due to constraints around
         // return types and the current version of solidity... is this true for internal / private fxs?
@@ -100,8 +107,7 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
         for (uint i = 0; i < chainLinkQuery.oracleQueryRunPath.length; i++) {
             chainLinkQuery.oracleQueryRunPath[i] = pathSlice.split(delim).toString();
         }
-        bytes32 jobId; // TODO: how do we want to generate these?
-        createRunAndRequest(jobId, chainLinkQuery);
+        createRunAndRequest(chainLinkQuery, false);
     }
 
     /// @dev designated callback function to ChainLinks oracles.
@@ -119,15 +125,21 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
     */
 
     /// @dev Creates the needed Run object and initiates the request to ChainLink.
-    function createRunAndRequest(bytes32 jobId, ChainLinkQuery memory chainLinkQuery) private returns (bytes32) {
-        ChainlinkLib.Run memory run = newRun(jobId, this, "callback(bytes32,uint256)");
+    function createRunAndRequest(ChainLinkQuery memory chainLinkQuery, bool isOnDemand) private returns (bytes32) {
+
+        MarketContractChainLink marketContractChainLink = MarketContractChainLink(chainLinkQuery.marketContractAddress);
+        ChainlinkLib.Run memory run;
+        if (isOnDemand) { // on demand query, no sleep adapter needed.
+            run = newRun(chainLinkQuery.onDemandJobId, this, "callback(bytes32,uint256)");
+        } else { // sleep query, to be called at expiration of contract.
+            run = newRun(chainLinkQuery.sleepJobId, this, "callback(bytes32,uint256)");
+            run.addUint("until", marketContractChainLink.EXPIRATION());
+        }
+
         run.add("url", chainLinkQuery.oracleQueryURL);
         run.addStringArray("path", chainLinkQuery.oracleQueryRunPath);
-        run.addUint("times", MarketContract(chainLinkQuery.marketContractAddress).PRICE_DECIMAL_PLACES());
-        bytes32 requestID = chainlinkRequest(run, LINK(1));
-        // TODO: figure out handling of JOB_ID and REQUEST_ID
-        // TODO: add sleep adapter
-        return requestID;
+        run.addUint("times", marketContractChainLink.PRICE_DECIMAL_PLACES());
+        return chainlinkRequest(run, LINK(1));
     }
 
     /*
