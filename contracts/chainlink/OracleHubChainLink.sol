@@ -17,7 +17,7 @@
 pragma solidity ^0.4.24;
 
 import "../OracleHub.sol";
-import "./src/Chainlinked.sol";
+import "chainlink/solidity/contracts/Chainlinked.sol";
 import "../libraries/StringLib.sol";
 import "./MarketContractChainLink.sol";
 
