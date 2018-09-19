@@ -26,10 +26,11 @@ import "./MarketContractOraclize.sol";
 contract TestableMarketContractOraclize is MarketContractOraclize {
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
-    /// @param creatorAddress address of the person creating the contract
-    /// @param marketTokenAddress address of our member token
-    /// @param collateralTokenAddress address of the ERC20 token that will be used for collateral and pricing
-    /// @param collateralPoolFactoryAddress address of the factory creating the collateral pools
+    /// @param baseAddresses array of 4 addresses needed for our contract including:
+    /// creatorAddress                  address of the person creating the contract
+    /// marketTokenAddress              address of our member token
+    /// collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
+    /// collateralPoolFactoryAddress    address of the factory creating the collateral pools
     /// @param contractSpecs array of unsigned integers including:
     /// floorPrice minimum tradeable price of this contract, contract enters settlement if breached
     /// capPrice maximum tradeable price of this contract, contract enters settlement if breached
@@ -37,28 +38,22 @@ contract TestableMarketContractOraclize is MarketContractOraclize {
     /// an integer
     /// qtyMultiplier multiply traded qty by this value from base units of collateral token.
     /// expirationTimeStamp - seconds from epoch that this contract expires and enters settlement
-    /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"dv
+    /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"
     /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
     constructor(
         string contractName,
-        address creatorAddress,
-        address marketTokenAddress,
-        address collateralTokenAddress,
-        address collateralPoolFactoryAddress,
+        address[4] baseAddresses,
         uint[5] contractSpecs,
         string oracleDataSource,
         string oracleQuery
     ) MarketContractOraclize(
         contractName,
-        creatorAddress,
-        marketTokenAddress,
-        collateralTokenAddress,
-        collateralPoolFactoryAddress,
+        baseAddresses,
         contractSpecs,
         oracleDataSource,
         oracleQuery
-    ) public payable
+    )  public
     { }
 
     /// @notice allows the creator of the contract to manually set a last price and check for settlement

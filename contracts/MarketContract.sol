@@ -70,7 +70,7 @@ contract MarketContract is Creatable {
     OrderLib.OrderMappings orderMappings;
 
     // events
-    event UpdatedLastPrice(string price);
+    event UpdatedLastPrice(uint256 price);
     event ContractSettled(uint settlePrice);
     event UpdatedUserBalance(address indexed user, uint balance);
     event UpdatedPoolBalance(uint balance);
@@ -97,29 +97,27 @@ contract MarketContract is Creatable {
 
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
-    /// @param creatorAddress address of the person creating the contract
-    /// @param marketTokenAddress address of our member token
-    /// @param collateralTokenAddress address of the ERC20 token that will be used for collateral and pricing
-    /// @param collateralPoolFactoryAddress address of the factory creating the collateral pools
+    /// @param baseAddresses array of 4 addresses needed for our contract including:
+    ///     creatorAddress                  address of the person creating the contract
+    ///     marketTokenAddress              address of our member token
+    ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
+    ///     collateralPoolFactoryAddress    address of the factory creating the collateral pools
     /// @param contractSpecs array of unsigned integers including:
-    /// floorPrice minimum tradeable price of this contract, contract enters settlement if breached
-    /// capPrice maximum tradeable price of this contract, contract enters settlement if breached
-    /// priceDecimalPlaces number of decimal places to convert our queried price from a floating point to
-    /// an integer
-    /// qtyMultiplier multiply traded qty by this value from base units of collateral token.
-    /// expirationTimeStamp - seconds from epoch that this contract expires and enters settlement
+    ///     floorPrice          minimum tradeable price of this contract, contract enters settlement if breached
+    ///     capPrice            maximum tradeable price of this contract, contract enters settlement if breached
+    ///     priceDecimalPlaces  number of decimal places to convert our queried price from a floating point to
+    ///                         an integer
+    ///     qtyMultiplier       multiply traded qty by this value from base units of collateral token.
+    ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
     constructor(
         string contractName,
-        address creatorAddress,
-        address marketTokenAddress,
-        address collateralTokenAddress,
-        address collateralPoolFactoryAddress,
+        address[4] baseAddresses,
         uint[5] contractSpecs
     ) public
     {
-        COLLATERAL_POOL_FACTORY_ADDRESS = collateralPoolFactoryAddress;
-        MKT_TOKEN_ADDRESS = marketTokenAddress;
-        MKT_TOKEN = MarketToken(marketTokenAddress);
+        COLLATERAL_POOL_FACTORY_ADDRESS = baseAddresses[3];
+        MKT_TOKEN_ADDRESS = baseAddresses[1];
+        MKT_TOKEN = MarketToken(MKT_TOKEN_ADDRESS);
         require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
         PRICE_FLOOR = contractSpecs[0];
         PRICE_CAP = contractSpecs[1];
@@ -131,8 +129,8 @@ contract MarketContract is Creatable {
         require(EXPIRATION > now);
 
         CONTRACT_NAME = contractName;
-        COLLATERAL_TOKEN_ADDRESS = collateralTokenAddress;
-        creator = creatorAddress;
+        COLLATERAL_TOKEN_ADDRESS = baseAddresses[2];
+        creator = baseAddresses[0];
     }
 
     /*
@@ -296,12 +294,6 @@ contract MarketContract is Creatable {
         creator.transfer(this.balance);         // return balance to the creator.
     }
     */
-
-    /// @notice allows a user to request an extra query to oracle in order to push the contract into
-    /// settlement.  A user may call this as many times as they like, since they are the ones paying for
-    /// the call to our oracle and post processing. This is useful for both a failsafe and as a way to
-    /// settle a contract early if a price cap or floor has been breached.
-    function requestEarlySettlement() external payable;
 
     /*
     // PUBLIC METHODS
