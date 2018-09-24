@@ -8,8 +8,7 @@ const Helpers = require('./helpers/Helpers.js');
 const utility = require('./utility.js');
 
 // basic tests to ensure MarketCollateralPool works and is set up to allow trading
-contract('MarketCollateralPool', function(accounts) {
-  let balancePerAcct;
+contract('MarketCollateralPool.Accounting', function(accounts) {
   let collateralToken;
   let initBalance;
   let collateralPool;

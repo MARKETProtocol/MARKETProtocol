@@ -454,17 +454,41 @@ contract('MarketContractOraclize', function(accounts) {
     assert.ok(error instanceof Error, 'Order did not fail');
   });
 
+  it('should fail for attempt to cancel twice full qty', async function() {
+    const orderQty = 2;
+    const orderToCancel = 2;
+
+    await tradeHelper.cancelOrder(
+      [accounts[0], accounts[1], accounts[2]],
+      [entryOrderPrice, orderQty, orderToCancel]
+    );
+
+    await tradeHelper.cancelOrder(
+      [accounts[0], accounts[1], accounts[2]],
+      [entryOrderPrice, orderQty, orderToCancel]
+    );
+
+    const events = await utility.getEvent(marketContract, 'Error');
+    assert.equal(
+      ErrorCodes.ORDER_DEAD,
+      events[0].args.errorCode.toNumber(),
+      'Error event is not order dead.'
+    );
+  });
+
   it('should fail for attempt to trade after settlement', async function() {
     const orderQty = 2;
     const orderToFill = 2;
-    const settlementPrice = 50000;
+    const settlementPrice = await marketContract.PRICE_FLOOR() - 1;
     const isExpired = true;
     await tradeHelper.tradeOrder(
       [accounts[0], accounts[1], accounts[2]],
       [entryOrderPrice, orderQty, orderToFill],
       isExpired
     );
+
     await tradeHelper.attemptToSettleContract(settlementPrice);
+    assert.isTrue(await marketContract.isSettled(), "Contract not settled properly");
 
     let error;
     try {
@@ -493,8 +517,6 @@ contract('MarketContractOraclize', function(accounts) {
   it('should fail for attempt to self-trade', async function() {
     const orderQty = 2;
     const orderToFill = 2;
-    const settlementPrice = 50000;
-    const isExpired = false;
 
     let error;
     try {
@@ -509,39 +531,13 @@ contract('MarketContractOraclize', function(accounts) {
     assert.ok(error instanceof Error, 'tradeOrder() should fail for self-trade attempt');
   });
 
-  it('should fail for attempt to cancel twice full qty', async function() {
-    const orderQty = 2;
-    const orderToCancel = 2;
-    const settlementPrice = 20000;
-
-    await tradeHelper.cancelOrder(
-      [accounts[0], accounts[1], accounts[2]],
-      [entryOrderPrice, orderQty, orderToCancel]
-    );
-
-    await tradeHelper.cancelOrder(
-      [accounts[0], accounts[1], accounts[2]],
-      [entryOrderPrice, orderQty, orderToCancel]
-    );
-
-    const events = await utility.getEvent(marketContract, 'Error');
-    assert.equal(
-      ErrorCodes.ORDER_DEAD,
-      events[0].args.errorCode.toNumber(),
-      'Error event is not order dead.'
-    );
-  });
-
   it('should fail for attempt to cancel after settlement', async function() {
     const orderQty = 2;
     const orderToCancel = 1;
-    const settlementPrice = 20000;
-    await tradeHelper.tradeOrder(
-      [accounts[0], accounts[1], accounts[2]],
-      [entryOrderPrice, orderQty, orderToCancel],
-      true
-    );
+    const settlementPrice = await marketContract.PRICE_FLOOR() - 1;
+
     await tradeHelper.attemptToSettleContract(settlementPrice);
+    assert.isTrue(await marketContract.isSettled(), "Contract not settled properly");
 
     let error;
     try {
