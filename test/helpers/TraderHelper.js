@@ -94,7 +94,7 @@ module.exports = async function(marketContract, orderLib, collateralToken, colla
     settlementPrice
   ) {
     const tokenBalanceOfUser = await collateralToken.balanceOf.call(address);
-    const userAccountBalance = await collateralPool.getUserUnallocatedBalance.call(address);
+    const userAccountBalance = await collateralPool.getUserUnallocatedBalance.call(collateralToken.address, address);
     const collateralLeft = utility.calculateNeededCollateral(
       priceFloor,
       priceCap,
