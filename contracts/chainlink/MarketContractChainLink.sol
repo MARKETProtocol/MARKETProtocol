@@ -33,7 +33,7 @@ contract MarketContractChainLink is MarketContract {
     ///     creatorAddress                  address of the person creating the contract
     ///     marketTokenAddress              address of our member token
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
-    ///     collateralPoolFactoryAddress    address of the factory creating the collateral pools
+    ///     collateralPoolAddress           address of the the collateral pool
     /// @param contractSpecs array of unsigned integers including:
     ///     floorPrice          minimum tradeable price of this contract, contract enters settlement if breached
     ///     capPrice            maximum tradeable price of this contract, contract enters settlement if breached

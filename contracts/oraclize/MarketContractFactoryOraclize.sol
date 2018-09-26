@@ -85,13 +85,4 @@ contract MarketContractFactoryOraclize is Ownable {
         require(registryAddress != address(0));
         marketContractRegistry = registryAddress;
     }
-
-    /*
-    currently adding this function pushes us over the edge for gas, for the time being we can leave it out.
-    /// @dev allows for the owner to set switch out factories
-    /// @param marketCollateralPoolFactoryAddress desired factory address.
-    function setCollateralPoolFactoryAddress(address marketCollateralPoolFactoryAddress) external onlyOwner {
-        collateralPoolFactoryAddress = marketCollateralPoolFactoryAddress;
-    }
-    */
 }
