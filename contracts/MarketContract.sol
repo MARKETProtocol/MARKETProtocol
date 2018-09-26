@@ -45,7 +45,6 @@ contract MarketContract is Creatable {
     }
 
     // constants
-    address public COLLATERAL_POOL_FACTORY_ADDRESS;
     address public MKT_TOKEN_ADDRESS;
     MarketToken MKT_TOKEN;
 
@@ -62,11 +61,10 @@ contract MarketContract is Creatable {
     uint public lastPrice;
     uint public settlementPrice;
     bool public isSettled = false;
-    bool public isCollateralPoolContractLinked = false;
 
     // accounting
     address public MARKET_COLLATERAL_POOL_ADDRESS;
-    MarketCollateralPool marketCollateralPool;
+    MarketCollateralPool MARKET_COLLATERAL_POOL;
     OrderLib.OrderMappings orderMappings;
 
     // events
@@ -101,7 +99,7 @@ contract MarketContract is Creatable {
     ///     creatorAddress                  address of the person creating the contract
     ///     marketTokenAddress              address of our member token
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
-    ///     collateralPoolFactoryAddress    address of the factory creating the collateral pools
+    ///     collateralPoolAddress           address of the collateral pool
     /// @param contractSpecs array of unsigned integers including:
     ///     floorPrice          minimum tradeable price of this contract, contract enters settlement if breached
     ///     capPrice            maximum tradeable price of this contract, contract enters settlement if breached
@@ -115,7 +113,8 @@ contract MarketContract is Creatable {
         uint[5] contractSpecs
     ) public
     {
-        COLLATERAL_POOL_FACTORY_ADDRESS = baseAddresses[3];
+        MARKET_COLLATERAL_POOL_ADDRESS = baseAddresses[3];
+        MARKET_COLLATERAL_POOL = MarketCollateralPool(MARKET_COLLATERAL_POOL_ADDRESS);
         MKT_TOKEN_ADDRESS = baseAddresses[1];
         MKT_TOKEN = MarketToken(MKT_TOKEN_ADDRESS);
         require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
@@ -155,7 +154,7 @@ contract MarketContract is Creatable {
         bytes32 s
     ) external returns (int filledQty)
     {
-        require(isCollateralPoolContractLinked && !isSettled); // no trading past settlement
+        require(!isSettled); // no trading past settlement
         require(orderQty != 0 && qtyToFill != 0 && orderQty.isSameSign(qtyToFill));   // no zero trades, sings match
         require(MKT_TOKEN.isUserEnabledForContract(this, msg.sender));
         OrderLib.Order memory order = address(this).createOrder(orderAddresses, unsignedOrderValues, orderQty);
@@ -186,7 +185,7 @@ contract MarketContract is Creatable {
         }
 
         filledQty = MathLib.absMin(remainingQty, qtyToFill);
-        marketCollateralPool.updatePositions(
+        MARKET_COLLATERAL_POOL.updatePositions(
             order.maker,
             msg.sender,
             filledQty,
@@ -274,18 +273,6 @@ contract MarketContract is Creatable {
         return qtyCancelled;
     }
 
-    /// @notice allows the factory to link a collateral pool contract to this trading contract.
-    /// can only be called once if successful.  Trading cannot commence until this is completed.
-    /// @param poolAddress deployed address of the unique collateral pool for this contract.
-    function setCollateralPoolContractAddress(address poolAddress) external onlyFactory {
-        require(!isCollateralPoolContractLinked); // address has not been set previously
-        require(poolAddress != address(0));       // not trying to set it to null addr.
-        marketCollateralPool = MarketCollateralPool(poolAddress);
-        require(marketCollateralPool.linkedAddress() == address(this)); // ensure pool set up correctly.
-        MARKET_COLLATERAL_POOL_ADDRESS = poolAddress;
-        isCollateralPoolContractLinked = true;
-    }
-
     /* Currently no pre-funding is required.
     /// @notice after contract settlement the contract creator can reclaim any
     /// unused ethereum balance from this contract that was provided for oracle query costs / gas.
@@ -338,11 +325,5 @@ contract MarketContract is Creatable {
     function settleContract(uint finalSettlementPrice) private {
         settlementPrice = finalSettlementPrice;
         emit ContractSettled(finalSettlementPrice);
-    }
-
-    ///@dev Throws if called by any account other than the factory.
-    modifier onlyFactory() {
-        require(msg.sender == COLLATERAL_POOL_FACTORY_ADDRESS);
-        _;
     }
 }

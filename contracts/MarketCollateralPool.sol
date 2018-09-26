@@ -18,17 +18,19 @@ pragma solidity ^0.4.24;
 
 import "./libraries/MathLib.sol";
 import "./tokens/MarketToken.sol";
-import "./Linkable.sol";
 import "./MarketContract.sol";
 
 import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "./MarketContractRegistryInterface.sol";
 
 
-/// @title MarketCollateralPool is a contract controlled by a specific Market Contract.  It holds collateral balances
-/// as well as user balances and open positions.  It should be instantiated and then linked by a MarketContract.
+/// @title MarketCollateralPool is a contract controlled by Market Contracts.  It holds collateral balances
+/// as well as user balances and open positions.  It should be instantiated and then linked to a specific market
+/// contract factory.
+// TODO: add time lock!
 /// @author Phil Elsasser <phil@marketprotocol.io>
-contract MarketCollateralPool is Linkable {
+contract MarketCollateralPool is Ownable {
     using MathLib for uint;
     using MathLib for int;
     using SafeERC20 for ERC20;
@@ -43,52 +45,62 @@ contract MarketCollateralPool is Linkable {
         int qty;
     }
 
-    uint public collateralPoolBalance;                                 // current balance of all collateral committed
-    mapping(address => UserNetPosition) addressToUserPosition;
-    mapping(address => uint) public userAddressToAccountBalance;       // stores account balances allowed to be allocated to orders
-    address public MKT_TOKEN_ADDRESS;
-    MarketContract MKT_CONTRACT;
+    mapping(address => uint) public contractAddressToCollateralPoolBalance;                 // current balance of all collateral committed
+    mapping(address => mapping(address => UserNetPosition)) contractAddressToUserPosition;
+    mapping(address => mapping(address => uint)) public tokenAddressToAccountBalance;       // stores account balances allowed to be allocated to orders
+    mapping(address => mapping(address => uint)) public tokenAddressToBalanceLockTime;      // stores account balances lock time
 
-    event UpdatedUserBalance(address indexed user, uint balance);
-    event UpdatedPoolBalance(uint balance);
+    MarketContractRegistryInterface MARKET_CONTRACT_REGISTRY;
 
-    /// @dev instantiates a collateral pool that is unique to the supplied address of a MarketContract. This pairing
-    /// is 1:1
-    /// @param marketContractAddress deployed address of a MarketContract
-    constructor(address marketContractAddress) Linkable(marketContractAddress) public {
-        MKT_CONTRACT = MarketContract(marketContractAddress);
-        MKT_TOKEN_ADDRESS = MKT_CONTRACT.MKT_TOKEN_ADDRESS();
+    event UpdatedUserBalance(address indexed collateralTokenAddress, address indexed user, uint balance);
+
+    /// @param marketContractFactoryAddress factory address for this collateral pool
+    constructor(address marketContractFactoryAddress) public {
+        MARKET_CONTRACT_REGISTRY = MarketContractRegistryInterface(marketContractFactoryAddress);
     }
 
     /// @notice get the net position for a give user address
+    /// @param marketContractAddress MARKET Contract address to return position for
     /// @param userAddress address to return position for
     /// @return the users current open position.
-    function getUserNetPosition(address userAddress) external view returns (int) {
-        return addressToUserPosition[userAddress].netPosition;
+    function getUserNetPosition(address marketContractAddress, address userAddress) external view returns (int) {
+        return contractAddressToUserPosition[marketContractAddress][userAddress].netPosition;
     }
 
     /// @notice gets the number of positions currently held by this address. Useful for iterating
     /// over the positions array in order to retrieve all users data.
+    /// @param marketContractAddress MARKET Contract address
     /// @param userAddress address of user
     /// @return number of open unique positions in the array.
-    function getUserPositionCount(address userAddress) external view returns (uint) {
-        return addressToUserPosition[userAddress].positions.length;
+    function getUserPositionCount(address marketContractAddress, address userAddress) external view returns (uint) {
+        return contractAddressToUserPosition[marketContractAddress][userAddress].positions.length;
     }
 
     /// @notice Allows for retrieval of user position struct (since solidity cannot return the struct) we return
     /// the data as a tuple of (uint, int) that represents (price, qty)
+    /// @param marketContractAddress MARKET Contract address
     /// @param userAddress address of user
     /// @param index 0 based index of position in array (older positions are lower indexes)
     /// @return (price, qty) tuple
-    function getUserPosition(address userAddress, uint index) external view returns (uint, int) {
-        Position storage pos = addressToUserPosition[userAddress].positions[index];
+    function getUserPosition(
+        address marketContractAddress,
+        address userAddress,
+        uint index
+    ) external view returns (uint, int)
+    {
+        Position storage pos = contractAddressToUserPosition[marketContractAddress][userAddress].positions[index];
         return (pos.price, pos.qty);
     }
 
+    /// @param collateralTokenAddress ERC20 token address
     /// @param userAddress address of user
     /// @return the users currently unallocated token balance
-    function getUserUnallocatedBalance(address userAddress) external view returns (uint) {
-        return userAddressToAccountBalance[userAddress];
+    function getUserUnallocatedBalance(
+        address collateralTokenAddress,
+        address userAddress
+    ) external view returns (uint)
+    {
+        return tokenAddressToAccountBalance[collateralTokenAddress][userAddress];
     }
 
     /*
@@ -97,34 +109,36 @@ contract MarketCollateralPool is Linkable {
 
     /// @notice deposits tokens to the smart contract to fund the user account and provide needed tokens for collateral
     /// pool upon trade matching.
+    /// @param collateralTokenAddress ERC20 token address
     /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
-    function depositTokensForTrading(uint256 depositAmount) external {
-        // user must call approve!
-        require(MarketToken(MKT_TOKEN_ADDRESS).isUserEnabledForContract(MKT_CONTRACT, msg.sender));
-        uint256 balanceAfterDeposit = userAddressToAccountBalance[msg.sender].add(depositAmount);
-        ERC20(MKT_CONTRACT.COLLATERAL_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, this, depositAmount);
-        userAddressToAccountBalance[msg.sender] = balanceAfterDeposit;
-        emit UpdatedUserBalance(msg.sender, balanceAfterDeposit);
+    function depositTokensForTrading(address collateralTokenAddress, uint256 depositAmount) external {
+        uint256 balanceAfterDeposit = tokenAddressToAccountBalance[collateralTokenAddress][msg.sender].add(depositAmount);
+        ERC20(collateralTokenAddress).safeTransferFrom(msg.sender, this, depositAmount);
+        tokenAddressToAccountBalance[collateralTokenAddress][msg.sender] = balanceAfterDeposit;
+        emit UpdatedUserBalance(collateralTokenAddress, msg.sender, balanceAfterDeposit);
     }
 
     // @notice called by a user after settlement has occurred.  This function will finalize all accounting around any
     // outstanding positions and return all remaining collateral to the caller. This should only be called after
     // settlement has occurred.
-    function settleAndClose() external {
-        require(MKT_CONTRACT.isSettled());
-        require(MarketToken(MKT_TOKEN_ADDRESS).isUserEnabledForContract(MKT_CONTRACT, msg.sender));
-        UserNetPosition storage userNetPos = addressToUserPosition[msg.sender];
+    /// @param marketContractAddress address of the MARKET Contract being traded.
+    function settleAndClose(address marketContractAddress) external {
+        MarketContract marketContract = MarketContract(marketContractAddress);
+        require(marketContract.isSettled());
+        UserNetPosition storage userNetPos = contractAddressToUserPosition[marketContractAddress][msg.sender];
         if (userNetPos.netPosition != 0) {
             // this user has a position that we need to settle based upon the settlement price of the contract
             reduceUserNetPosition(
+                marketContract,
                 userNetPos,
                 msg.sender,
                 userNetPos.netPosition * - 1,
-                MKT_CONTRACT.settlementPrice()
+                marketContract.settlementPrice()
             );
         }
         // transfer all balances back to user.
-        withdrawTokens(userAddressToAccountBalance[msg.sender]);
+        withdrawTokens(marketContract.COLLATERAL_TOKEN_ADDRESS(),
+            tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][msg.sender]);
     }
 
     /// @dev called by our linked MarketContract when a trade occurs to update both maker and takers positions.
@@ -137,15 +151,18 @@ contract MarketCollateralPool is Linkable {
         address taker,
         int qty,
         uint price
-    ) external onlyLinked
+    ) external onlyMarketContract
     {
+        MarketContract marketContract = MarketContract(msg.sender);
         updatePosition(
+            marketContract,
             maker,
             qty,
             price
         );
         // continue process for taker, but qty is opposite sign for taker
         updatePosition(
+            marketContract,
             taker,
             qty * -1,
             price
@@ -157,13 +174,15 @@ contract MarketCollateralPool is Linkable {
     */
 
     /// @notice removes token from users trading account
+    /// @param collateralTokenAddress ERC20 token address
     /// @param withdrawAmount qty of token to attempt to withdraw
-    function withdrawTokens(uint256 withdrawAmount) public {
-        //require(userAddressToAccountBalance[msg.sender] >= withdrawAmount);  subtract call below will enforce this
-        uint256 balanceAfterWithdrawal = userAddressToAccountBalance[msg.sender].subtract(withdrawAmount);
-        userAddressToAccountBalance[msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
-        ERC20(MKT_CONTRACT.COLLATERAL_TOKEN_ADDRESS()).safeTransfer(msg.sender, withdrawAmount);
-        emit UpdatedUserBalance(msg.sender, balanceAfterWithdrawal);
+    function withdrawTokens(address collateralTokenAddress, uint256 withdrawAmount) public {
+        uint256 balanceAfterWithdrawal =
+            tokenAddressToAccountBalance[collateralTokenAddress][msg.sender].subtract(withdrawAmount);
+
+        tokenAddressToAccountBalance[collateralTokenAddress][msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
+        ERC20(collateralTokenAddress).safeTransfer(msg.sender, withdrawAmount);
+        emit UpdatedUserBalance(collateralTokenAddress, msg.sender, balanceAfterWithdrawal);
     }
 
     /*
@@ -171,54 +190,64 @@ contract MarketCollateralPool is Linkable {
     */
 
     /// @notice moves collateral from a user's account to the pool upon trade execution.
+    /// @param marketContract the MARKET Contract being traded.
     /// @param fromAddress address of user entering trade
     /// @param collateralAmount amount of collateral to transfer from user account to collateral pool
     function commitCollateralToPool(
+        MarketContract marketContract,
         address fromAddress,
         uint collateralAmount
     ) private
     {
-        //require(MKT_TOKEN.isUserEnabledForContract(MKT_CONTRACT, msg.sender)); already confirmed higher in call stack!
-        //require(userAddressToAccountBalance[fromAddress] >= collateralAmount);   // ensure sufficient balance
-        // subtract call will enforce sufficient balance.
-        uint newBalance = userAddressToAccountBalance[fromAddress].subtract(collateralAmount);
-        userAddressToAccountBalance[fromAddress] = newBalance;
-        collateralPoolBalance = collateralPoolBalance.add(collateralAmount);
-        emit UpdatedUserBalance(fromAddress, newBalance);
-        emit UpdatedPoolBalance(collateralPoolBalance);
+
+        uint newBalance =
+            tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][fromAddress].subtract(
+                collateralAmount);
+
+        tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][fromAddress] = newBalance;
+
+        contractAddressToCollateralPoolBalance[marketContract] =
+            contractAddressToCollateralPoolBalance[marketContract].add(collateralAmount);
+
+        emit UpdatedUserBalance(marketContract.COLLATERAL_TOKEN_ADDRESS(), fromAddress, newBalance);
     }
 
     /// @notice withdraws collateral from pool to a user account upon exit or trade settlement
+    /// @param marketContract the MARKET Contract being traded.
     /// @param toAddress address of user
     /// @param collateralAmount amount to transfer from pool to user.
     function withdrawCollateralFromPool(
+        MarketContract marketContract,
         address toAddress,
         uint collateralAmount
     ) private
     {
-        //require(MKT_TOKEN.isUserEnabledForContract(MKT_CONTRACT, msg.sender)); already confirmed higher in call stack!
-        // require(collateralPoolBalance >= collateralAmount); subtract call below will enforce this!
-        uint newBalance = userAddressToAccountBalance[toAddress].add(collateralAmount);
-        userAddressToAccountBalance[toAddress] = newBalance;
-        collateralPoolBalance = collateralPoolBalance.subtract(collateralAmount);
-        emit UpdatedUserBalance(toAddress, newBalance);
-        emit UpdatedPoolBalance(collateralPoolBalance);
+        uint newBalance =
+            tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][toAddress].add(collateralAmount);
+        tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][toAddress] = newBalance;
+        contractAddressToCollateralPoolBalance[marketContract] =
+            contractAddressToCollateralPoolBalance[marketContract].subtract(collateralAmount);
+
+        emit UpdatedUserBalance(marketContract.COLLATERAL_TOKEN_ADDRESS(), toAddress, newBalance);
     }
 
     /// @dev handles all needed internal accounting when a user enters into a new trade
+    /// @param marketContract the MARKET Contract being traded.
     /// @param userAddress storage struct containing position information for this user
     /// @param qty signed quantity this users position is changing by, + for buy and - for sell
     /// @param price transacted price of the new position / trade
     function updatePosition(
+        MarketContract marketContract,
         address userAddress,
         int qty,
         uint price
     ) private
     {
-        UserNetPosition storage userNetPosition = addressToUserPosition[userAddress];
+        UserNetPosition storage userNetPosition = contractAddressToUserPosition[marketContract][userAddress];
         if (userNetPosition.netPosition == 0 || userNetPosition.netPosition.isSameSign(qty)) {
             // new position or adding to open pos
             addUserNetPosition(
+                marketContract,
                 userNetPosition,
                 userAddress,
                 qty,
@@ -227,14 +256,15 @@ contract MarketCollateralPool is Linkable {
         } else {  // opposite side from open position, reduce, flattened, or flipped.
             if (userNetPosition.netPosition.abs() >= qty.abs()) { // pos is reduced or flattened
                 reduceUserNetPosition(
+                    marketContract,
                     userNetPosition,
                     userAddress,
                     qty,
                     price
                 );
             } else {    // pos is flipped, reduce and then create new open pos!
-
                 reduceUserNetPosition(
+                    marketContract,
                     userNetPosition,
                     userAddress,
                     userNetPosition.netPosition * -1,
@@ -243,6 +273,7 @@ contract MarketCollateralPool is Linkable {
 
                 int newNetPos = userNetPosition.netPosition + qty;            // the portion remaining after flattening
                 addUserNetPosition(
+                    marketContract,
                     userNetPosition,
                     userAddress,
                     newNetPos,
@@ -255,11 +286,13 @@ contract MarketCollateralPool is Linkable {
 
     /// @dev calculates the needed collateral for a new position and commits it to the pool removing it from the
     /// users account and creates the needed Position struct to record the new position.
+    /// @param marketContract The MARKET Contract being traded.
     /// @param userNetPosition current positions held by user
     /// @param userAddress address of user entering into the position
     /// @param qty signed quantity of the trade
     /// @param price agreed price of trade
     function addUserNetPosition(
+        MarketContract marketContract,
         UserNetPosition storage userNetPosition,
         address userAddress,
         int qty,
@@ -267,22 +300,24 @@ contract MarketCollateralPool is Linkable {
     ) private
     {
         uint neededCollateral = MathLib.calculateNeededCollateral(
-            MKT_CONTRACT.PRICE_FLOOR(),
-            MKT_CONTRACT.PRICE_CAP(),
-            MKT_CONTRACT.QTY_MULTIPLIER(),
+            marketContract.PRICE_FLOOR(),
+            marketContract.PRICE_CAP(),
+            marketContract.QTY_MULTIPLIER(),
             qty,
             price
         );
-        commitCollateralToPool(userAddress, neededCollateral);
+        commitCollateralToPool(marketContract, userAddress, neededCollateral);
         userNetPosition.positions.push(Position(price, qty));   // append array with new position
     }
 
     /// @dev reduces net position correctly allocating collateral back to user
+    /// @param marketContract The MARKET Contract being traded.
     /// @param userNetPos storage struct for this users position
     /// @param userAddress address of user who is reducing their pos
     /// @param qty signed quantity of the qty to reduce this users position by
     /// @param price transacted price
     function reduceUserNetPosition(
+        MarketContract marketContract,
         UserNetPosition storage userNetPos,
         address userAddress,
         int qty,
@@ -297,9 +332,9 @@ contract MarketCollateralPool is Linkable {
             if (position.qty.abs() <= qtyToReduce.abs()) {   // this position is completely consumed!
                 collateralToReturnToUserAccount = collateralToReturnToUserAccount.add(
                     MathLib.calculateNeededCollateral(
-                        MKT_CONTRACT.PRICE_FLOOR(),
-                        MKT_CONTRACT.PRICE_CAP(),
-                        MKT_CONTRACT.QTY_MULTIPLIER(),
+                        marketContract.PRICE_FLOOR(),
+                        marketContract.PRICE_CAP(),
+                        marketContract.QTY_MULTIPLIER(),
                         position.qty,
                         price
                     )
@@ -311,9 +346,9 @@ contract MarketCollateralPool is Linkable {
                 // pos is opp sign of qty we are reducing here!
                 collateralToReturnToUserAccount = collateralToReturnToUserAccount.add(
                     MathLib.calculateNeededCollateral(
-                        MKT_CONTRACT.PRICE_FLOOR(),
-                        MKT_CONTRACT.PRICE_CAP(),
-                        MKT_CONTRACT.QTY_MULTIPLIER(),
+                        marketContract.PRICE_FLOOR(),
+                        marketContract.PRICE_CAP(),
+                        marketContract.QTY_MULTIPLIER(),
                         qtyToReduce * -1,
                         price
                     )
@@ -324,7 +359,14 @@ contract MarketCollateralPool is Linkable {
         }
 
         if (collateralToReturnToUserAccount != 0) {  // allocate funds back to user acct.
-            withdrawCollateralFromPool(userAddress, collateralToReturnToUserAccount);
+            withdrawCollateralFromPool(marketContract, userAddress, collateralToReturnToUserAccount);
         }
     }
+
+
+    modifier onlyMarketContract(){
+        require(MARKET_CONTRACT_REGISTRY.isAddressWhiteListed(msg.sender));
+        _;
+    }
+
 }
