@@ -1,7 +1,5 @@
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
-const MarketCollateralPoolFactory = artifacts.require(
-  './factories/MarketCollateralPoolFactory.sol'
-);
+const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
 const MarketToken = artifacts.require('./tokens/MarketToken.sol');
 const MarketContractFactory = artifacts.require(
@@ -19,13 +17,13 @@ module.exports = function(deployer, network) {
 
     return MarketContractRegistry.deployed().then(function(registryInstance) {
       // deploy the factories
-      return MarketCollateralPoolFactory.deployed().then(function(collateralPoolFactory) {
+      return MarketCollateralPool.deployed().then(function(collateralPool) {
         return deployer
           .deploy(
             MarketContractFactory,
             registryInstance.address,
             MarketToken.address,
-            collateralPoolFactory.address,
+            collateralPool.address,
             { gas: gasLimit, from: web3.eth.accounts[0] }
           )
           .then(function(factory) {
@@ -39,12 +37,7 @@ module.exports = function(deployer, network) {
                   'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
                   { gas: gasLimit, from: web3.eth.accounts[0] }
                 )
-                .then(function(results) {
-                  return collateralPoolFactory.deployMarketCollateralPool(
-                    results.logs[0].args.contractAddress,
-                    { gas: gasLimit }
-                  );
-                }).then(function() {
+                .then(function() {
                 return factory
                   .deployMarketContractOraclize(
                     'ETHXBT-2',
@@ -54,12 +47,6 @@ module.exports = function(deployer, network) {
                     'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
                     { gas: gasLimit, from: web3.eth.accounts[0] }
                   )
-                  .then(function(results) {
-                    return collateralPoolFactory.deployMarketCollateralPool(
-                      results.logs[0].args.contractAddress,
-                      { gas: gasLimit }
-                    );
-                  });
               });
             });
           });

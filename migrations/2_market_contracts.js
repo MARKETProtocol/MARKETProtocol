@@ -3,9 +3,7 @@ const OrderLib = artifacts.require('./libraries/OrderLib.sol');
 const OrderLibMock = artifacts.require('./mocks/OrderLibMock.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
 const MarketContractOraclize = artifacts.require('./oraclize/TestableMarketContractOraclize.sol');
-const MarketCollateralPoolFactory = artifacts.require(
-  './factories/MarketCollateralPoolFactory.sol'
-);
+const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
 const MarketToken = artifacts.require('./tokens/MarketToken.sol');
 const MarketContractFactory = artifacts.require(
@@ -17,11 +15,11 @@ module.exports = function(deployer, network) {
     deployer.deploy([MathLib, OrderLib, MarketContractRegistry]).then(function(){
 
       deployer.link(MathLib,
-        [ MarketContractOraclize, MarketContractFactory, MarketCollateralPoolFactory, OrderLibMock ]
+        [ MarketContractOraclize, MarketContractFactory, MarketCollateralPool, OrderLibMock ]
       );
       deployer.link(OrderLib, [MarketContractOraclize, MarketContractFactory, OrderLibMock]);
 
-      deployer.deploy([OrderLibMock, [MarketCollateralPoolFactory, MarketContractRegistry.address]]);
+      deployer.deploy([OrderLibMock, [MarketCollateralPool, MarketContractRegistry.address]]);
 
       const marketTokenToLockForTrading = 0; // for testing purposes, require no loc
       const marketTokenAmountForContractCreation = 0; //for testing purposes require no balance
