@@ -103,6 +103,14 @@ contract MarketCollateralPool is Ownable {
         return tokenAddressToAccountBalance[collateralTokenAddress][userAddress];
     }
 
+    /// @notice Allows for retrieval of the collateral pool balance that is locked for open positions for a give
+    /// market contract address.
+    /// the data as a tuple of (uint, int) that represents (price, qty)
+    /// @param marketContractAddress MARKET Contract address
+    function getCollateralPoolBalance(address marketContractAddress) external view returns (uint) {
+        return contractAddressToCollateralPoolBalance[marketContractAddress];
+    }
+
     /*
     // EXTERNAL METHODS
     */
