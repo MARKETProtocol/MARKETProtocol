@@ -79,8 +79,8 @@ contract('MarketCollateralPool', function(accounts) {
       accounts[3]
     );
     await marketToken.setLockQtyToAllowTrading(10);
-    error = null;
 
+    error = null;
     try {
       await collateralPool.depositTokensForTrading(fourBalance, { from: accounts[3] });
     } catch (err) {
@@ -557,12 +557,30 @@ contract('MarketCollateralPool', function(accounts) {
   it('should fail if settleAndClose() is called before settlement', async () => {
 
     let error = null;
+    let settleAndCloseError = null;
     try {
       await collateralPool.settleAndClose.call(marketContract.address, { from: accounts[0] });
     } catch (err) {
-      error = err;
+      settleAndCloseError = err;
     }
-
-    assert.ok(error instanceof Error, 'settleAndClose() did not fail before settlement');
+    assert.ok(settleAndCloseError instanceof Error, 'settleAndClose() did not fail before settlement');
   });
+
+  it('should only allow updatePositions to be called by a market contract', async () => {
+
+    let error = null;
+    let updatePositionsError = null;
+    try {
+      await collateralPool.updatePositions(
+        accounts[0],
+        accounts[1],
+        1,
+        entryOrderPrice
+      );
+    } catch (err) {
+      updatePositionsError = err;
+    }
+    assert.ok(updatePositionsError instanceof Error, "didn't fail to call updatePositions from non MarketContract address");
+  });
+
 });

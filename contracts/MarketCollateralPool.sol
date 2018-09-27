@@ -132,7 +132,7 @@ contract MarketCollateralPool is Ownable {
     /// @param marketContractAddress address of the MARKET Contract being traded.
     function settleAndClose(address marketContractAddress) external {
         MarketContract marketContract = MarketContract(marketContractAddress);
-        require(marketContract.isSettled());
+        require(marketContract.isSettled(), "Contract is not settled");
         UserNetPosition storage userNetPos = contractAddressToUserPosition[marketContractAddress][msg.sender];
         if (userNetPos.netPosition != 0) {
             // this user has a position that we need to settle based upon the settlement price of the contract
@@ -373,7 +373,8 @@ contract MarketCollateralPool is Ownable {
 
 
     modifier onlyMarketContract(){
-        require(MARKET_CONTRACT_REGISTRY.isAddressWhiteListed(msg.sender));
+        require(MARKET_CONTRACT_REGISTRY.isAddressWhiteListed(msg.sender),
+            "Can only be called by a white listed MarketContract");
         _;
     }
 
