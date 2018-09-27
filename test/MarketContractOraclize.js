@@ -24,6 +24,7 @@ contract('MarketContractOraclize', function(accounts) {
   let takerAccountBalanceBeforeTrade;
   let tradeHelper;
   const entryOrderPrice = 33025;
+  const exitOrderPrice = 36025;
   const accountMaker = accounts[0];
   const accountTaker = accounts[1];
 
@@ -146,7 +147,6 @@ contract('MarketContractOraclize', function(accounts) {
     );
   });
 
-  const exitOrderPrice = 36025;
   it('Trade is unwound, correct collateral amount returns to user balances', async function() {
     const orderAddresses = [accountMaker, accountTaker, accounts[2]];
     const orderPrice = 36025;
@@ -241,6 +241,52 @@ contract('MarketContractOraclize', function(accounts) {
       expectedQtyFilled,
       actualQtyFilled.toNumber(),
       "Quantity filled doesn't match expected"
+    );
+  });
+
+  it('should fail attempt to fill an order already completely filled.', async function() {
+    const timeStamp = new Date().getTime() / 1000 + 60 * 5; // order expires 5 minute from now.
+    const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+    const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 105];
+    const orderQty = 5; // user is attempting to buy 5
+    const qtyToFill = 10; // order is to be filled by 10
+    const orderHash = await orderLib._createOrderHash.call(
+      marketContract.address,
+      orderAddresses,
+      unsignedOrderValues,
+      orderQty
+    );
+
+    // Execute trade between maker and taker
+    const orderSignature = utility.signMessage(web3, accountMaker, orderHash);
+    await marketContract.tradeOrder(
+      orderAddresses,
+      unsignedOrderValues,
+      orderQty,
+      orderQty,
+      orderSignature[0], // v
+      orderSignature[1], // r
+      orderSignature[2], // s
+      { from: accountTaker }
+    );
+
+    // Second attempt to execute same trader / same order, should fail!
+    await marketContract.tradeOrder(
+      orderAddresses,
+      unsignedOrderValues,
+      orderQty,
+      orderQty,
+      orderSignature[0], // v
+      orderSignature[1], // r
+      orderSignature[2], // s
+      { from: accountTaker }
+    );
+
+    const events = await utility.getEvent(marketContract, 'Error');
+    assert.equal(
+      ErrorCodes.ORDER_DEAD,
+      events[0].args.errorCode.toNumber(),
+      'Error event is not order dead.'
     );
   });
 
