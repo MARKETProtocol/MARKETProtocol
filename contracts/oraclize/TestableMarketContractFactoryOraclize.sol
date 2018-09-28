@@ -20,6 +20,7 @@ import "./TestableMarketContractOraclize.sol";
 import "../MarketContractRegistryInterface.sol";
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "../tokens/MarketToken.sol";
 
 
 /// @title TestableMarketContractFactoryOraclize

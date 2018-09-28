@@ -17,11 +17,11 @@
 pragma solidity ^0.4.24;
 
 import "./libraries/MathLib.sol";
-import "./tokens/MarketToken.sol";
 import "./MarketContract.sol";
 
 import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 /// @title MarketCollateralPool is a contract controlled by Market Contracts.  It holds collateral balances

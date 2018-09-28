@@ -17,14 +17,6 @@
 pragma solidity ^0.4.24;
 
 import "./Creatable.sol";
-import "./MarketCollateralPool.sol";
-import "./libraries/OrderLib.sol";
-import "./libraries/MathLib.sol";
-import "./tokens/MarketToken.sol";
-
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
-
 
 /// @title MarketContract base contract implement all needed functionality for trading.
 /// @notice this is the abstract base contract that all contracts should inherit from to

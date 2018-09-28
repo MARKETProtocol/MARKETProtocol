@@ -16,7 +16,6 @@
 
 pragma solidity ^0.4.24;
 
-import "./Creatable.sol";
 import "./MarketCollateralPool.sol";
 import "./MarketContract.sol";
 import "./libraries/OrderLib.sol";
