@@ -107,16 +107,17 @@ contract MarketTradingHub {
     ) external returns (int filledQty)
     {
         MarketContract marketContract = MarketContract(orderAddresses[0]);
-        require(!marketContract.isSettled()); // no trading past settlement
-        require(orderQty != 0 && qtyToFill != 0 && orderQty.isSameSign(qtyToFill));   // no zero trades, sings match
-        require(MKT_TOKEN.isUserEnabledForContract(this, msg.sender));
+        require(!marketContract.isSettled(), "Contract has already settled"); // no trading past settlement
+        require(orderQty != 0 && qtyToFill != 0 && orderQty.isSameSign(qtyToFill), "qty Error");   // no zero trades, sings match
+        require(MKT_TOKEN.isUserEnabledForContract(this, msg.sender), "taker not enabled");
         OrderLib.Order memory order = OrderLib.createOrder(orderAddresses, unsignedOrderValues, orderQty);
-        require(MKT_TOKEN.isUserEnabledForContract(this, order.maker));
+        require(MKT_TOKEN.isUserEnabledForContract(this, order.maker), "maker not enabled");
 
         // taker can be anyone, or specifically the caller!
-        require(order.taker == address(0) || order.taker == msg.sender);
+        require(order.taker == address(0) || order.taker == msg.sender, "invalid taker");
         // do not allow self trade
-        require(order.maker != address(0) && order.maker != msg.sender);
+        require(order.maker != address(0) && order.maker != msg.sender, "invalid wash trade");
+
         require(
             OrderLib.isValidSignature(
                 order.maker,

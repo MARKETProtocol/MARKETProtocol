@@ -25,13 +25,14 @@ module.exports = async function(marketContract, orderLib, collateralToken, colla
     const timeStamp = new Date().getTime() / 1000 + 60 * (isExpired ? -5 : 5); // expires/expired 5 mins (ago)
     const orderAddresses = [marketContractAddress, accountMaker, accountTaker, feeAccount];
     const unsignedOrderValues = [makerFee, takerFee, orderPrice, timeStamp, 1];
+
     const orderHash = await orderLib._createOrderHash.call(
       orderAddresses,
       unsignedOrderValues,
       orderQty
     );
-
     const orderSignature = utility.signMessage(web3, accountMaker, orderHash);
+
     await tradingHub.tradeOrder(
       orderAddresses,
       unsignedOrderValues,
@@ -40,7 +41,7 @@ module.exports = async function(marketContract, orderLib, collateralToken, colla
       orderSignature[0], // v
       orderSignature[1], // r
       orderSignature[2], // s
-      { from: accountTaker }
+      { from: accountTaker}
     );
     return { orderHash, orderSignature, unsignedOrderValues };
   }
