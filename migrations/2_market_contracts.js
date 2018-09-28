@@ -8,12 +8,12 @@ const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol')
 const MarketTradingHub = artifacts.require('./MarketTradingHub.sol');
 const MarketToken = artifacts.require('./tokens/MarketToken.sol');
 
-module.exports = function(deployer, network) {
+module.exports = function (deployer, network) {
   if (network !== 'live') {
-    deployer.deploy([MathLib, OrderLib, MarketContractRegistry]).then(function(){
+    deployer.deploy([MathLib, OrderLib, MarketContractRegistry]).then(function () {
 
       deployer.link(MathLib,
-        [ MarketContractOraclize, MarketCollateralPool, OrderLibMock ]
+        [MarketContractOraclize, MarketCollateralPool, OrderLibMock]
       );
       deployer.link(OrderLib, [OrderLibMock, MarketTradingHub]);
 
@@ -25,7 +25,7 @@ module.exports = function(deployer, network) {
         return MarketCollateralPool.deployed().then(function (marketCollateralPool) {
           return deployer
             .deploy(MarketToken, marketTokenToLockForTrading, marketTokenAmountForContractCreation)
-            .then(function() {
+            .then(function () {
               return deployer
                 .deploy(CollateralToken, 'CollateralToken', 'CTK', 10000, 18, {
                   gas: gasLimit,
