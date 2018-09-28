@@ -4,9 +4,8 @@ const MarketContractFactory = artifacts.require('./chainlink/MarketContractFacto
 const OracleHub = artifacts.require('./chainlink/OracleHubChainLink.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
 const OrderLib = artifacts.require('./libraries/OrderLib.sol');
-const MarketCollateralPoolFactory = artifacts.require(
-  './factories/MarketCollateralPoolFactory.sol'
-);
+const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
+
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
 const MarketToken = artifacts.require('./tokens/MarketToken.sol');
 
@@ -21,12 +20,12 @@ module.exports = function(deployer, network) {
     return deployer.deploy(LinkToken).then(function (linkToken) {
       return deployer.deploy(ChainLinkOracle, LinkToken.address).then(function () {
         return MarketContractRegistry.deployed().then(function (registry) {
-          return MarketCollateralPoolFactory.deployed().then(function (collateralFactory) {
+          return MarketCollateralPool.deployed().then(function (collateralPool) {
             return deployer.deploy(
               MarketContractFactory,
               registry.address,
               MarketToken.address,
-              collateralFactory.address,
+              collateralPool.address,
               {gas: gasLimit, from: web3.eth.accounts[0]}
             ).then(function (factory) {
               return registry.addFactoryAddress(factory.address).then(function () {
@@ -44,7 +43,7 @@ module.exports = function(deployer, network) {
                       ).then(function() {
                         // transfer link token to hub to pay for queries.
                         return linkToken.transfer(oracleHub.address, 10e22).then(function () {
-                          factory.deployMarketContractChainLink(
+                          return factory.deployMarketContractChainLink(
                             'ETHXBT',
                             CollateralToken.address,
                             [20155, 60465, 2, 10, marketContractExpiration],
@@ -53,12 +52,7 @@ module.exports = function(deployer, network) {
                             'fakeSleepJobId',
                             'fakeOnDemandJobId',
                             { gas: gasLimit, from: web3.eth.accounts[0] }
-                          ).then(function(results) {
-                            return collateralFactory.deployMarketCollateralPool(
-                              results.logs[0].args.contractAddress,
-                              { gas: gasLimit }
-                            );
-                          });
+                          )
                         });
                     });
                 });

@@ -18,14 +18,13 @@ pragma solidity ^0.4.24;
 
 import "./MarketContractChainLink.sol";
 import "./OracleHubChainLink.sol";
-import "../factories/MarketCollateralPoolFactoryInterface.sol";
 import "../MarketContractRegistryInterface.sol";
 
 
 contract MarketContractFactoryChainLink is Ownable {
 
     address public marketContractRegistry;
-    address public collateralPoolFactoryAddress;
+    address public collateralPool;
     address public oracleHubAddress;
 
     address public MKT_TOKEN_ADDRESS;
@@ -35,11 +34,11 @@ contract MarketContractFactoryChainLink is Ownable {
     constructor(
         address registryAddress,
         address mktTokenAddress,
-        address marketCollateralPoolFactoryAddress
+        address marketCollateralPool
     ) public {
         marketContractRegistry = registryAddress;
         MKT_TOKEN_ADDRESS = mktTokenAddress;
-        collateralPoolFactoryAddress = marketCollateralPoolFactoryAddress;
+        collateralPool = marketCollateralPool;
     }
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
@@ -71,7 +70,7 @@ contract MarketContractFactoryChainLink is Ownable {
                 msg.sender,
                 MKT_TOKEN_ADDRESS,
                 collateralTokenAddress,
-                collateralPoolFactoryAddress
+                collateralPool
             ],
             oracleHubAddress,
             contractSpecs,
