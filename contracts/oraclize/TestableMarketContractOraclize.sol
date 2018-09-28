@@ -19,7 +19,6 @@ pragma solidity ^0.4.24;
 import "./MarketContractOraclize.sol";
 
 
-
 /// @title Testable version of MarketContractOraclize that exposes a function to manually update last price.
 /// This is deployed to the test network in place of the actual MarketContractOraclize
 /// @author Perfect Makanju <root@perfect.engineering>

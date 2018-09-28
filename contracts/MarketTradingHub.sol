@@ -84,7 +84,6 @@ contract MarketTradingHub {
         MKT_TOKEN = MarketToken(MKT_TOKEN_ADDRESS);
     }
 
-
     /*
     // EXTERNAL METHODS
     */
