@@ -24,14 +24,17 @@ import "../../contracts/libraries/OrderLib.sol";
 /// @author Phil Elsasser <phil@marketprotcol.io>
 contract TestOrderLib {
 
+    address private MARKET_CONTRACT_ADDRESS = 0x621234090abaB3A6e1400e9345bC60c78a8BEf57;
     address private MAKER = 0x627306090abaB3A6e1400e9345bC60c78a8BEf57;
     address private TAKER = 0xf17f52151EbEF6C7334FAD080c5704D77216b732;
     address private FEE_RECIPIENT = 0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef;
-    address private BAD_MAKER_ADDRESS = 0x2191eF87E392377ec08E7c08Eb105Ef5448eCED5;     //used to check against
+    address private BAD_MAKER_ADDRESS = 0x2191eF87E392377ec08E7c08Eb105Ef5448eCED5;             //used to check against
+    address private BAD_MARKET_CONTRACT_ADDRESS = 0x621234090abaB3A6e1400e9000bC60c78a8BEf57;   //used to check against
+
 
     function testCreateOrder() public {
         address contractAddress = address(this);
-        address[3] memory orderAddresses = [MAKER, TAKER, FEE_RECIPIENT];
+        address[4] memory orderAddresses = [MARKET_CONTRACT_ADDRESS, MAKER, TAKER, FEE_RECIPIENT];
         uint makerFee = 5;
         uint takerFee = 7;
         uint price = 275;
@@ -41,6 +44,7 @@ contract TestOrderLib {
         int orderQty = 50;
         OrderLib.Order memory order = OrderLib.createOrder(contractAddress, orderAddresses, unsignedValues, orderQty);
 
+        Assert.equal(order.marketContractAddress, MARKET_CONTRACT_ADDRESS, "marketContractAddress should match supplied on instantiation");
         Assert.equal(order.maker, MAKER, "maker of order should match maker supplied on instantiation");
         Assert.equal(order.taker, TAKER, "taker of order should match taker supplied on instantiation");
         Assert.equal(order.feeRecipient, FEE_RECIPIENT, "feeRecipient of order should match feeRecipient supplied on instantiation");
@@ -57,8 +61,15 @@ contract TestOrderLib {
         bytes32 orderHashNewSalt = OrderLib.createOrderHash(contractAddress, orderAddresses, unsignedValues, orderQty);
         Assert.isTrue(order.orderHash != orderHashNewSalt, "orderHash of order should not match orderHash with a new salt");
 
-        orderAddresses[0] = BAD_MAKER_ADDRESS;
+        orderAddresses[0] = BAD_MARKET_CONTRACT_ADDRESS;
+        bytes32 orderHashDiffMarketContract = OrderLib.createOrderHash(contractAddress, orderAddresses, unsignedValues, orderQty);
+        Assert.isTrue(order.orderHash != orderHashDiffMarketContract, "orderHash of order should not match orderHash with a diff market contract");
+
+        orderAddresses[0] = MARKET_CONTRACT_ADDRESS; // change back
+        orderAddresses[1] = BAD_MAKER_ADDRESS;
         bytes32 orderHashDiffMaker = OrderLib.createOrderHash(contractAddress, orderAddresses, unsignedValues, orderQty);
         Assert.isTrue(order.orderHash != orderHashDiffMaker, "orderHash of order should not match orderHash with a diff maker");
+
     }
 }
+
