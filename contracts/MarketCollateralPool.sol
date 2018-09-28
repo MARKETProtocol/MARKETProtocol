@@ -22,7 +22,6 @@ import "./MarketContract.sol";
 
 import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import "./MarketContractRegistryInterface.sol";
 
 
 /// @title MarketCollateralPool is a contract controlled by Market Contracts.  It holds collateral balances
@@ -50,13 +49,13 @@ contract MarketCollateralPool is Ownable {
     mapping(address => mapping(address => uint)) public tokenAddressToAccountBalance;       // stores account balances allowed to be allocated to orders
     mapping(address => mapping(address => uint)) public tokenAddressToBalanceLockTime;      // stores account balances lock time
 
-    MarketContractRegistryInterface MARKET_CONTRACT_REGISTRY;
+    address public MARKET_TRADING_HUB;
 
     event UpdatedUserBalance(address indexed collateralTokenAddress, address indexed user, uint balance);
 
-    /// @param marketContractFactoryAddress factory address for this collateral pool
-    constructor(address marketContractFactoryAddress) public {
-        MARKET_CONTRACT_REGISTRY = MarketContractRegistryInterface(marketContractFactoryAddress);
+    /// @param marketTradingHub factory address for this collateral pool
+    constructor(address marketTradingHub) public {
+        MARKET_TRADING_HUB = marketTradingHub;
     }
 
     /// @notice get the net position for a give user address
@@ -101,14 +100,6 @@ contract MarketCollateralPool is Ownable {
     ) external view returns (uint)
     {
         return tokenAddressToAccountBalance[collateralTokenAddress][userAddress];
-    }
-
-    /// @notice Allows for retrieval of the collateral pool balance that is locked for open positions for a give
-    /// market contract address.
-    /// the data as a tuple of (uint, int) that represents (price, qty)
-    /// @param marketContractAddress MARKET Contract address
-    function getCollateralPoolBalance(address marketContractAddress) external view returns (uint) {
-        return contractAddressToCollateralPoolBalance[marketContractAddress];
     }
 
     /*
@@ -159,7 +150,7 @@ contract MarketCollateralPool is Ownable {
         address taker,
         int qty,
         uint price
-    ) external onlyMarketContract
+    ) external onlyTradingHub
     {
         MarketContract marketContract = MarketContract(msg.sender);
         updatePosition(
@@ -371,11 +362,9 @@ contract MarketCollateralPool is Ownable {
         }
     }
 
-
-    modifier onlyMarketContract(){
-        require(MARKET_CONTRACT_REGISTRY.isAddressWhiteListed(msg.sender),
-            "Can only be called by a white listed MarketContract");
+    modifier onlyMarketContract() {
+        require(msg.sender == MARKET_TRADING_HUB,
+            "Can only be called by the trading hub");
         _;
     }
-
 }

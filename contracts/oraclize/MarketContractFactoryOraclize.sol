@@ -29,6 +29,7 @@ contract MarketContractFactoryOraclize is Ownable {
     address public marketContractRegistry;
     address public collateralPool;
     address public MKT_TOKEN_ADDRESS;
+    MarketToken
 
     event MarketContractCreated(address indexed creator, address indexed contractAddress);
 
@@ -63,6 +64,9 @@ contract MarketContractFactoryOraclize is Ownable {
         string oracleQuery
     ) external
     {
+        // TODO: FIX ME!
+        require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
+
         MarketContractOraclize mktContract = new MarketContractOraclize(
             contractName,
             [

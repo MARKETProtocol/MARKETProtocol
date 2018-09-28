@@ -64,6 +64,9 @@ contract MarketContractFactoryChainLink is Ownable {
         bytes32 onDemandJobId
     ) external
     {
+        // TODO: FIX ME!
+        require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
+
         MarketContractChainLink mktContract = new MarketContractChainLink(
             contractName,
             [
