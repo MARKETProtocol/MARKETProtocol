@@ -1,5 +1,4 @@
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
-const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
 const MarketToken = artifacts.require('./tokens/MarketToken.sol');
 const MarketContractFactory = artifacts.require(
@@ -16,38 +15,35 @@ module.exports = function(deployer, network) {
     var gasLimit = web3.eth.getBlock('latest').gasLimit;
 
     return MarketContractRegistry.deployed().then(function(registryInstance) {
-      // deploy the factories
-      return MarketCollateralPool.deployed().then(function(collateralPool) {
-        return deployer
-          .deploy(
-            MarketContractFactory,
-            registryInstance.address,
-            MarketToken.address,
-            collateralPool.address,
-            { gas: gasLimit, from: web3.eth.accounts[0] }
-          )
-          .then(function(factory) {
-            return registryInstance.addFactoryAddress(factory.address).then(function() { // white list the factory
+    // deploy the factories
+      return deployer
+        .deploy(
+          MarketContractFactory,
+          registryInstance.address,
+          MarketToken.address,
+          { gas: gasLimit, from: web3.eth.accounts[0] }
+        )
+        .then(function(factory) {
+          return registryInstance.addFactoryAddress(factory.address).then(function() { // white list the factory
+            return factory
+              .deployMarketContractOraclize(
+                'ETHXBT',
+                CollateralToken.address,
+                [20155, 60465, 2, 10, marketContractExpiration],
+                'URL',
+                'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
+                { gas: gasLimit, from: web3.eth.accounts[0] }
+              )
+              .then(function() {
               return factory
                 .deployMarketContractOraclize(
-                  'ETHXBT',
+                  'ETHXBT-2',
                   CollateralToken.address,
                   [20155, 60465, 2, 10, marketContractExpiration],
                   'URL',
                   'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
                   { gas: gasLimit, from: web3.eth.accounts[0] }
                 )
-                .then(function() {
-                return factory
-                  .deployMarketContractOraclize(
-                    'ETHXBT-2',
-                    CollateralToken.address,
-                    [20155, 60465, 2, 10, marketContractExpiration],
-                    'URL',
-                    'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
-                    { gas: gasLimit, from: web3.eth.accounts[0] }
-                  )
-              });
             });
           });
       });

@@ -49,14 +49,11 @@ contract MarketCollateralPool is Ownable {
     mapping(address => mapping(address => uint)) public tokenAddressToAccountBalance;       // stores account balances allowed to be allocated to orders
     mapping(address => mapping(address => uint)) public tokenAddressToBalanceLockTime;      // stores account balances lock time
 
-    address public MARKET_TRADING_HUB;
+    address public marketTradingHub;
 
     event UpdatedUserBalance(address indexed collateralTokenAddress, address indexed user, uint balance);
 
-    /// @param marketTradingHub factory address for this collateral pool
-    constructor(address marketTradingHub) public {
-        MARKET_TRADING_HUB = marketTradingHub;
-    }
+    constructor() public { }
 
     /// @notice get the net position for a give user address
     /// @param marketContractAddress MARKET Contract address to return position for
@@ -173,6 +170,12 @@ contract MarketCollateralPool is Ownable {
     /*
     // PUBLIC METHODS
     */
+
+    /// @notice allows for us to set our trading hub address post deployment.
+    /// @param marketTradingHubAddress address of our linked trading hub
+    function setMarketTradingHubAddress(address marketTradingHubAddress) onlyOwner {
+        marketTradingHub = marketTradingHubAddress;
+    }
 
     /// @notice removes token from users trading account
     /// @param collateralTokenAddress ERC20 token address
@@ -365,7 +368,7 @@ contract MarketCollateralPool is Ownable {
     }
 
     modifier onlyTradingHub() {
-        require(msg.sender == MARKET_TRADING_HUB,
+        require(msg.sender == marketTradingHub,
             "Can only be called by the trading hub");
         _;
     }

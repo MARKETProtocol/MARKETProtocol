@@ -4,7 +4,6 @@ const MarketContractFactory = artifacts.require('./chainlink/MarketContractFacto
 const OracleHub = artifacts.require('./chainlink/OracleHubChainLink.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
 const OrderLib = artifacts.require('./libraries/OrderLib.sol');
-const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
 
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
 const MarketToken = artifacts.require('./tokens/MarketToken.sol');
@@ -16,16 +15,13 @@ module.exports = function(deployer, network) {
   if (network !== 'live') {
 
     deployer.link(OrderLib, MarketContractFactory);
-
     return deployer.deploy(LinkToken).then(function (linkToken) {
       return deployer.deploy(ChainLinkOracle, LinkToken.address).then(function () {
         return MarketContractRegistry.deployed().then(function (registry) {
-          return MarketCollateralPool.deployed().then(function (collateralPool) {
             return deployer.deploy(
               MarketContractFactory,
               registry.address,
               MarketToken.address,
-              collateralPool.address,
               {gas: gasLimit, from: web3.eth.accounts[0]}
             ).then(function (factory) {
               return registry.addFactoryAddress(factory.address).then(function () {
@@ -56,7 +52,6 @@ module.exports = function(deployer, network) {
                         });
                     });
                 });
-              });
             });
           });
         });
