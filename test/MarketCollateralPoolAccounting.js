@@ -1,6 +1,7 @@
 const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
+const MarketTradingHub = artifacts.require('MarketTradingHub');
 const CollateralToken = artifacts.require('CollateralToken');
 const MarketToken = artifacts.require('MarketToken');
 const OrderLib = artifacts.require('OrderLibMock');
@@ -20,6 +21,7 @@ contract('MarketCollateralPool.Accounting', function(accounts) {
   let priceFloor;
   let priceCap;
   let tradeHelper;
+  let marketTradingHub;
   const entryOrderPrice = 33025;
   const accountMaker = accounts[0];
   const accountTaker = accounts[1];
@@ -29,20 +31,20 @@ contract('MarketCollateralPool.Accounting', function(accounts) {
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
-    collateralPool = await MarketCollateralPool.at(
-      await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call()
-    );
+    collateralPool = await MarketCollateralPool.deployed();
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
     qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
     priceFloor = await marketContract.PRICE_FLOOR.call();
     priceCap = await marketContract.PRICE_CAP.call();
+    marketTradingHub = await MarketTradingHub.deployed();
 
     tradeHelper = await Helpers.TradeHelper(
       marketContract,
       orderLib,
       collateralToken,
-      collateralPool
+      collateralPool,
+      marketTradingHub
     );
   });
 
@@ -137,7 +139,7 @@ contract('MarketCollateralPool.Accounting', function(accounts) {
   it('Reducing a position works correctly', async function() {
 
     const timeStamp = new Date().getTime() / 1000 + 60 * 5; // order expires 5 minute from now.
-    const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+    const orderAddresses = [marketContract.address, accountMaker, accountTaker, accounts[2]];
     const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
     const secondEntryOrderPrice = entryOrderPrice - 100;
     const secondUnsignedOrderValues = [0, 0, secondEntryOrderPrice, timeStamp, 1]; // second order with new price.
@@ -145,14 +147,12 @@ contract('MarketCollateralPool.Accounting', function(accounts) {
 
     // set up 2 different trades to create initial positions
     const orderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
     );
 
     const secondOrderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       secondUnsignedOrderValues,
       orderQty
@@ -178,7 +178,7 @@ contract('MarketCollateralPool.Accounting', function(accounts) {
     // Execute trade between maker and taker
     var qtyToFill = 1;
     var orderSignature = utility.signMessage(web3, accountMaker, orderHash);
-    await marketContract.tradeOrder(
+    await marketTradingHub.tradeOrder(
       orderAddresses,
       unsignedOrderValues,
       orderQty,
@@ -220,7 +220,7 @@ contract('MarketCollateralPool.Accounting', function(accounts) {
     // Create a second position, from a new price.
     qtyToFill = 2;
     orderSignature = utility.signMessage(web3, accountMaker, secondOrderHash);
-    await marketContract.tradeOrder(
+    await marketTradingHub.tradeOrder(
       orderAddresses,
       secondUnsignedOrderValues,
       orderQty,
@@ -254,14 +254,13 @@ contract('MarketCollateralPool.Accounting', function(accounts) {
     const unsignedExitOrderValues = [0, 0, exitOrderPrice, timeStamp, 1]; // second order with new price.
     const exitOrderQty = -3;
     const exitOrderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedExitOrderValues,
       exitOrderQty
     );
     orderSignature = utility.signMessage(web3, accountMaker, exitOrderHash);
     // only fill 1 lot at time so we can ensure proper accounting
-    await marketContract.tradeOrder(
+    await marketTradingHub.tradeOrder(
       orderAddresses,
       unsignedExitOrderValues,
       exitOrderQty,
@@ -284,7 +283,7 @@ contract('MarketCollateralPool.Accounting', function(accounts) {
 
 
     // fill another 1 lot, which should remove the secondEntryOrderPrice position from both users.
-    await marketContract.tradeOrder(
+    await marketTradingHub.tradeOrder(
       orderAddresses,
       unsignedExitOrderValues,
       exitOrderQty,
@@ -342,13 +341,12 @@ contract('MarketCollateralPool.Accounting', function(accounts) {
 
     // Create a new position from new price
     const timeStamp = new Date().getTime() / 1000 + 60 * 5; // order expires 5 minute from now.
-    const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+    const orderAddresses = [marketContract.address, accountMaker, accountTaker, accounts[2]];
     const secondEntryOrderPrice = entryOrderPrice - 100;
     const secondUnsignedOrderValues = [0, 0, secondEntryOrderPrice, timeStamp, 1]; // second order with new price.
     var orderQty = 2;
 
     const secondOrderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       secondUnsignedOrderValues,
       orderQty
@@ -373,7 +371,7 @@ contract('MarketCollateralPool.Accounting', function(accounts) {
     // Create a second position, from a new price.
     qtyToFill = 2;
     orderSignature = utility.signMessage(web3, accountMaker, secondOrderHash);
-    await marketContract.tradeOrder(
+    await marketTradingHub.tradeOrder(
       orderAddresses,
       secondUnsignedOrderValues,
       orderQty,
@@ -407,14 +405,13 @@ contract('MarketCollateralPool.Accounting', function(accounts) {
     const unsignedExitOrderValues = [0, 0, exitOrderPrice, timeStamp, 1]; // second order with new price.
     const exitOrderQty = -5;
     const exitOrderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedExitOrderValues,
       exitOrderQty
     );
     orderSignature = utility.signMessage(web3, accountMaker, exitOrderHash);
 
-    await marketContract.tradeOrder(
+    await marketTradingHub.tradeOrder(
       orderAddresses,
       unsignedExitOrderValues,
       exitOrderQty,
