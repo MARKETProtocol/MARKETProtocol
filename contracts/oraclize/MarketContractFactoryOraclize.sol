@@ -18,6 +18,7 @@ pragma solidity ^0.4.24;
 
 import "./MarketContractOraclize.sol";
 import "../MarketContractRegistryInterface.sol";
+import "../tokens/MarketToken.sol";
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
@@ -27,20 +28,18 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 contract MarketContractFactoryOraclize is Ownable {
 
     address public marketContractRegistry;
-    address public collateralPool;
     address public MKT_TOKEN_ADDRESS;
-    MarketToken
+    MarketToken public MKT_TOKEN;
 
     event MarketContractCreated(address indexed creator, address indexed contractAddress);
 
     /// @dev deploys our factory and ties it the a supply registry address
     /// @param registryAddress - address of our MARKET registry
     /// @param mktTokenAddress - MARKET Token address
-    /// @param marketCollateralPool - address of collateral pool.
-    constructor(address registryAddress, address mktTokenAddress, address marketCollateralPool) public {
+    constructor(address registryAddress, address mktTokenAddress) public {
         marketContractRegistry = registryAddress;
         MKT_TOKEN_ADDRESS = mktTokenAddress;
-        collateralPool = marketCollateralPool;
+        MKT_TOKEN = MarketToken(mktTokenAddress);
     }
 
     /// @dev Deploys a new instance of a market contract and adds it to the whitelist.
@@ -64,16 +63,12 @@ contract MarketContractFactoryOraclize is Ownable {
         string oracleQuery
     ) external
     {
-        // TODO: FIX ME!
         require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
-
         MarketContractOraclize mktContract = new MarketContractOraclize(
             contractName,
             [
                 msg.sender,
-                MKT_TOKEN_ADDRESS,
-                collateralTokenAddress,
-                collateralPool
+                collateralTokenAddress
             ],
             contractSpecs,
             oracleDataSource,

@@ -57,12 +57,12 @@ contract MarketTradingHub {
         address indexed marketContractAddress,
         address indexed maker,
         address indexed taker,
-        address indexed feeRecipient,
+        address feeRecipient,
         int filledQty,
         uint paidMakerFee,
         uint paidTakerFee,
         uint price,
-        bytes32 orderHash // should this be indexed?
+        bytes32 orderHash
     );
 
     event OrderCancelled(
@@ -70,7 +70,7 @@ contract MarketTradingHub {
         address indexed maker,
         address indexed feeRecipient,
         int cancelledQty,
-        bytes32 indexed orderHash
+        bytes32 orderHash
     );
 
     constructor(
@@ -80,7 +80,7 @@ contract MarketTradingHub {
     {
         MARKET_COLLATERAL_POOL_ADDRESS = collateralPoolAddress;
         MARKET_COLLATERAL_POOL = MarketCollateralPool(MARKET_COLLATERAL_POOL_ADDRESS);
-        MKT_TOKEN_ADDRESS = marketTokenAddress[1];
+        MKT_TOKEN_ADDRESS = marketTokenAddress;
         MKT_TOKEN = MarketToken(MKT_TOKEN_ADDRESS);
     }
 
@@ -107,7 +107,8 @@ contract MarketTradingHub {
         bytes32 s
     ) external returns (int filledQty)
     {
-        require(!isSettled); // no trading past settlement
+        MarketContract marketContract = MarketContract(orderAddresses[0]);
+        require(!marketContract.isSettled()); // no trading past settlement
         require(orderQty != 0 && qtyToFill != 0 && orderQty.isSameSign(qtyToFill));   // no zero trades, sings match
         require(MKT_TOKEN.isUserEnabledForContract(this, msg.sender));
         OrderLib.Order memory order = OrderLib.createOrder(orderAddresses, unsignedOrderValues, orderQty);
@@ -118,7 +119,8 @@ contract MarketTradingHub {
         // do not allow self trade
         require(order.maker != address(0) && order.maker != msg.sender);
         require(
-            order.maker.isValidSignature(
+            OrderLib.isValidSignature(
+                order.maker,
                 order.orderHash,
                 v,
                 r,
@@ -203,7 +205,9 @@ contract MarketTradingHub {
     ) external returns (int qtyCancelled)
     {
         require(qtyToCancel != 0 && qtyToCancel.isSameSign(orderQty));      // cannot cancel 0 and signs must match
-        require(!isSettled);
+        MarketContract marketContract = MarketContract(orderAddresses[0]);
+        require(!marketContract.isSettled());
+
         OrderLib.Order memory order = OrderLib.createOrder(orderAddresses, unsignedOrderValues, orderQty);
         require(order.maker == msg.sender);                                // only maker can cancel standing order
         if (now >= order.expirationTimeStamp) {

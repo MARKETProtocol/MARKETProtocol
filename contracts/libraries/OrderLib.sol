@@ -128,7 +128,6 @@ library OrderLib {
         order.expirationTimeStamp = unsignedOrderValues[3];
         order.qty = orderQty;
         order.orderHash = createOrderHash(
-            contractAddress,
             orderAddresses,
             unsignedOrderValues,
             orderQty

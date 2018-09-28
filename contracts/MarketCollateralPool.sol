@@ -140,19 +140,21 @@ contract MarketCollateralPool is Ownable {
             tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][msg.sender]);
     }
 
-    /// @dev called by our linked MarketContract when a trade occurs to update both maker and takers positions.
+    /// @dev called by our linked trading hub when a trade occurs to update both maker and takers positions.
+    /// @param marketContractAddress address of the market contract being traded
     /// @param maker address of the maker in the trade
     /// @param taker address of the taker in the trade
     /// @param qty quantity transacted between parties
     /// @param price agreed price of the matched trade.
     function updatePositions(
+        address marketContractAddress,
         address maker,
         address taker,
         int qty,
         uint price
     ) external onlyTradingHub
     {
-        MarketContract marketContract = MarketContract(msg.sender);
+        MarketContract marketContract = MarketContract(marketContractAddress);
         updatePosition(
             marketContract,
             maker,
@@ -362,7 +364,7 @@ contract MarketCollateralPool is Ownable {
         }
     }
 
-    modifier onlyMarketContract() {
+    modifier onlyTradingHub() {
         require(msg.sender == MARKET_TRADING_HUB,
             "Can only be called by the trading hub");
         _;
