@@ -16,12 +16,11 @@ contract('OrderLib', function(accounts) {
     marketContract = await MarketContractOraclize.at(whiteList[1]);
 
     const timeStamp = new Date().getTime() / 1000 + 60 * 5; // order expires 5 minute from now.
-    const orderAddresses = [accounts[0], accounts[1], accounts[2]];
+    const orderAddresses = [marketContract.address, accounts[0], accounts[1], accounts[2]];
     const unsignedOrderValues = [0, 0, 33025, timeStamp, 0];
     const orderQty = 5; // user is attempting to buy 5
 
     const orderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty

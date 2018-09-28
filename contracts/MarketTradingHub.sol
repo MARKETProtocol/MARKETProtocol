@@ -73,14 +73,16 @@ contract MarketTradingHub {
         bytes32 orderHash
     );
 
+    /// @param mktTokenAddress the address of the MKT ERC20 token
+    /// @param collateralPoolAddress  the address of the MarketCollateralPool
     constructor(
-        address marketTokenAddress,
+        address mktTokenAddress,
         address collateralPoolAddress
     ) public
     {
         MARKET_COLLATERAL_POOL_ADDRESS = collateralPoolAddress;
         MARKET_COLLATERAL_POOL = MarketCollateralPool(MARKET_COLLATERAL_POOL_ADDRESS);
-        MKT_TOKEN_ADDRESS = marketTokenAddress;
+        MKT_TOKEN_ADDRESS = mktTokenAddress;
         MKT_TOKEN = MarketToken(MKT_TOKEN_ADDRESS);
     }
 
