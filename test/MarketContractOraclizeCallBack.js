@@ -1,5 +1,6 @@
 const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
+const MarketTradingHub = artifacts.require('MarketTradingHub');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const MarketToken = artifacts.require('MarketToken');
 const CollateralToken = artifacts.require('CollateralToken');
@@ -8,6 +9,7 @@ const Helpers = require('./helpers/Helpers.js');
 
 // test to ensure callback gas is within limits when settling contracts
 contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
+
   let orderLib;
   let tradeHelper;
   let collateralPool;
@@ -17,10 +19,12 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
   let marketContract;
   let marketContractInstance;
   let gasLimit;
+  let marketTradingHub;
 
   const accountMaker = accounts[0];
 
   before(async function() {
+
     marketToken = await MarketToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
@@ -30,11 +34,14 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
     );
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
+    marketTradingHub = await MarketTradingHub.deployed();
+
     tradeHelper = await Helpers.TradeHelper(
       marketContract,
       orderLib,
       collateralToken,
-      collateralPool
+      collateralPool,
+      marketTradingHub
     );
   });
 
