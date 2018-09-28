@@ -18,6 +18,7 @@ pragma solidity ^0.4.24;
 
 import "./Creatable.sol";
 
+
 /// @title MarketContract base contract implement all needed functionality for trading.
 /// @notice this is the abstract base contract that all contracts should inherit from to
 /// implement different oracle solutions.
