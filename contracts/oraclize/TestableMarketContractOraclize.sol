@@ -19,31 +19,28 @@ pragma solidity ^0.4.24;
 import "./MarketContractOraclize.sol";
 
 
-
 /// @title Testable version of MarketContractOraclize that exposes a function to manually update last price.
 /// This is deployed to the test network in place of the actual MarketContractOraclize
 /// @author Perfect Makanju <root@perfect.engineering>
 contract TestableMarketContractOraclize is MarketContractOraclize {
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
-    /// @param baseAddresses array of 4 addresses needed for our contract including:
-    /// creatorAddress                  address of the person creating the contract
-    /// marketTokenAddress              address of our member token
-    /// collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
-    /// collateralPoolAddress           address of the collateral pool
+    /// @param baseAddresses array of 2 addresses needed for our contract including:
+    ///     creatorAddress                  address of the person creating the contract
+    ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
     /// @param contractSpecs array of unsigned integers including:
-    /// floorPrice minimum tradeable price of this contract, contract enters settlement if breached
-    /// capPrice maximum tradeable price of this contract, contract enters settlement if breached
-    /// priceDecimalPlaces number of decimal places to convert our queried price from a floating point to
-    /// an integer
-    /// qtyMultiplier multiply traded qty by this value from base units of collateral token.
-    /// expirationTimeStamp - seconds from epoch that this contract expires and enters settlement
+    ///     floorPrice              minimum tradeable price of this contract, contract enters settlement if breached
+    ///     capPrice                maximum tradeable price of this contract, contract enters settlement if breached
+    ///     priceDecimalPlaces      number of decimal places to convert our queried price from a floating point to
+    ///                             an integer
+    ///     qtyMultiplier           multiply traded qty by this value from base units of collateral token.
+    ///     expirationTimeStamp     seconds from epoch that this contract expires and enters settlement
     /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"
     /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
     constructor(
         string contractName,
-        address[4] baseAddresses,
+        address[2] baseAddresses,
         uint[5] contractSpecs,
         string oracleDataSource,
         string oracleQuery

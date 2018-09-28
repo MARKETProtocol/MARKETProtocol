@@ -29,14 +29,12 @@ contract OrderLibMock {
     using OrderLib for OrderLib.Order;
 
     function _createOrderHash(
-        address contractAddress,
-        address[3] orderAddresses,
+        address[4] orderAddresses,
         uint[5] unsignedOrderValues,
         int orderQty
     ) public pure returns (bytes32)
     {
         return OrderLib.createOrderHash(
-            contractAddress,
             orderAddresses,
             unsignedOrderValues,
             orderQty
@@ -61,14 +59,12 @@ contract OrderLibMock {
     }
 
     function _createOrder(
-        address contractAddress,
-        address[3] orderAddresses,
+        address[4] orderAddresses,
         uint[5] unsignedOrderValues,
         int orderQty
     ) internal pure returns (OrderLib.Order order)
     {
         return OrderLib.createOrder(
-            contractAddress,
             orderAddresses,
             unsignedOrderValues,
             orderQty
