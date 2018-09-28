@@ -47,7 +47,7 @@ module.exports = function (deployer, network) {
                       'result.XETHZUSD.c.0',
                       'fakeSleepJobId',
                       'fakeOnDemandJobId',
-                      {gas: gasLimit, from: web3.eth.accounts[0]}
+                      {gas: 1700000, from: web3.eth.accounts[0]}
                     )
                   });
                 });
