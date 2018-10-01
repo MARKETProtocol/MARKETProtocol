@@ -17,12 +17,11 @@
 pragma solidity ^0.4.24;
 
 import "./libraries/MathLib.sol";
-import "./tokens/MarketToken.sol";
 import "./MarketContract.sol";
 
 import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import "./MarketContractRegistryInterface.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 /// @title MarketCollateralPool is a contract controlled by Market Contracts.  It holds collateral balances
@@ -47,17 +46,17 @@ contract MarketCollateralPool is Ownable {
 
     mapping(address => uint) public contractAddressToCollateralPoolBalance;                 // current balance of all collateral committed
     mapping(address => mapping(address => UserNetPosition)) contractAddressToUserPosition;
-    mapping(address => mapping(address => uint)) public tokenAddressToAccountBalance;       // stores account balances allowed to be allocated to orders
-    mapping(address => mapping(address => uint)) public tokenAddressToBalanceLockTime;      // stores account balances lock time
 
-    MarketContractRegistryInterface MARKET_CONTRACT_REGISTRY;
+    // stores account balances allowed to be allocated to orders
+    mapping(address => mapping(address => uint)) public tokenAddressToAccountBalance;
+    // stores account balances lock time
+    mapping(address => mapping(address => uint)) public tokenAddressToBalanceLockTime;
+
+    address public marketTradingHub;
 
     event UpdatedUserBalance(address indexed collateralTokenAddress, address indexed user, uint balance);
 
-    /// @param marketContractFactoryAddress factory address for this collateral pool
-    constructor(address marketContractFactoryAddress) public {
-        MARKET_CONTRACT_REGISTRY = MarketContractRegistryInterface(marketContractFactoryAddress);
-    }
+    constructor() public { }
 
     /// @notice get the net position for a give user address
     /// @param marketContractAddress MARKET Contract address to return position for
@@ -103,14 +102,6 @@ contract MarketCollateralPool is Ownable {
         return tokenAddressToAccountBalance[collateralTokenAddress][userAddress];
     }
 
-    /// @notice Allows for retrieval of the collateral pool balance that is locked for open positions for a give
-    /// market contract address.
-    /// the data as a tuple of (uint, int) that represents (price, qty)
-    /// @param marketContractAddress MARKET Contract address
-    function getCollateralPoolBalance(address marketContractAddress) external view returns (uint) {
-        return contractAddressToCollateralPoolBalance[marketContractAddress];
-    }
-
     /*
     // EXTERNAL METHODS
     */
@@ -144,24 +135,29 @@ contract MarketCollateralPool is Ownable {
                 marketContract.settlementPrice()
             );
         }
+
         // transfer all balances back to user.
-        withdrawTokens(marketContract.COLLATERAL_TOKEN_ADDRESS(),
-            tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][msg.sender]);
+        withdrawTokens(
+            marketContract.COLLATERAL_TOKEN_ADDRESS(),
+            tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][msg.sender]
+        );
     }
 
-    /// @dev called by our linked MarketContract when a trade occurs to update both maker and takers positions.
+    /// @dev called by our linked trading hub when a trade occurs to update both maker and takers positions.
+    /// @param marketContractAddress address of the market contract being traded
     /// @param maker address of the maker in the trade
     /// @param taker address of the taker in the trade
     /// @param qty quantity transacted between parties
     /// @param price agreed price of the matched trade.
     function updatePositions(
+        address marketContractAddress,
         address maker,
         address taker,
         int qty,
         uint price
-    ) external onlyMarketContract
+    ) external onlyTradingHub
     {
-        MarketContract marketContract = MarketContract(msg.sender);
+        MarketContract marketContract = MarketContract(marketContractAddress);
         updatePosition(
             marketContract,
             maker,
@@ -181,12 +177,19 @@ contract MarketCollateralPool is Ownable {
     // PUBLIC METHODS
     */
 
+    /// @notice allows for us to set our trading hub address post deployment.
+    /// @param marketTradingHubAddress address of our linked trading hub
+    function setMarketTradingHubAddress(address marketTradingHubAddress) public onlyOwner {
+        marketTradingHub = marketTradingHubAddress;
+    }
+
     /// @notice removes token from users trading account
     /// @param collateralTokenAddress ERC20 token address
     /// @param withdrawAmount qty of token to attempt to withdraw
     function withdrawTokens(address collateralTokenAddress, uint256 withdrawAmount) public {
-        uint256 balanceAfterWithdrawal =
-            tokenAddressToAccountBalance[collateralTokenAddress][msg.sender].subtract(withdrawAmount);
+        uint256 balanceAfterWithdrawal = tokenAddressToAccountBalance[collateralTokenAddress][msg.sender].subtract(
+            withdrawAmount
+        );
 
         tokenAddressToAccountBalance[collateralTokenAddress][msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
         ERC20(collateralTokenAddress).safeTransfer(msg.sender, withdrawAmount);
@@ -207,15 +210,12 @@ contract MarketCollateralPool is Ownable {
         uint collateralAmount
     ) private
     {
-
-        uint newBalance =
-            tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][fromAddress].subtract(
-                collateralAmount);
+        uint newBalance = tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][fromAddress].subtract(
+                collateralAmount
+        );
 
         tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][fromAddress] = newBalance;
-
-        contractAddressToCollateralPoolBalance[marketContract] =
-            contractAddressToCollateralPoolBalance[marketContract].add(collateralAmount);
+        contractAddressToCollateralPoolBalance[marketContract] = contractAddressToCollateralPoolBalance[marketContract].add(collateralAmount);
 
         emit UpdatedUserBalance(marketContract.COLLATERAL_TOKEN_ADDRESS(), fromAddress, newBalance);
     }
@@ -230,11 +230,11 @@ contract MarketCollateralPool is Ownable {
         uint collateralAmount
     ) private
     {
-        uint newBalance =
-            tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][toAddress].add(collateralAmount);
+        uint newBalance = tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][toAddress].add(collateralAmount);
         tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][toAddress] = newBalance;
-        contractAddressToCollateralPoolBalance[marketContract] =
-            contractAddressToCollateralPoolBalance[marketContract].subtract(collateralAmount);
+        contractAddressToCollateralPoolBalance[marketContract] = contractAddressToCollateralPoolBalance[marketContract].subtract(
+            collateralAmount
+        );
 
         emit UpdatedUserBalance(marketContract.COLLATERAL_TOKEN_ADDRESS(), toAddress, newBalance);
     }
@@ -371,11 +371,8 @@ contract MarketCollateralPool is Ownable {
         }
     }
 
-
-    modifier onlyMarketContract(){
-        require(MARKET_CONTRACT_REGISTRY.isAddressWhiteListed(msg.sender),
-            "Can only be called by a white listed MarketContract");
+    modifier onlyTradingHub() {
+        require(msg.sender == marketTradingHub, "Can only be called by the trading hub");
         _;
     }
-
 }

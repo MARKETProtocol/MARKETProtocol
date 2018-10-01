@@ -29,11 +29,9 @@ contract MarketContractChainLink is MarketContract {
     address public ORACLE_HUB_ADDRESS;
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
-    /// @param baseAddresses array of 4 addresses needed for our contract including:
+    /// @param baseAddresses array of 2 addresses needed for our contract including:
     ///     creatorAddress                  address of the person creating the contract
-    ///     marketTokenAddress              address of our member token
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
-    ///     collateralPoolAddress           address of the the collateral pool
     /// @param contractSpecs array of unsigned integers including:
     ///     floorPrice          minimum tradeable price of this contract, contract enters settlement if breached
     ///     capPrice            maximum tradeable price of this contract, contract enters settlement if breached
@@ -45,7 +43,7 @@ contract MarketContractChainLink is MarketContract {
     /// @param oracleQueryPath  path of data inside json object. IE 'result.XETHZUSD.c.0'
     constructor(
         string contractName,
-        address[4] baseAddresses,
+        address[2] baseAddresses,
         address oracleHubAddress,
         uint[5] contractSpecs,
         string oracleQueryURL,

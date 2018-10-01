@@ -3,8 +3,6 @@ const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketToken = artifacts.require('MarketToken');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const CollateralToken = artifacts.require('CollateralToken');
-const OrderLib = artifacts.require('OrderLibMock');
-const utility = require('./utility.js');
 
 contract('MarketContractRegistry', function(accounts) {
   let collateralPool;
@@ -18,9 +16,7 @@ contract('MarketContractRegistry', function(accounts) {
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
-    collateralPool = await MarketCollateralPool.at(
-      await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call()
-    );
+    collateralPool = await MarketCollateralPool.deployed();
     collateralToken = await CollateralToken.deployed();
   });
 

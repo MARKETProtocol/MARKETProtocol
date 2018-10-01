@@ -29,6 +29,7 @@ library OrderLib {
     }
 
     struct Order {
+        address marketContractAddress;
         address maker;
         address taker;
         address feeRecipient;
@@ -56,23 +57,21 @@ library OrderLib {
     }
 
     /// @notice creates the hash for the given order parameters.
-    /// @param contractAddress address of the calling contract, orders are unique to each contract
-    /// @param orderAddresses array of 3 address. maker, taker, and feeRecipient
+    /// @param orderAddresses array of 4 address. marketContractAddress, maker, taker, and feeRecipient
     /// @param unsignedOrderValues array of 5 unsigned integers. makerFee, takerFee, price, expirationTimeStamp and salt
     /// @param orderQty signed qty of the original order.
     function createOrderHash(
-        address contractAddress,
-        address[3] orderAddresses,
+        address[4] orderAddresses,
         uint[5] unsignedOrderValues,
         int orderQty
     ) public pure returns (bytes32)
     {
         return keccak256(
             abi.encodePacked(
-                contractAddress,
                 orderAddresses[0],
                 orderAddresses[1],
                 orderAddresses[2],
+                orderAddresses[3],
                 unsignedOrderValues[0],
                 unsignedOrderValues[1],
                 unsignedOrderValues[2],
@@ -110,27 +109,25 @@ library OrderLib {
     */
 
     /// @dev factory for orders to be created with needed hash.
-    /// @param contractAddress address of the calling contract, orders are unique to each contract
-    /// @param orderAddresses array of 3 address. maker, taker, and feeRecipient
+    /// @param orderAddresses array of 4 address. marketContractAddress, maker, taker, and feeRecipient
     /// @param unsignedOrderValues array of 5 unsigned integers. makerFee, takerFee, price, expirationTimeStamp and salt
     /// @param orderQty signed qty of the original order.
     function createOrder(
-        address contractAddress,
-        address[3] orderAddresses,
+        address[4] orderAddresses,
         uint[5] unsignedOrderValues,
         int orderQty
     ) internal pure returns (Order order)
     {
-        order.maker = orderAddresses[0];
-        order.taker = orderAddresses[1];
-        order.feeRecipient = orderAddresses[2];
+        order.marketContractAddress = orderAddresses[0];
+        order.maker = orderAddresses[1];
+        order.taker = orderAddresses[2];
+        order.feeRecipient = orderAddresses[3];
         order.makerFee = unsignedOrderValues[0];
         order.takerFee = unsignedOrderValues[1];
         order.price = unsignedOrderValues[2];
         order.expirationTimeStamp = unsignedOrderValues[3];
         order.qty = orderQty;
         order.orderHash = createOrderHash(
-            contractAddress,
             orderAddresses,
             unsignedOrderValues,
             orderQty
