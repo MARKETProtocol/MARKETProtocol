@@ -1,75 +1,79 @@
-const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
-const MarketCollateralPool = artifacts.require('MarketCollateralPool');
-const MarketContractRegistry = artifacts.require('MarketContractRegistry');
-const MarketTradingHub = artifacts.require('MarketTradingHub');
-const CollateralToken = artifacts.require('CollateralToken');
-const MarketToken = artifacts.require('MarketToken');
-const OrderLib = artifacts.require('OrderLibMock');
-const Helpers = require('./helpers/Helpers.js');
-const utility = require('./utility.js');
-
-
-const OrableHubChainLink = require("OracleHubChainLink");
+const OrableHubChainLink = artifacts.require("OracleHubChainLink");
 const LinkToken = artifacts.require('LinkToken.sol');
 
 
 contract('OracleHubChainLink', function(accounts) {
 
-  let balancePerAcct;
-  let collateralToken;
-  let initBalance;
-  let collateralPool;
-  let marketContract;
-  let marketContractRegistry;
-  let marketToken;
-  let orderLib;
-  let qtyMultiplier;
-  let priceFloor;
-  let priceCap;
-  let tradeHelper;
-  let marketTradingHub;
-  const entryOrderPrice = 33025;
-  const accountMaker = accounts[0];
-  const accountTaker = accounts[1];
+  let oracleHubChainLink;
+  let linkToken;
+
+  before(async function() {
+    oracleHubChainLink = await OrableHubChainLink.deployed();
+    linkToken = await LinkToken.deployed();
+  });
 
   beforeEach(async function() {
-
-    marketToken = await MarketToken.deployed();
-    marketContractRegistry = await MarketContractRegistry.deployed();
-    var whiteList = await marketContractRegistry.getAddressWhiteList.call();
-    marketContract = await MarketContractOraclize.at(whiteList[1]);
-    collateralPool = await MarketCollateralPool.deployed();
-    orderLib = await OrderLib.deployed();
-    collateralToken = await CollateralToken.deployed();
-    qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
-    priceFloor = await marketContract.PRICE_FLOOR.call();
-    priceCap = await marketContract.PRICE_CAP.call();
-    marketTradingHub = await MarketTradingHub.deployed();
-    tradeHelper = await Helpers.TradeHelper(
-      marketContract,
-      orderLib,
-      collateralToken,
-      collateralPool,
-      marketTradingHub
-    );
 
   });
 
   it('Link balances can be withdrawn by owner', async function() {
 
-    // test non owner fails
-    // test owner succeeds
+    const initialBalance = await linkToken.balanceOf(oracleHubChainLink.address);
+    expect(initialBalance, 10e22, "Initial balance does not reflect migrations");
 
+    const ownerAccont = await oracleHubChainLink.owner();
+    assert.equal(ownerAccont, accounts[0], "Owner account of the Hub isn't our main test account");
+
+    const balanceToTransfer = 1e20;
+
+    let error = null;
+    try {
+      await oracleHubChainLink.withdrawLink(accounts[1], balanceToTransfer, {from: accounts[1]});
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(error instanceof Error, 'should not be able to withdraw from non-owner account');
+
+    assert.equal(await linkToken.balanceOf(accounts[1]), 0, "test account already has balance");
+
+    oracleHubChainLink.withdrawLink(accounts[1], balanceToTransfer, {from: accounts[0]});
+    const transferredBalance = await linkToken.balanceOf(accounts[1]);
+
+    assert.equal(balanceToTransfer, transferredBalance, "Withdraw of link failed");
   });
 
   it('Factory address can be set by owner', async function() {
-    // fails with non owner
-    // owner succeeds
+    const originalContractFactoryAddress = await oracleHubChainLink.marketContractFactoryAddress();
+
+    let error = null;
+    try {
+      await oracleHubChainLink.setFactoryAddress(accounts[1], {from: accounts[1]});
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(error instanceof Error, 'should not be able to set factory from non-owner account');
+
+    await oracleHubChainLink.setFactoryAddress(accounts[1], {from: accounts[0]});
+    assert.equal(await oracleHubChainLink.marketContractFactoryAddress(), accounts[1], "Did not set factory address correctly");
+
+    await oracleHubChainLink.setFactoryAddress(originalContractFactoryAddress, {from: accounts[0]});
+    assert.equal(await oracleHubChainLink.marketContractFactoryAddress(), originalContractFactoryAddress, "Did not set factory address back correctly");
   });
 
   it('requestQuery can be called by factory address', async function() {
     // fails with non factory
     // set factory address to our account and attempt call.
+
+    let error = null;
+    try {
+      await oracleHubChainLink.setFactoryAddress(accounts[1], {from: accounts[1]});
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(error instanceof Error, 'should not be able to set factory from non-owner account');
+
+
+
   });
 
   it('callBack can be called by a the oracle address', async function() {
