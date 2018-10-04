@@ -34,7 +34,8 @@ module.exports = function (deployer, network) {
                   return deployer.deploy(
                     MarketTradingHub,
                     MarketToken.address,
-                    MarketCollateralPool.address
+                    MarketCollateralPool.address,
+                    { gas: gasLimit }
                   ).then(function (marketTradingHub) {
                     return marketCollateralPool.setMarketTradingHubAddress(marketTradingHub.address);
                   });
