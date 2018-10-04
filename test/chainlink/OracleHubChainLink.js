@@ -2,6 +2,7 @@ const OracleHubChainLink = artifacts.require("OracleHubChainLink");
 const LinkToken = artifacts.require('LinkToken.sol');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const MarketContractChainLink = artifacts.require('MarketContractChainLink');
+const ChainLinkOracle = artifacts.require('Oracle');
 const utility = require('../utility.js');
 
 
@@ -11,6 +12,7 @@ contract('OracleHubChainLink', function(accounts) {
   let linkToken;
   let marketContractRegistry;
   let marketContract;
+  let chainLinkOracle;
 
   before(async function() {
     oracleHubChainLink = await OracleHubChainLink.deployed();
@@ -18,6 +20,7 @@ contract('OracleHubChainLink', function(accounts) {
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractChainLink.at(whiteList[whiteList.length - 1]);
+    chainLinkOracle = await ChainLinkOracle.deployed();
   });
 
   beforeEach(async function() {
@@ -66,14 +69,14 @@ contract('OracleHubChainLink', function(accounts) {
       await oracleHubChainLink.marketContractFactoryAddress(),
       accounts[1],
       "Did not set factory address correctly"
-  );
+    );
 
     await oracleHubChainLink.setFactoryAddress(originalContractFactoryAddress, {from: accounts[0]});
     assert.equal(
       await oracleHubChainLink.marketContractFactoryAddress(),
       originalContractFactoryAddress,
       "Did not set factory address back correctly"
-  );
+    );
 
   });
 
@@ -108,13 +111,39 @@ contract('OracleHubChainLink', function(accounts) {
     await oracleHubChainLink.setFactoryAddress(originalContractFactoryAddress, {from: accounts[0]});
   });
 
-  it('callBack can be called by a the oracle address', async function() {
-    // fails with non factory
-    // set factory address to our account and attempt call.
-  });
+  it('callBack cannot be called by a non oracle address', async function() {
+    // we first need a valid request ID to call with, so lets create a valid request.
+    // set factory address to an account we can call from
+    oracleHubChainLink.setFactoryAddress(accounts[1], {from: accounts[0]});
+    oracleHubChainLink.requestQuery(
+      marketContract.address,
+      'https://api.kraken.com/0/public/Ticker?pair=ETHUSD',
+      'result.XETHZUSD.c.0',
+      'fakeSleepJobId',
+      'fakeOnDemandJobId',
+      {from: accounts[1]}
+    );
 
-  it('callBack can push contract into expiration', async function() {
-    // should probably be in MarketContractChainLink
-  });
+    const eventsChainLinkRequested = await utility.getEvent(oracleHubChainLink, 'ChainlinkRequested');
+    const eventsRequest = await utility.getEvent(chainLinkOracle, 'RunRequest');
+    const internalRequestId =  eventsRequest[0].args.internalId
+    const requestID = eventsChainLinkRequested[0].args.id
 
+    let error = null;
+    try {
+      await oracleHubChainLink.callback(requestID, 0, {from: accounts[1]});
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(error instanceof Error, 'should not be able call back from non oracle account!');
+
+    // Here lets use the oracle contract to create the needed call to our hub.
+    chainLinkOracle.fulfillData(internalRequestId, 0);
+    const events = await utility.getEvent(oracleHubChainLink, 'ChainlinkFulfilled');
+    assert.equal(
+      'ChainlinkFulfilled',
+      events[0].event,
+      'Event called is not ChainlinkFulfilled'
+    );
+  });
 });
