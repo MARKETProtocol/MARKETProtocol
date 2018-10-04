@@ -225,7 +225,7 @@ contract MarketCollateralPool is Linkable {
                 price
             );
         } else {  // opposite side from open position, reduce, flattened, or flipped.
-            if (userNetPosition.netPosition >= qty * -1) { // pos is reduced or flattened
+            if (userNetPosition.netPosition.abs() >= qty.abs()) { // pos is reduced or flattened
                 reduceUserNetPosition(
                     userNetPosition,
                     userAddress,
