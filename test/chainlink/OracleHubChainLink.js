@@ -1,15 +1,23 @@
-const OrableHubChainLink = artifacts.require("OracleHubChainLink");
+const OracleHubChainLink = artifacts.require("OracleHubChainLink");
 const LinkToken = artifacts.require('LinkToken.sol');
+const MarketContractRegistry = artifacts.require('MarketContractRegistry');
+const MarketContractChainLink = artifacts.require('MarketContractChainLink');
+const utility = require('../utility.js');
 
 
 contract('OracleHubChainLink', function(accounts) {
 
   let oracleHubChainLink;
   let linkToken;
+  let marketContractRegistry;
+  let marketContract;
 
   before(async function() {
-    oracleHubChainLink = await OrableHubChainLink.deployed();
+    oracleHubChainLink = await OracleHubChainLink.deployed();
     linkToken = await LinkToken.deployed();
+    marketContractRegistry = await MarketContractRegistry.deployed();
+    var whiteList = await marketContractRegistry.getAddressWhiteList.call();
+    marketContract = await MarketContractChainLink.at(whiteList[whiteList.length - 1]);
   });
 
   beforeEach(async function() {
@@ -54,16 +62,23 @@ contract('OracleHubChainLink', function(accounts) {
     assert.ok(error instanceof Error, 'should not be able to set factory from non-owner account');
 
     await oracleHubChainLink.setFactoryAddress(accounts[1], {from: accounts[0]});
-    assert.equal(await oracleHubChainLink.marketContractFactoryAddress(), accounts[1], "Did not set factory address correctly");
+    assert.equal(
+      await oracleHubChainLink.marketContractFactoryAddress(),
+      accounts[1],
+      "Did not set factory address correctly"
+  );
 
     await oracleHubChainLink.setFactoryAddress(originalContractFactoryAddress, {from: accounts[0]});
-    assert.equal(await oracleHubChainLink.marketContractFactoryAddress(), originalContractFactoryAddress, "Did not set factory address back correctly");
+    assert.equal(
+      await oracleHubChainLink.marketContractFactoryAddress(),
+      originalContractFactoryAddress,
+      "Did not set factory address back correctly"
+  );
+
   });
 
   it('requestQuery can be called by factory address', async function() {
-    // fails with non factory
-    // set factory address to our account and attempt call.
-
+    const originalContractFactoryAddress = await oracleHubChainLink.marketContractFactoryAddress();
     let error = null;
     try {
       await oracleHubChainLink.setFactoryAddress(accounts[1], {from: accounts[1]});
@@ -72,8 +87,25 @@ contract('OracleHubChainLink', function(accounts) {
     }
     assert.ok(error instanceof Error, 'should not be able to set factory from non-owner account');
 
+    // set factory address to an account we can call from
+    oracleHubChainLink.setFactoryAddress(accounts[1], {from: accounts[0]});
+    oracleHubChainLink.requestQuery(
+      marketContract.address,
+      'https://api.kraken.com/0/public/Ticker?pair=ETHUSD',
+      'result.XETHZUSD.c.0',
+      'fakeSleepJobId',
+      'fakeOnDemandJobId',
+      {from: accounts[1]}
+    );
 
-
+    // Should fire the requested event!
+    const events = await utility.getEvent(oracleHubChainLink, 'ChainlinkRequested');
+    assert.equal(
+      'ChainlinkRequested',
+      events[0].event,
+      'Event called is not ChainlinkRequested'
+    );
+    await oracleHubChainLink.setFactoryAddress(originalContractFactoryAddress, {from: accounts[0]});
   });
 
   it('callBack can be called by a the oracle address', async function() {
@@ -84,9 +116,5 @@ contract('OracleHubChainLink', function(accounts) {
   it('callBack can push contract into expiration', async function() {
     // should probably be in MarketContractChainLink
   });
-
-
-
-
 
 });
