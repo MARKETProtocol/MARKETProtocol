@@ -42,7 +42,7 @@ module.exports = function (deployer, network) {
                     [20155, 60465, 2, 10, marketContractExpiration],
                     'URL',
                     'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
-                    {gas: 2500000, from: web3.eth.accounts[0]}
+                    {gas: gasLimit, from: web3.eth.accounts[0]}
                   )
               });
           });
