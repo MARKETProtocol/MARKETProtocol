@@ -17,9 +17,27 @@
 pragma solidity ^0.4.24;
 
 import "truffle/Assert.sol";
-import "../../contracts/libraries/OrderLib.sol";
+import "../../contracts/libraries/StringLib.sol";
 
 
-contract TestOrderLib {
+contract TestStringLib {
+    using StringLib for *;
+
+    function testToSlice() public {
+        StringLib.slice memory sliceTest = "HelloWorld".toSlice();
+        Assert.equal(sliceTest._len, 10,  "Length should match supplied string length");
+        Assert.equal(sliceTest._ptr, 224,  "PTR should match supplied string");
+    }
+
+    function testDelimAndSplit() public {
+        string memory oracleQueryPath = 'result.XETHZUSD.c.0';
+        StringLib.slice memory pathSlice = oracleQueryPath.toSlice();
+        StringLib.slice memory delim = ".".toSlice();
+        uint length = pathSlice.count(delim) + 1;
+        string[4] memory expectedResults = ['result', 'XETHZUSD', 'c', '0'];
+        for (uint i = 0; i < length; i++) {
+            Assert.equal(expectedResults[i], pathSlice.split(delim).toString(), "String not split properly!");
+        }
+    }
 
 }
