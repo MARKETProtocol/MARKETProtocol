@@ -81,15 +81,22 @@ contract('OracleHubChainLink', function(accounts) {
   });
 
   it('requestQuery can be called by factory address', async function() {
-    const originalContractFactoryAddress = await oracleHubChainLink.marketContractFactoryAddress();
     let error = null;
     try {
-      await oracleHubChainLink.setFactoryAddress(accounts[1], {from: accounts[1]});
+      await oracleHubChainLink.requestQuery(
+        marketContract.address,
+        'https://api.kraken.com/0/public/Ticker?pair=ETHUSD',
+        'result.XETHZUSD.c.0',
+        'fakeSleepJobId',
+        'fakeOnDemandJobId',
+        {from: accounts[1]}
+      );
     } catch (err) {
       error = err;
     }
-    assert.ok(error instanceof Error, 'should not be able to set factory from non-owner account');
+    assert.ok(error instanceof Error, 'should not be able to call request query from non factory address');
 
+    const originalContractFactoryAddress = await oracleHubChainLink.marketContractFactoryAddress();
     // set factory address to an account we can call from
     oracleHubChainLink.setFactoryAddress(accounts[1], {from: accounts[0]});
     oracleHubChainLink.requestQuery(

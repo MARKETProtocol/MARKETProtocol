@@ -117,7 +117,6 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
     function callback(bytes32 requestId, uint256 price) external checkChainlinkFulfillment(requestId) {
         // NOTE: event is emitted by chainlink upon call above to checkChainlinkFulfillment
         ChainLinkQuery memory chainLinkQuery = requestIDToChainLinkQuery[requestId];
-        require(chainLinkQuery.marketContractAddress != address(0), "market contract address can not be null!");
         MarketContractChainLink(chainLinkQuery.marketContractAddress).oracleCallBack(price);
     }
 
