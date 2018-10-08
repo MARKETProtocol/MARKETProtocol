@@ -3,6 +3,7 @@ const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketToken = artifacts.require('MarketToken');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const CollateralToken = artifacts.require('CollateralToken');
+const MarketContractFactory = artifacts.require('./chainlink/MarketContractFactoryChainLink.sol');
 
 contract('MarketContractRegistry', function(accounts) {
   let collateralPool;
@@ -190,6 +191,48 @@ contract('MarketContractRegistry', function(accounts) {
     assert.ok(
       error instanceof Error,
       "removing non white listed contract to whitelist by non owner didn't fail!"
+    );
+  });
+
+  it('Only owner is able to remove factory address', async function() {
+    const ownerAddress = await marketContractRegistry.owner.call();
+    assert.equal(accounts[0], ownerAddress, "owner isn't our first account");
+
+    const factoryAddress = MarketContractFactory.address;
+    const fakeFactoryAddress = accounts[3];
+
+    let error = null;
+    try {
+      await marketContractRegistry.removeFactoryAddress(
+        fakeFactoryAddress,
+        { from: accounts[0] }
+      );
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(
+      error instanceof Error,
+      "removing non factory address should fail!"
+    );
+
+    await marketContractRegistry.removeFactoryAddress(
+      factoryAddress,
+      { from: accounts[0] }
+    );
+
+    assert.isTrue(
+      !(await marketContractRegistry.factoryAddressWhiteList(factoryAddress)),
+      "Removed factory address not removed from mapping"
+    );
+
+    await marketContractRegistry.addFactoryAddress(
+      factoryAddress,
+      { from: accounts[0] }
+    );
+
+    assert.isTrue(
+      await marketContractRegistry.factoryAddressWhiteList(factoryAddress),
+      "Factory address added back"
     );
   });
 });

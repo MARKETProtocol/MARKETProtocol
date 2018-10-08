@@ -1,5 +1,5 @@
 const OrderLib = artifacts.require('OrderLibMock');
-const utility = require('./utility.js');
+const utility = require('../utility.js');
 const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');

@@ -24,9 +24,9 @@ import "./MarketContractRegistryInterface.sol";
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
 
-    mapping(address => bool) isWhiteListed;
-    address[] addressWhiteList;                             // record of currently deployed addresses;
-    mapping(address => bool) factoryAddressWhiteList;       // record of authorized factories
+    mapping(address => bool) public isWhiteListed;
+    address[] public addressWhiteList;                             // record of currently deployed addresses;
+    mapping(address => bool) public factoryAddressWhiteList;       // record of authorized factories
 
     // events
     event AddressAddedToWhitelist(address indexed contractAddress);
