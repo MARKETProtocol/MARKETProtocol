@@ -16,7 +16,17 @@
 
 pragma solidity ^0.4.24;
 
+import "truffle/Assert.sol";
+import "../contracts/Linkable.sol";
 
-contract MarketCollateralPoolFactoryInterface {
-    function deployMarketCollateralPool(address marketContractAddress) external;
+contract TestLinkable {
+
+    function testLinkableCreation() public {
+        Linkable linkable = new Linkable(msg.sender);
+        Assert.equal(
+            msg.sender,
+            linkable.linkedAddress(),
+            "Linked address is as expected in constructor"
+        );
+    }
 }

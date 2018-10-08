@@ -18,7 +18,7 @@ pragma solidity ^0.4.24;
 
 import "./MarketContractOraclize.sol";
 import "../MarketContractRegistryInterface.sol";
-import "../factories/MarketCollateralPoolFactoryInterface.sol";
+import "../tokens/MarketToken.sol";
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
@@ -28,31 +28,30 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 contract MarketContractFactoryOraclize is Ownable {
 
     address public marketContractRegistry;
-    address public collateralPoolFactoryAddress;
     address public MKT_TOKEN_ADDRESS;
+    MarketToken public MKT_TOKEN;
 
     event MarketContractCreated(address indexed creator, address indexed contractAddress);
 
     /// @dev deploys our factory and ties it the a supply registry address
     /// @param registryAddress - address of our MARKET registry
     /// @param mktTokenAddress - MARKET Token address
-    /// @param marketCollateralPoolFactoryAddress - address of collateral pool factory.
-    constructor(address registryAddress, address mktTokenAddress, address marketCollateralPoolFactoryAddress) public {
+    constructor(address registryAddress, address mktTokenAddress) public {
         marketContractRegistry = registryAddress;
         MKT_TOKEN_ADDRESS = mktTokenAddress;
-        collateralPoolFactoryAddress = marketCollateralPoolFactoryAddress;
+        MKT_TOKEN = MarketToken(mktTokenAddress);
     }
 
     /// @dev Deploys a new instance of a market contract and adds it to the whitelist.
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
     /// @param collateralTokenAddress address of the ERC20 token that will be used for collateral and pricing
     /// @param contractSpecs array of unsigned integers including:
-    /// floorPrice minimum tradeable price of this contract, contract enters settlement if breached
-    /// capPrice maximum tradeable price of this contract, contract enters settlement if breached
-    /// priceDecimalPlaces number of decimal places to convert our queried price from a floating point to
-    /// an integer
-    /// qtyMultiplier multiply traded qty by this value from base units of collateral token.
-    /// expirationTimeStamp - seconds from epoch that this contract expires and enters settlement
+    ///     floorPrice              minimum tradeable price of this contract, contract enters settlement if breached
+    ///     capPrice                maximum tradeable price of this contract, contract enters settlement if breached
+    ///     priceDecimalPlaces      number of decimal places to convert our queried price from a floating point to
+    ///                             an integer
+    ///     qtyMultiplier           multiply traded qty by this value from base units of collateral token.
+    ///     expirationTimeStamp     seconds from epoch that this contract expires and enters settlement
     /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"
     /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
@@ -64,12 +63,13 @@ contract MarketContractFactoryOraclize is Ownable {
         string oracleQuery
     ) external
     {
+        require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
         MarketContractOraclize mktContract = new MarketContractOraclize(
             contractName,
-            msg.sender,
-            MKT_TOKEN_ADDRESS,
-            collateralTokenAddress,
-            collateralPoolFactoryAddress,
+            [
+                msg.sender,
+                collateralTokenAddress
+            ],
             contractSpecs,
             oracleDataSource,
             oracleQuery
@@ -84,13 +84,4 @@ contract MarketContractFactoryOraclize is Ownable {
         require(registryAddress != address(0));
         marketContractRegistry = registryAddress;
     }
-
-    /*
-    currently adding this function pushes us over the edge for gas, for the time being we can leave it out.
-    /// @dev allows for the owner to set switch out factories
-    /// @param marketCollateralPoolFactoryAddress desired factory address.
-    function setCollateralPoolFactoryAddress(address marketCollateralPoolFactoryAddress) external onlyOwner {
-        collateralPoolFactoryAddress = marketCollateralPoolFactoryAddress;
-    }
-    */
 }

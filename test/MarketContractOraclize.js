@@ -4,6 +4,7 @@ const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const MarketToken = artifacts.require('MarketToken');
 const CollateralToken = artifacts.require('CollateralToken');
 const OrderLib = artifacts.require('OrderLibMock');
+const MarketTradingHub = artifacts.require('MarketTradingHub');
 const Helpers = require('./helpers/Helpers.js');
 const utility = require('./utility.js');
 
@@ -23,7 +24,10 @@ contract('MarketContractOraclize', function(accounts) {
   let makerAccountBalanceBeforeTrade;
   let takerAccountBalanceBeforeTrade;
   let tradeHelper;
+  let marketTradingHub;
+
   const entryOrderPrice = 33025;
+  const exitOrderPrice = 36025;
   const accountMaker = accounts[0];
   const accountTaker = accounts[1];
 
@@ -32,26 +36,26 @@ contract('MarketContractOraclize', function(accounts) {
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
-    collateralPool = await MarketCollateralPool.at(
-      await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call()
-    );
+    collateralPool = await MarketCollateralPool.deployed();
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
+    marketTradingHub = await MarketTradingHub.deployed();
+
     tradeHelper = await Helpers.TradeHelper(
       marketContract,
       orderLib,
       collateralToken,
-      collateralPool
+      collateralPool,
+      marketTradingHub
     );
   });
 
   it('Trade occurs, cancel occurs, balances transferred, positions updated', async function() {
     const timeStamp = new Date().getTime() / 1000 + 60 * 5; // order expires 5 minute from now.
-    const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+    const orderAddresses = [marketContract.address, accountMaker, accountTaker, accounts[2]];
     const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
     const orderQty = 5; // user is attempting to buy 5
     const orderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
@@ -68,16 +72,20 @@ contract('MarketContractOraclize', function(accounts) {
     await collateralToken.approve(collateralPool.address, amountToDeposit, { from: accounts[1] });
 
     // move tokens to the collateralPool
-    await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[0] });
-    await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[1] });
+    await collateralPool.depositTokensForTrading(collateralToken.address, amountToDeposit, { from: accounts[0] });
+    await collateralPool.depositTokensForTrading(collateralToken.address, amountToDeposit, { from: accounts[1] });
 
-    makerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accounts[0]);
-    takerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accounts[1]);
+    makerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(collateralToken.address,
+      accounts[0]
+    );
+    takerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(collateralToken.address,
+      accounts[1]
+    );
 
     // Execute trade between maker and taker for partial amount of order.
     const qtyToFill = 1;
     const orderSignature = utility.signMessage(web3, accountMaker, orderHash);
-    await marketContract.tradeOrder(
+    await marketTradingHub.tradeOrder(
       orderAddresses,
       unsignedOrderValues,
       orderQty, // qty is five
@@ -88,16 +96,16 @@ contract('MarketContractOraclize', function(accounts) {
       { from: accountTaker }
     );
 
-    const makerNetPos = await collateralPool.getUserNetPosition.call(accountMaker);
-    const takerNetPos = await collateralPool.getUserNetPosition.call(accountTaker);
+    const makerNetPos = await collateralPool.getUserNetPosition.call(marketContract.address, accountMaker);
+    const takerNetPos = await collateralPool.getUserNetPosition.call(marketContract.address, accountTaker);
     assert.equal(makerNetPos.toNumber(), 1, 'Maker should be long 1');
     assert.equal(takerNetPos.toNumber(), -1, 'Taker should be short 1');
 
-    const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+    const qtyFilled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(orderHash);
     assert.equal(qtyFilled.toNumber(), 1, "Fill Qty doesn't match expected");
 
-    await marketContract.cancelOrder(orderAddresses, unsignedOrderValues, 5, 1); //cancel part of order
-    const qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(
+    await marketTradingHub.cancelOrder(orderAddresses, unsignedOrderValues, 5, 1); //cancel part of order
+    const qtyFilledOrCancelled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(
       orderHash
     );
     assert.equal(
@@ -111,7 +119,7 @@ contract('MarketContractOraclize', function(accounts) {
     const priceFloor = await marketContract.PRICE_FLOOR.call();
     const priceCap = await marketContract.PRICE_CAP.call();
     const qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
-    const actualCollateralPoolBalance = await collateralPool.collateralPoolBalance.call();
+    const actualCollateralPoolBalance = await collateralPool.contractAddressToCollateralPoolBalance.call(marketContract.address);
 
     const longCollateral = (entryOrderPrice - priceFloor) * qtyMultiplier * qtyToFill;
     const shortCollateral = (priceCap - entryOrderPrice) * qtyMultiplier * qtyToFill;
@@ -123,10 +131,10 @@ contract('MarketContractOraclize', function(accounts) {
       "Collateral pool isn't funded correctly"
     );
 
-    const makerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(
+    const makerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(collateralToken.address,
       accounts[0]
     );
-    const takerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(
+    const takerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(collateralToken.address,
       accounts[1]
     );
 
@@ -142,9 +150,8 @@ contract('MarketContractOraclize', function(accounts) {
     );
   });
 
-  const exitOrderPrice = 36025;
   it('Trade is unwound, correct collateral amount returns to user balances', async function() {
-    const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+    const orderAddresses = [marketContract.address, accountMaker, accountTaker, accounts[2]];
     const orderPrice = 36025;
     const orderQty = -5; // user is attempting to sell -5
 
@@ -156,16 +163,16 @@ contract('MarketContractOraclize', function(accounts) {
       qtyToFill
     ]);
 
-    const makerNetPos = await collateralPool.getUserNetPosition.call(accountMaker);
-    const takerNetPos = await collateralPool.getUserNetPosition.call(accountTaker);
+    const makerNetPos = await collateralPool.getUserNetPosition.call(marketContract.address, accountMaker);
+    const takerNetPos = await collateralPool.getUserNetPosition.call(marketContract.address, accountTaker);
     assert.equal(makerNetPos.toNumber(), 0, 'Maker should be flat');
     assert.equal(takerNetPos.toNumber(), 0, 'Taker should be flat');
 
-    const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+    const qtyFilled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(orderHash);
     assert.equal(qtyFilled.toNumber(), -1, "Fill Qty doesn't match expected");
 
-    await marketContract.cancelOrder(orderAddresses, unsignedOrderValues, -5, -1); //cancel part of order
-    const qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(
+    await marketTradingHub.cancelOrder(orderAddresses, unsignedOrderValues, -5, -1); //cancel part of order
+    const qtyFilledOrCancelled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(
       orderHash
     );
     assert.equal(
@@ -175,17 +182,19 @@ contract('MarketContractOraclize', function(accounts) {
     );
 
     // after the execution we should have collateral transferred from pool to the users since they are now flat!
-    const actualCollateralPoolBalance = await collateralPool.collateralPoolBalance.call();
+    const actualCollateralPoolBalance = await collateralPool.contractAddressToCollateralPoolBalance.call(marketContract.address);
     assert.equal(
       actualCollateralPoolBalance.toNumber(),
       0,
       'Collateral pool should be completely empty'
     );
 
-    const makerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(
+    const makerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
       accounts[0]
     );
-    const takerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(
+    const takerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
       accounts[1]
     );
     const qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
@@ -205,12 +214,11 @@ contract('MarketContractOraclize', function(accounts) {
 
   it('should only allow remaining quantity to be filled for an overfilled trade.', async function() {
     const timeStamp = new Date().getTime() / 1000 + 60 * 5; // order expires 5 minute from now.
-    const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+    const orderAddresses = [marketContract.address, accountMaker, accountTaker, accounts[2]];
     const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
     const orderQty = 5; // user is attempting to buy 5
     const qtyToFill = 10; // order is to be filled by 10
     const orderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
@@ -220,7 +228,7 @@ contract('MarketContractOraclize', function(accounts) {
 
     // Execute trade between maker and taker for overfilled amount of order.
     const orderSignature = utility.signMessage(web3, accountMaker, orderHash);
-    const actualQtyFilled = await marketContract.tradeOrder.call(
+    const actualQtyFilled = await marketTradingHub.tradeOrder.call(
       orderAddresses,
       unsignedOrderValues,
       orderQty, // 5
@@ -238,8 +246,52 @@ contract('MarketContractOraclize', function(accounts) {
     );
   });
 
+  it('should fail attempt to fill an order already completely filled.', async function() {
+    const timeStamp = new Date().getTime() / 1000 + 60 * 5; // order expires 5 minute from now.
+    const orderAddresses = [marketContract.address, accountMaker, accountTaker, accounts[2]];
+    const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 105];
+    const orderQty = 5; // user is attempting to buy 5
+    const orderHash = await orderLib._createOrderHash.call(
+      orderAddresses,
+      unsignedOrderValues,
+      orderQty
+    );
+
+    // Execute trade between maker and taker
+    const orderSignature = utility.signMessage(web3, accountMaker, orderHash);
+    await marketTradingHub.tradeOrder(
+      orderAddresses,
+      unsignedOrderValues,
+      orderQty,
+      orderQty,
+      orderSignature[0], // v
+      orderSignature[1], // r
+      orderSignature[2], // s
+      { from: accountTaker }
+    );
+
+    // Second attempt to execute same trader / same order, should fail!
+    await marketTradingHub.tradeOrder(
+      orderAddresses,
+      unsignedOrderValues,
+      orderQty,
+      orderQty,
+      orderSignature[0], // v
+      orderSignature[1], // r
+      orderSignature[2], // s
+      { from: accountTaker }
+    );
+
+    const events = await utility.getEvent(marketTradingHub, 'Error');
+    assert.equal(
+      ErrorCodes.ORDER_DEAD,
+      events[0].args.errorCode.toNumber(),
+      'Error event is not order dead.'
+    );
+  });
+
   it('should only allow remaining quantity to be cancelled for an over cancelled trade.', async function() {
-    const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+    const orderAddresses = [marketContract.address, accountMaker, accountTaker, accounts[2]];
     const orderQty = -5; // user is attempting to sell 5
     const qtyToFill = -1; // order is to be filled by 1
 
@@ -253,7 +305,7 @@ contract('MarketContractOraclize', function(accounts) {
     const expectedQtyCancelled = -4;
     const qtyToCancel = -7;
     // over cancel order
-    const actualQtyCancelled = await marketContract.cancelOrder.call(
+    const actualQtyCancelled = await marketTradingHub.cancelOrder.call(
       orderAddresses,
       unsignedOrderValues,
       orderQty,
@@ -274,19 +326,19 @@ contract('MarketContractOraclize', function(accounts) {
 
     // Execute trade between maker and taker for partial amount of order.
     const { orderHash } = await tradeHelper.tradeOrder(
-      [accountMaker, accountTaker, accounts[2]],
+      [marketContract.address, accountMaker, accountTaker, accounts[2]],
       [entryOrderPrice, orderQty, qtyToFill],
       isExpired
     );
 
-    const events = await utility.getEvent(marketContract, 'Error');
+    const events = await utility.getEvent(marketTradingHub, 'Error');
     assert.equal(
       ErrorCodes.ORDER_EXPIRED,
       events[0].args.errorCode.toNumber(),
       'Error event is not order expired.'
     );
 
-    const orderQtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+    const orderQtyFilled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(orderHash);
     assert.equal(0, orderQtyFilled.toNumber(), 'Quantity filled is not zero.');
   });
 
@@ -297,30 +349,29 @@ contract('MarketContractOraclize', function(accounts) {
 
     // Execute trade between maker and taker for partial amount of order.
     const { orderHash } = await tradeHelper.cancelOrder(
-      [accountMaker, accountTaker, accounts[2]],
+      [marketContract.address, accountMaker, accountTaker, accounts[2]],
       [entryOrderPrice, orderQty, qtyToCancel],
       isExpired
     );
 
-    const events = await utility.getEvent(marketContract, 'Error');
+    const events = await utility.getEvent(marketTradingHub, 'Error');
     assert.equal(
       ErrorCodes.ORDER_EXPIRED,
       events[0].args.errorCode.toNumber(),
       'Error event is not order expired.'
     );
 
-    const orderQtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+    const orderQtyFilled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(orderHash);
     assert.equal(0, orderQtyFilled.toNumber(), 'Quantity cancelled is not zero.');
   });
 
   it('should fail for attempts to trade zero quantity', async function() {
     const expiredTimestamp = new Date().getTime() / 1000 + 60 * 5; // order expires in 5 minutes.
-    const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+    const orderAddresses = [marketContract.address, accountMaker, accountTaker, accounts[2]];
     const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
     const zeroOrderQty = 0;
     const qtyToFill = 4;
     const orderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       zeroOrderQty
@@ -330,7 +381,7 @@ contract('MarketContractOraclize', function(accounts) {
     const orderSignature = utility.signMessage(web3, accountMaker, orderHash);
     let error = null;
     try {
-      await marketContract.tradeOrder.call(
+      await marketTradingHub.tradeOrder.call(
         orderAddresses,
         unsignedOrderValues,
         zeroOrderQty, // 5
@@ -350,12 +401,11 @@ contract('MarketContractOraclize', function(accounts) {
   it('should fail for attempts to create maker order and fill as taker from same account', async function() {
     const expiredTimestamp = new Date().getTime() / 1000 + 60 * 5; // order expires in 5 minutes.
     const makerAndTakerAccount = accountMaker; // same address for maker and taker
-    const orderAddresses = [makerAndTakerAccount, makerAndTakerAccount, accounts[2]];
+    const orderAddresses = [marketContract.address, makerAndTakerAccount, makerAndTakerAccount, accounts[2]];
     const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
     const orderQty = 5;
     const qtyToFill = 1; // order is to be filled by 1
     const orderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
@@ -383,12 +433,11 @@ contract('MarketContractOraclize', function(accounts) {
 
   it('should fail for attempts to self-trade', async function() {
     const expiredTimestamp = new Date().getTime() / 1000 + 60 * 5;
-    const orderAddresses = [accountMaker, null, accounts[2]];
+    const orderAddresses = [marketContract.address, accountMaker, null, accounts[2]];
     const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
     const orderQty = 5;
     const qtyToFill = 1;
     const orderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
@@ -397,7 +446,7 @@ contract('MarketContractOraclize', function(accounts) {
     const orderSignature = utility.signMessage(web3, accountMaker, orderHash);
     let error = null;
     try {
-      await marketContract.tradeOrder.call(
+      await marketTradingHub.tradeOrder.call(
         orderAddresses,
         unsignedOrderValues,
         orderQty,
@@ -415,12 +464,11 @@ contract('MarketContractOraclize', function(accounts) {
 
   it('should fail for attempts to order and fill with price changed', async function() {
     const expiredTimestamp = new Date().getTime() / 1000 + 60 * 5; // order expires in 5 minutes.
-    const orderAddresses = [accountMaker, accountTaker, accounts[2]];
+    const orderAddresses = [marketContract.address, accountMaker, accountTaker, accounts[2]];
     const unsignedOrderValues = [0, 0, entryOrderPrice, expiredTimestamp, 1];
     const orderQty = 5;
     const qtyToFill = 1; // order is to be filled by 1
     const orderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
@@ -433,7 +481,7 @@ contract('MarketContractOraclize', function(accounts) {
     const orderSignature = utility.signMessage(web3, accountMaker, orderHash);
     let error = null;
     try {
-      await marketContract.tradeOrder.call(
+      await marketTradingHub.tradeOrder.call(
         orderAddresses,
         changedUnsignedOrderValues,
         orderQty, // 5
@@ -455,16 +503,16 @@ contract('MarketContractOraclize', function(accounts) {
     const orderToCancel = 2;
 
     await tradeHelper.cancelOrder(
-      [accounts[0], accounts[1], accounts[2]],
+      [marketContract.address, accounts[0], accounts[1], accounts[2]],
       [entryOrderPrice, orderQty, orderToCancel]
     );
 
     await tradeHelper.cancelOrder(
-      [accounts[0], accounts[1], accounts[2]],
+      [marketContract.address, accounts[0], accounts[1], accounts[2]],
       [entryOrderPrice, orderQty, orderToCancel]
     );
 
-    const events = await utility.getEvent(marketContract, 'Error');
+    const events = await utility.getEvent(marketTradingHub, 'Error');
     assert.equal(
       ErrorCodes.ORDER_DEAD,
       events[0].args.errorCode.toNumber(),
@@ -478,7 +526,7 @@ contract('MarketContractOraclize', function(accounts) {
     const settlementPrice = await marketContract.PRICE_FLOOR() - 1;
     const isExpired = true;
     await tradeHelper.tradeOrder(
-      [accounts[0], accounts[1], accounts[2]],
+      [marketContract.address, accounts[0], accounts[1], accounts[2]],
       [entryOrderPrice, orderQty, orderToFill],
       isExpired
     );
@@ -489,7 +537,7 @@ contract('MarketContractOraclize', function(accounts) {
     let error;
     try {
       await tradeHelper.tradeOrder(
-        [accounts[0], accounts[1], accounts[2]],
+        [marketContract.address, accounts[0], accounts[1], accounts[2]],
         [entryOrderPrice, orderQty, orderToFill]
       );
     } catch (err) {
@@ -517,7 +565,7 @@ contract('MarketContractOraclize', function(accounts) {
     let error;
     try {
       await tradeHelper.tradeOrder(
-        [accounts[0], accounts[0], accounts[2]],
+        [marketContract.address, accounts[0], accounts[0], accounts[2]],
         [entryOrderPrice, orderQty, orderToFill]
       );
     } catch (err) {
@@ -538,7 +586,7 @@ contract('MarketContractOraclize', function(accounts) {
     let error;
     try {
       await tradeHelper.cancelOrder(
-        [accounts[0], accounts[1], accounts[2]],
+        [marketContract.address, accounts[0], accounts[1], accounts[2]],
         [entryOrderPrice, orderQty, orderToCancel]
       );
     } catch (err) {
@@ -547,28 +595,6 @@ contract('MarketContractOraclize', function(accounts) {
 
     assert.ok(error instanceof Error, 'cancelOrder() should fail after settlement');
   });
-
-  // it("should not allow unknown address to claim remaining ether", async function() {
-  //     const unknownAddress = accounts[4];
-  //
-  //     let error;
-  //     try {
-  //         await marketContract.reclaimUnusedEtherBalance({from: unknownAddress});
-  //     } catch (err) {
-  //         error = err;
-  //     }
-  //     assert.ok(error instanceof Error, "Address not creator can claim unused ether");
-  // })
-  //
-  // it("should allow only contract owner to claim remaining ether", async function() {
-  //     const creator = accounts[0];
-  //     const balance = await web3.eth.getBalance(MarketContractOraclize.address);
-  //
-  //     await marketContract.reclaimUnusedEtherBalance({from: creator});
-  //
-  //     const balanceAfterTransfer = await web3.eth.getBalance(MarketContractOraclize.address);
-  //     assert.equal(balanceAfterTransfer.toNumber(), 0, "Remaining ether is not fully claimed");
-  // })
 });
 
 contract('MarketContractOraclize.Fees', function(accounts) {
@@ -579,6 +605,7 @@ contract('MarketContractOraclize.Fees', function(accounts) {
   let marketToken;
   let marketContract;
   let marketContractRegistry;
+  let marketTradingHub;
 
   let collateralPoolBalanceBeforeTrade;
   let makerAccountBalanceBeforeTrade;
@@ -595,9 +622,15 @@ contract('MarketContractOraclize.Fees', function(accounts) {
   const accountFeeRecipient = accounts[2];
 
   beforeEach(async function() {
-    collateralPoolBalanceBeforeTrade = await collateralPool.collateralPoolBalance.call();
-    makerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accountMaker);
-    takerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accountTaker);
+    collateralPoolBalanceBeforeTrade = await collateralPool.contractAddressToCollateralPoolBalance.call(marketContract.address);
+    makerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
+      accountMaker
+    );
+    takerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
+      accountTaker
+    );
     feeRecipientAccountBalanceBeforeTrade = await marketToken.balanceOf.call(accountFeeRecipient);
   });
 
@@ -606,16 +639,17 @@ contract('MarketContractOraclize.Fees', function(accounts) {
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
-    collateralPool = await MarketCollateralPool.at(
-      await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call()
-    );
+    collateralPool = await MarketCollateralPool.deployed();
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
+    marketTradingHub = await MarketTradingHub.deployed();
+
     tradeHelper = await Helpers.TradeHelper(
       marketContract,
       orderLib,
       collateralToken,
-      collateralPool
+      collateralPool,
+      marketTradingHub
     );
 
     // transfer half of the collateral tokens to the second account.
@@ -629,19 +663,25 @@ contract('MarketContractOraclize.Fees', function(accounts) {
     await collateralToken.approve(collateralPool.address, amountToDeposit, { from: accountTaker });
 
     // move tokens to the collateralPool
-    await collateralPool.depositTokensForTrading(amountToDeposit, { from: accountMaker });
-    await collateralPool.depositTokensForTrading(amountToDeposit, { from: accountTaker });
+    await collateralPool.depositTokensForTrading(collateralToken.address, amountToDeposit, { from: accountMaker });
+    await collateralPool.depositTokensForTrading(collateralToken.address, amountToDeposit, { from: accountTaker });
 
     // provide taker with MKT to pay fee and approve spend of fees.
-    await marketToken.transfer(accountTaker, 1000, { from: accountMaker });
-    await marketToken.approve(marketContract.address, 1000, { from: accountMaker });
-    await marketToken.approve(marketContract.address, 1000, { from: accountTaker });
+    await marketToken.transfer(accountTaker, 10000, { from: accountMaker });
+    await marketToken.approve(marketTradingHub.address, 10000, { from: accountMaker });
+    await marketToken.approve(marketTradingHub.address, 10000, { from: accountTaker });
   });
 
   async function collectBalancesAfterTrade() {
-    collateralPoolBalanceAfterTrade = await collateralPool.collateralPoolBalance.call();
-    makerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accountMaker);
-    takerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(accountTaker);
+    collateralPoolBalanceAfterTrade = await collateralPool.contractAddressToCollateralPoolBalance.call(marketContract.address);
+    makerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
+      accountMaker
+    );
+    takerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
+      accountTaker
+    );
     feeRecipientAccountBalanceAfterTrade = await marketToken.balanceOf.call(accountFeeRecipient);
   }
 
@@ -649,7 +689,7 @@ contract('MarketContractOraclize.Fees', function(accounts) {
     const orderQty = 2;
     const qtyToFill = 2;
     const orderPrice = 100;
-    const orderAddresses = [accountMaker, accountTaker, accountFeeRecipient];
+    const orderAddresses = [marketContract.address, accountMaker, accountTaker, accountFeeRecipient];
 
     const { orderHash, unsignedOrderValues } = await tradeHelper.tradeOrder(
       orderAddresses,
@@ -666,7 +706,7 @@ contract('MarketContractOraclize.Fees', function(accounts) {
     let orderHash = await executeTradeWithFees(0, 0);
     await collectBalancesAfterTrade();
 
-    const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+    const qtyFilled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(orderHash);
     assert.equal(qtyFilled.toNumber(), 2, "Fill Qty doesn't match expected");
 
     assert.equal(
@@ -680,7 +720,7 @@ contract('MarketContractOraclize.Fees', function(accounts) {
     let orderHash = await executeTradeWithFees(1, 0);
     await collectBalancesAfterTrade();
 
-    const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+    const qtyFilled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(orderHash);
     assert.equal(qtyFilled.toNumber(), 2, "Fill Qty doesn't match expected");
 
     assert.equal(
@@ -694,7 +734,7 @@ contract('MarketContractOraclize.Fees', function(accounts) {
     let orderHash = await executeTradeWithFees(0, 1);
     await collectBalancesAfterTrade();
 
-    const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+    const qtyFilled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(orderHash);
     assert.equal(qtyFilled.toNumber(), 2, "Fill Qty doesn't match expected");
 
     assert.equal(
@@ -708,7 +748,7 @@ contract('MarketContractOraclize.Fees', function(accounts) {
     let orderHash = await executeTradeWithFees(1, 1);
     await collectBalancesAfterTrade();
 
-    const qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+    const qtyFilled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(orderHash);
     assert.equal(qtyFilled.toNumber(), 2, "Fill Qty doesn't match expected");
 
     assert.equal(

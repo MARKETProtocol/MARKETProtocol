@@ -13,26 +13,27 @@
 
 const utility = require('../utility');
 
-module.exports = async function(marketContract, orderLib, collateralToken, collateralPool) {
+module.exports = async function(marketContract, orderLib, collateralToken, collateralPool, tradingHub) {
+
   async function tradeOrder(
-    [accountMaker, accountTaker, feeAccount],
+    [marketContractAddress, accountMaker, accountTaker, feeAccount],
     [orderPrice, orderQty, qtyToFill],
     isExpired = false,
     makerFee = 0,
     takerFee = 0
   ) {
     const timeStamp = new Date().getTime() / 1000 + 60 * (isExpired ? -5 : 5); // expires/expired 5 mins (ago)
-    const orderAddresses = [accountMaker, accountTaker, feeAccount];
+    const orderAddresses = [marketContractAddress, accountMaker, accountTaker, feeAccount];
     const unsignedOrderValues = [makerFee, takerFee, orderPrice, timeStamp, 1];
+
     const orderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
     );
-
     const orderSignature = utility.signMessage(web3, accountMaker, orderHash);
-    await marketContract.tradeOrder(
+
+    await tradingHub.tradeOrder(
       orderAddresses,
       unsignedOrderValues,
       orderQty,
@@ -40,27 +41,26 @@ module.exports = async function(marketContract, orderLib, collateralToken, colla
       orderSignature[0], // v
       orderSignature[1], // r
       orderSignature[2], // s
-      { from: accountTaker }
+      { from: accountTaker}
     );
     return { orderHash, orderSignature, unsignedOrderValues };
   }
 
   async function cancelOrder(
-    [accountMaker, accountTaker, feeAccount],
+    [marketContractAddress, accountMaker, accountTaker, feeAccount],
     [entryOrderPrice, orderQty, qtyToCancel],
     isExpired = false
   ) {
     const timeStamp = new Date().getTime() / 1000 + 60 * (isExpired ? -5 : 5); // expires/expired 5 mins (ago)
-    const orderAddresses = [accountMaker, accountTaker, feeAccount];
+    const orderAddresses = [marketContractAddress, accountMaker, accountTaker, feeAccount];
     const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
     const orderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
     );
 
-    await marketContract.cancelOrder(orderAddresses, unsignedOrderValues, orderQty, qtyToCancel);
+    await tradingHub.cancelOrder(orderAddresses, unsignedOrderValues, orderQty, qtyToCancel);
     return { orderHash };
   }
 
@@ -94,7 +94,7 @@ module.exports = async function(marketContract, orderLib, collateralToken, colla
     settlementPrice
   ) {
     const tokenBalanceOfUser = await collateralToken.balanceOf.call(address);
-    const userAccountBalance = await collateralPool.getUserAccountBalance.call(address);
+    const userAccountBalance = await collateralPool.getUserUnallocatedBalance.call(collateralToken.address, address);
     const collateralLeft = utility.calculateNeededCollateral(
       priceFloor,
       priceCap,

@@ -1,5 +1,6 @@
 const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
+const MarketTradingHub = artifacts.require('MarketTradingHub');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const MarketToken = artifacts.require('MarketToken');
 const CollateralToken = artifacts.require('CollateralToken');
@@ -8,6 +9,7 @@ const Helpers = require('./helpers/Helpers.js');
 
 // test to ensure callback gas is within limits when settling contracts
 contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
+
   let orderLib;
   let tradeHelper;
   let collateralPool;
@@ -17,24 +19,27 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
   let marketContract;
   let marketContractInstance;
   let gasLimit;
+  let marketTradingHub;
 
   const accountMaker = accounts[0];
 
   before(async function() {
+
     marketToken = await MarketToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
-    collateralPool = await MarketCollateralPool.at(
-      await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call()
-    );
+    collateralPool = await MarketCollateralPool.deployed();
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
+    marketTradingHub = await MarketTradingHub.deployed();
+
     tradeHelper = await Helpers.TradeHelper(
       marketContract,
       orderLib,
       collateralToken,
-      collateralPool
+      collateralPool,
+      marketTradingHub
     );
   });
 
@@ -52,14 +57,11 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
 
     MarketContractOraclize.new(
       'ETHUSD-10',
-      accountMaker,
-      marketToken.address,
-      collateralToken.address,
-      collateralPool.address,
+      [ accountMaker, marketToken.address, collateralToken.address, collateralPool.address],
       [priceFloor, priceCap, 2, 1, marketContractExpirationInTenSeconds],
       'URL',
       'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
-      { gas: gasLimit, value: web3.toWei('.1', 'ether'), accountMaker }
+      { gas: gasLimit, accountMaker }
     ).then(async function(deployedMarketContract) {
       let oraclizeCallbackGasCost = await deployedMarketContract.QUERY_CALLBACK_GAS.call();
       let contractSettledEvent = deployedMarketContract.ContractSettled();
@@ -125,14 +127,11 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
     try {
       await MarketContractOraclize.new(
         'ETHUSD-EQUALPRICECAPPRICEFLOOR',
-        accountMaker,
-        marketToken.address,
-        collateralToken.address,
-        collateralPool.address,
+        [ accountMaker, marketToken.address, collateralToken.address, collateralPool.address],
         [100000, 100000, 2, 1, marketContractExpirationInTenSeconds],
         'URL',
         'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
-        { gas: gasLimit, value: web3.toWei('.1', 'ether'), accountMaker }
+        { gas: gasLimit, accountMaker }
       );
     } catch (err) {
       error = err;
@@ -146,14 +145,11 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
     try {
       await MarketContractOraclize.new(
         'ETHUSD-EQUALPRICECAPPRICEFLOOR',
-        accountMaker,
-        marketToken.address,
-        collateralToken.address,
-        collateralPool.address,
+        [ accountMaker, marketToken.address, collateralToken.address, collateralPool.address],
         [10, 100, 2, 1, marketContractExpirationTenSecondsAgo],
         'URL',
         'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
-        { gas: gasLimit, value: web3.toWei('.1', 'ether'), accountMaker }
+        { gas: gasLimit, accountMaker }
       );
     } catch (err) {
       error = err;
@@ -168,14 +164,11 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
     try {
       await MarketContractOraclize.new(
         'ETHUSD-EQUALPRICECAPPRICEFLOOR',
-        accountMaker,
-        marketToken.address,
-        collateralToken.address,
-        collateralPool.address,
+        [ accountMaker, marketToken.address, collateralToken.address, collateralPool.address],
         [10, 100, 2, 1, marketContractExpirationTenSecondsAgo],
         'URL',
         'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
-        { gas: gasLimit, value: web3.toWei('.1', 'ether'), accountMaker }
+        { gas: gasLimit, accountMaker }
       );
     } catch (err) {
       error = err;

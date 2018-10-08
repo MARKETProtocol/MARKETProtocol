@@ -1,6 +1,7 @@
 const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
+const MarketTradingHub = artifacts.require('MarketTradingHub');
 const CollateralToken = artifacts.require('CollateralToken');
 const MarketToken = artifacts.require('MarketToken');
 const OrderLib = artifacts.require('OrderLibMock');
@@ -21,6 +22,7 @@ contract('MarketCollateralPool', function(accounts) {
   let priceFloor;
   let priceCap;
   let tradeHelper;
+  let marketTradingHub;
   const entryOrderPrice = 33025;
   const accountMaker = accounts[0];
   const accountTaker = accounts[1];
@@ -30,20 +32,19 @@ contract('MarketCollateralPool', function(accounts) {
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
-    collateralPool = await MarketCollateralPool.at(
-      await marketContract.MARKET_COLLATERAL_POOL_ADDRESS.call()
-    );
+    collateralPool = await MarketCollateralPool.deployed();
     orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
     qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
     priceFloor = await marketContract.PRICE_FLOOR.call();
     priceCap = await marketContract.PRICE_CAP.call();
-
+    marketTradingHub = await MarketTradingHub.deployed();
     tradeHelper = await Helpers.TradeHelper(
       marketContract,
       orderLib,
       collateralToken,
-      collateralPool
+      collateralPool,
+      marketTradingHub
     );
   });
 
@@ -57,7 +58,7 @@ contract('MarketCollateralPool', function(accounts) {
 
     let error = null;
     try {
-      await collateralPool.depositTokensForTrading(500, { from: accounts[5] });
+      await collateralPool.depositTokensForTrading(collateralToken.address, 500, { from: accounts[5] });
     } catch (err) {
       error = err;
     }
@@ -79,8 +80,8 @@ contract('MarketCollateralPool', function(accounts) {
       accounts[3]
     );
     await marketToken.setLockQtyToAllowTrading(10);
-    error = null;
 
+    error = null;
     try {
       await collateralPool.depositTokensForTrading(fourBalance, { from: accounts[3] });
     } catch (err) {
@@ -100,14 +101,14 @@ contract('MarketCollateralPool', function(accounts) {
     await collateralToken.approve(collateralPool.address, fourBalance, { from: accounts[3] });
 
     // move tokens to the collateralPool
-    await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[0] });
-    await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[1] });
-    await collateralPool.depositTokensForTrading(fourBalance, { from: accounts[3] });
+    await collateralPool.depositTokensForTrading(collateralToken.address, amountToDeposit, { from: accounts[0] });
+    await collateralPool.depositTokensForTrading(collateralToken.address, amountToDeposit, { from: accounts[1] });
+    await collateralPool.depositTokensForTrading(collateralToken.address, fourBalance, { from: accounts[3] });
 
     // trigger requires
     error = null;
     try {
-      await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[2] });
+      await collateralPool.depositTokensForTrading(collateralToken.address, amountToDeposit, { from: accounts[2] });
     } catch (err) {
       error = err;
     }
@@ -115,7 +116,7 @@ contract('MarketCollateralPool', function(accounts) {
 
     error = null;
     try {
-      await collateralPool.settleAndClose({ from: accounts[2] });
+      await collateralPool.settleAndClose(marketContract.address, { from: accounts[2] });
     } catch (err) {
       error = err;
     }
@@ -123,9 +124,13 @@ contract('MarketCollateralPool', function(accounts) {
     // end trigger requires
 
     // ensure balances are now inside the contract.
-    const tradingBalanceAcctOne = await collateralPool.getUserAccountBalance.call(accounts[0]);
-    const tradingBalanceAcctTwo = await collateralPool.getUserAccountBalance.call(accounts[1]);
-    const tradingBalanceAcctFour = await collateralPool.getUserAccountBalance.call(accounts[3]);
+    const tradingBalanceAcctOne =
+      await collateralPool.getUserUnallocatedBalance.call(collateralToken.address, accounts[0]);
+    const tradingBalanceAcctTwo =
+      await collateralPool.getUserUnallocatedBalance.call(collateralToken.address, accounts[1]);
+    const tradingBalanceAcctFour =
+      await collateralPool.getUserUnallocatedBalance.call(collateralToken.address, accounts[3]);
+
     assert.equal(tradingBalanceAcctOne, amountToDeposit, "Balance doesn't equal tokens deposited");
     assert.equal(tradingBalanceAcctTwo, amountToDeposit, "Balance doesn't equal tokens deposited");
     assert.equal(tradingBalanceAcctFour, fourBalance, "4 Balance doesn't equal tokens deposited");
@@ -134,11 +139,13 @@ contract('MarketCollateralPool', function(accounts) {
   it('Both accounts should be able to withdraw from collateral pool contract', async function() {
     const amountToWithdraw = 2500000;
     // move tokens to the MarketContract
-    await collateralPool.withdrawTokens(amountToWithdraw, { from: accounts[0] });
-    await collateralPool.withdrawTokens(amountToWithdraw, { from: accounts[1] });
+    await collateralPool.withdrawTokens(collateralToken.address, amountToWithdraw, { from: accounts[0] });
+    await collateralPool.withdrawTokens(collateralToken.address, amountToWithdraw, { from: accounts[1] });
     // ensure balances are now correct inside the contract.
-    let tradingBalanceAcctOne = await collateralPool.getUserAccountBalance.call(accounts[0]);
-    let tradingBalanceAcctTwo = await collateralPool.getUserAccountBalance.call(accounts[1]);
+    let tradingBalanceAcctOne =
+      await collateralPool.getUserUnallocatedBalance.call(collateralToken.address, accounts[0]);
+    let tradingBalanceAcctTwo =
+      await collateralPool.getUserUnallocatedBalance.call(collateralToken.address, accounts[1]);
 
     assert.equal(
       tradingBalanceAcctOne,
@@ -204,7 +211,7 @@ contract('MarketCollateralPool', function(accounts) {
     //  try to withdraw collateral without adequate locked tokens
     //
     try {
-      await collateralPool.withdrawTokens(1, { from: accounts[1] });
+      await collateralPool.withdrawTokens(collateralToken.address, 1, { from: accounts[1] });
     } catch (err) {
       error = err;
     }
@@ -216,7 +223,7 @@ contract('MarketCollateralPool', function(accounts) {
     //  try to deposit tokens without adequate locked tokens
     //
     try {
-      await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[0] });
+      await collateralPool.depositTokensForTrading(collateralToken.address, amountToDeposit, { from: accounts[0] });
     } catch (err) {
       error = err;
     }
@@ -231,20 +238,19 @@ contract('MarketCollateralPool', function(accounts) {
 
   it('2 Trades occur, 1 cancel occurs, new order, 2 trades, positions updated', async function() {
     const timeStamp = new Date().getTime() / 1000 + 60 * 5; // order expires 5 minute from now.
-    const orderAddresses = [accountMaker, accountTaker, accounts[2]];
-    const smallAddress = [accountMaker, accounts[3], accounts[2]];
+    const orderAddresses = [marketContract.address, accountMaker, accountTaker, accounts[2]];
+    const smallAddress = [marketContract.address, accountMaker, accounts[3], accounts[2]];
     const unsignedOrderValues = [0, 0, entryOrderPrice, timeStamp, 1];
     var orderQty = 10; // user is attempting to buy 10
     // set up 2 different trades (different trading partners)
+
     const orderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
     );
     // this one designed to fail
     const smallOrderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       smallAddress,
       unsignedOrderValues,
       orderQty
@@ -256,16 +262,21 @@ contract('MarketCollateralPool', function(accounts) {
     await collateralToken.approve(collateralPool.address, amountToDeposit, { from: accounts[1] });
 
     // move tokens to the collateralPool
-    await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[0] });
-    await collateralPool.depositTokensForTrading(amountToDeposit, { from: accounts[1] });
+    await collateralPool.depositTokensForTrading(collateralToken.address, amountToDeposit, { from: accounts[0] });
+    await collateralPool.depositTokensForTrading(collateralToken.address, amountToDeposit, { from: accounts[1] });
 
-    makerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accounts[0]);
-    takerAccountBalanceBeforeTrade = await collateralPool.getUserAccountBalance.call(accounts[1]);
-
+    makerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
+      accounts[0]
+    );
+    takerAccountBalanceBeforeTrade = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
+      accounts[1]
+    );
     // Execute trade between maker and taker for partial amount of order.
     var qtyToFill = 1;
     var orderSignature = utility.signMessage(web3, accountMaker, orderHash);
-    await marketContract.tradeOrder(
+    await marketTradingHub.tradeOrder(
       orderAddresses,
       unsignedOrderValues,
       orderQty, // qty is 10
@@ -279,7 +290,7 @@ contract('MarketCollateralPool', function(accounts) {
     orderSignature = utility.signMessage(web3, accountMaker, smallOrderHash);
     error = null;
     try {
-      await marketContract.tradeOrder(
+      await marketTradingHub.tradeOrder(
         smallAddress,
         unsignedOrderValues,
         orderQty, // qty is 10
@@ -294,31 +305,38 @@ contract('MarketCollateralPool', function(accounts) {
     }
     assert.ok(error instanceof Error, "didn't fail a trade order");
 
-    var makerNetPos = await collateralPool.getUserNetPosition.call(accountMaker);
-    var takerNetPos = await collateralPool.getUserNetPosition.call(accountTaker);
+    var makerNetPos = await collateralPool.getUserNetPosition.call(marketContract.address, accountMaker);
+    var takerNetPos = await collateralPool.getUserNetPosition.call(marketContract.address, accountTaker);
     assert.equal(makerNetPos.toNumber(), 1, 'Maker should be long 1');
     assert.equal(takerNetPos.toNumber(), -1, 'Taker should be short 1');
 
-    var makerPosCount = await collateralPool.getUserPositionCount.call(accountMaker);
-    var takerPosCount = await collateralPool.getUserPositionCount.call(accountTaker);
+    var makerPosCount = await collateralPool.getUserPositionCount.call(marketContract.address, accountMaker);
+    var takerPosCount = await collateralPool.getUserPositionCount.call(marketContract.address, accountTaker);
     assert.equal(makerPosCount.toNumber(), 1, 'Maker should have one position struct');
     assert.equal(takerPosCount.toNumber(), 1, 'Taker should have one position struct');
 
-    var makerPos = await collateralPool.getUserPosition.call(accountMaker, 0);
-    var takerPos = await collateralPool.getUserPosition.call(accountTaker, 0);
+    var makerPos = await collateralPool.getUserPosition.call(marketContract.address, accountMaker, 0);
+    var takerPos = await collateralPool.getUserPosition.call(marketContract.address, accountTaker, 0);
 
-    assert.equal(makerPos[0].toNumber(), entryOrderPrice, 'Maker should have one position from entryOrderPrice');
-    assert.equal(takerPos[0].toNumber(), entryOrderPrice, 'Maker should have one position from entryOrderPrice');
+    assert.equal(
+      makerPos[0].toNumber(),
+      entryOrderPrice,
+      'Maker should have one position from entryOrderPrice'
+    );
+    assert.equal(
+      takerPos[0].toNumber(),
+      entryOrderPrice,
+      'Maker should have one position from entryOrderPrice'
+    );
     assert.equal(makerPos[1].toNumber(), 1, 'Maker should have one position, long +1');
     assert.equal(takerPos[1].toNumber(), -1, 'Taker should have one position, short -1');
 
-
-    var qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+    var qtyFilled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(orderHash);
     assert.equal(qtyFilled.toNumber(), 1, "Fill Qty doesn't match expected");
 
     qtyToFill = 2;
     orderSignature = utility.signMessage(web3, accountMaker, orderHash);
-    await marketContract.tradeOrder(
+    await marketTradingHub.tradeOrder(
       orderAddresses,
       unsignedOrderValues,
       orderQty, // qty is 10
@@ -329,16 +347,16 @@ contract('MarketCollateralPool', function(accounts) {
       { from: accountTaker }
     );
 
-    makerNetPos = await collateralPool.getUserNetPosition.call(accountMaker);
-    takerNetPos = await collateralPool.getUserNetPosition.call(accountTaker);
+    makerNetPos = await collateralPool.getUserNetPosition.call(marketContract.address, accountMaker);
+    takerNetPos = await collateralPool.getUserNetPosition.call(marketContract.address, accountTaker);
     assert.equal(makerNetPos.toNumber(), 3, 'Maker should be long 3');
     assert.equal(takerNetPos.toNumber(), -3, 'Taker should be short 3');
 
-    qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(orderHash);
+    qtyFilled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(orderHash);
     assert.equal(qtyFilled.toNumber(), 3, "Fill Qty doesn't match expected");
 
-    await marketContract.cancelOrder(orderAddresses, unsignedOrderValues, 10, 1); //cancel part of order
-    const qtyFilledOrCancelled = await marketContract.getQtyFilledOrCancelledFromOrder.call(
+    await marketTradingHub.cancelOrder(orderAddresses, unsignedOrderValues, 10, 1); //cancel part of order
+    const qtyFilledOrCancelled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(
       orderHash
     );
     assert.equal(
@@ -352,7 +370,7 @@ contract('MarketCollateralPool', function(accounts) {
     const priceFloor = await marketContract.PRICE_FLOOR.call();
     const priceCap = await marketContract.PRICE_CAP.call();
     const qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
-    const actualCollateralPoolBalance = await collateralPool.collateralPoolBalance.call();
+    const actualCollateralPoolBalance = await collateralPool.contractAddressToCollateralPoolBalance.call(marketContract.address);
 
     const longCollateral = (entryOrderPrice - priceFloor) * qtyMultiplier * qtyFilled;
     const shortCollateral = (priceCap - entryOrderPrice) * qtyMultiplier * qtyFilled;
@@ -364,10 +382,12 @@ contract('MarketCollateralPool', function(accounts) {
       "Collateral pool isn't funded correctly"
     );
 
-    const makerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(
+    const makerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
       accounts[0]
     );
-    const takerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(
+    const takerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
       accounts[1]
     );
 
@@ -383,7 +403,6 @@ contract('MarketCollateralPool', function(accounts) {
     );
     orderQty = -10; // user is attempting to sell 10
     const secondOrderHash = await orderLib._createOrderHash.call(
-      marketContract.address,
       orderAddresses,
       unsignedOrderValues,
       orderQty
@@ -394,7 +413,7 @@ contract('MarketCollateralPool', function(accounts) {
     makerAccountBalanceBeforeTrade = makerAccountBalanceAfterTrade;
     qtyToFill = -1;
     orderSignature = utility.signMessage(web3, accountMaker, secondOrderHash);
-    await marketContract.tradeOrder(
+    await marketTradingHub.tradeOrder(
       orderAddresses,
       unsignedOrderValues,
       orderQty, // qty is -10
@@ -404,20 +423,22 @@ contract('MarketCollateralPool', function(accounts) {
       orderSignature[2], // s
       { from: accountTaker }
     );
-    makerNetPos = await collateralPool.getUserNetPosition.call(accountMaker);
-    takerNetPos = await collateralPool.getUserNetPosition.call(accountTaker);
+    makerNetPos = await collateralPool.getUserNetPosition.call(marketContract.address, accountMaker);
+    takerNetPos = await collateralPool.getUserNetPosition.call(marketContract.address, accountTaker);
     assert.equal(makerNetPos.toNumber(), 2, 'Maker should be long 2');
     assert.equal(takerNetPos.toNumber(), -2, 'Taker should be short 2');
 
-    qtyFilled = await marketContract.getQtyFilledOrCancelledFromOrder.call(secondOrderHash);
+    qtyFilled = await marketTradingHub.getQtyFilledOrCancelledFromOrder.call(secondOrderHash);
     assert.equal(qtyFilled.toNumber(), -1, "Fill Qty doesn't match expected");
     const elongCollateral = (entryOrderPrice - priceFloor) * qtyMultiplier * qtyFilled;
     const eshortCollateral = (priceCap - entryOrderPrice) * qtyMultiplier * qtyFilled;
 
-    const emakerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(
+    const emakerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
       accounts[0]
     );
-    const etakerAccountBalanceAfterTrade = await collateralPool.getUserAccountBalance.call(
+    const etakerAccountBalanceAfterTrade = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
       accounts[1]
     );
 
@@ -431,9 +452,10 @@ contract('MarketCollateralPool', function(accounts) {
       takerAccountBalanceBeforeTrade - eshortCollateral,
       'ending Taker balance is wrong'
     );
+
     qtyToFill = -2;
     orderSignature = utility.signMessage(web3, accountMaker, secondOrderHash);
-    await marketContract.tradeOrder(
+    await marketTradingHub.tradeOrder(
       orderAddresses,
       unsignedOrderValues,
       orderQty, // qty is -10
@@ -449,7 +471,7 @@ contract('MarketCollateralPool', function(accounts) {
     await marketToken.setLockQtyToAllowTrading(10);
     var error = null;
     try {
-      await collateralPool.depositTokensForTrading(1, { from: accounts[2] });
+      await collateralPool.depositTokensForTrading(collateralToken.address, 1, { from: accounts[2] });
     } catch (err) {
       error = err;
     }
@@ -464,10 +486,12 @@ contract('MarketCollateralPool', function(accounts) {
     const orderQtyToFill = 1;
 
     await tradeHelper.tradeOrder(
-      [accounts[0], accounts[1], accounts[2]],
+      [marketContract.address, accounts[0], accounts[1], accounts[2]],
       [entryOrderPrice, orderQty, orderQtyToFill]
     );
     await tradeHelper.attemptToSettleContract(settlementPrice); // this should push our contract into settlement.
+
+    assert.isTrue(await marketContract.isSettled(), "Contract not settled properly!");
 
     const expectedMakersTokenBalanceAfterSettlement = await tradeHelper.calculateSettlementToken(
       accounts[0],
@@ -487,30 +511,18 @@ contract('MarketCollateralPool', function(accounts) {
       settlementPrice
     );
 
-    // test for inadequate locked tokens
-    await marketToken.setLockQtyToAllowTrading(10);
-    try {
-      await collateralPool.settleAndClose({ from: accounts[0] });
-    } catch (err) {
-      error = err;
-    }
-    assert.ok(
-      error instanceof Error,
-      "didn't fail settleAndClose for inadequate locked market tokens for Taker"
-    );
-    await marketToken.setLockQtyToAllowTrading(0);
-    // end test for inadequate locked tokens
-
     // each account now calls settle and close, returning to them all collateral.
-    await collateralPool.settleAndClose({ from: accounts[0] });
-    await collateralPool.settleAndClose({ from: accounts[1] });
-    await collateralPool.settleAndClose({ from: accounts[3] });
+    await collateralPool.settleAndClose(marketContract.address, { from: accounts[0] });
+    await collateralPool.settleAndClose(marketContract.address, { from: accounts[1] });
+    await collateralPool.settleAndClose(marketContract.address, { from: accounts[3] });
 
     // makers and takers collateral pool balance is cleared
-    const makersCollateralBalanceAfterSettlement = await collateralPool.getUserAccountBalance.call(
+    const makersCollateralBalanceAfterSettlement = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
       accounts[0]
     );
-    const takersCollateralBalanceAfterSettlement = await collateralPool.getUserAccountBalance.call(
+    const takersCollateralBalanceAfterSettlement = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
       accounts[1]
     );
 
@@ -542,18 +554,32 @@ contract('MarketCollateralPool', function(accounts) {
   });
 
   it('should fail if settleAndClose() is called before settlement', async () => {
-    // const entryOrderPrice = 3000;
-    // const orderQty = 2;
-    // const orderToFill = 1;
-    // await tradeHelper.tradeOrder([accounts[0], accounts[1], accounts[2]], [entryOrderPrice, orderQty, orderToFill]);
 
     let error = null;
+    let settleAndCloseError = null;
     try {
-      await collateralPool.settleAndClose.call({ from: accounts[0] });
+      await collateralPool.settleAndClose.call(marketContract.address, { from: accounts[0] });
     } catch (err) {
-      error = err;
+      settleAndCloseError = err;
     }
-
-    assert.ok(error instanceof Error, 'settleAndClose() did not fail before settlement');
+    assert.ok(settleAndCloseError instanceof Error, 'settleAndClose() did not fail before settlement');
   });
+
+  it('should only allow updatePositions to be called by a market contract', async () => {
+
+    let error = null;
+    let updatePositionsError = null;
+    try {
+      await collateralPool.updatePositions(
+        accounts[0],
+        accounts[1],
+        1,
+        entryOrderPrice
+      );
+    } catch (err) {
+      updatePositionsError = err;
+    }
+    assert.ok(updatePositionsError instanceof Error, "didn't fail to call updatePositions from non MarketContract address");
+  });
+
 });
