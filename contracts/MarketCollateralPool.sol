@@ -27,7 +27,6 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 /// @title MarketCollateralPool is a contract controlled by Market Contracts.  It holds collateral balances
 /// as well as user balances and open positions.  It should be instantiated and then linked to a specific market
 /// contract factory.
-// TODO: add time lock!
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketCollateralPool is Ownable {
     using MathLib for uint;
@@ -375,4 +374,24 @@ contract MarketCollateralPool is Ownable {
         require(msg.sender == marketTradingHub, "Can only be called by the trading hub");
         _;
     }
+
+    /// Called by a user that wants to mint new PositionTokens (both long and short).  The user must approve (ERC20) the
+    /// transfer of collateral tokens before this call, or it will fail!
+    function mintPositionTokens(address marketContract, uint qtyToMint) {
+        // 1. calculate needed amount of collateral (PRICE_CAP - PRICE_FLOOR * Multiplier * qty)
+        // 2. erc20 transfer the collateral tokens to become locked here
+        // 3. call the long and short position tokens to mint and transfer to the msg.sender of this call
+        // 4. event?
+    }
+
+    /// Called by a user that currently holds both short and long position tokens and would like to redeem them
+    /// for their collateral. The caller of this function must call approve on both ERC20 position tokens in order for
+    /// this to work correctly.
+    function redeemPositionTokens(address marketContract, uint qtyToRedeem) {
+        // 1. burns / redeems callers position tokens (both short and long)
+        // 2. transfers collateral back to user (or unlocks it)
+        // 4. event?
+    }
+
+
 }

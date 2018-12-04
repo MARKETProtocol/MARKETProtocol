@@ -32,6 +32,8 @@ contract MarketContract is Creatable {
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
     uint public QTY_MULTIPLIER;         // multiplier corresponding to the value of 1 increment in price to token base units
     uint public EXPIRATION;
+    address public LONG_POSITION_TOKEN;
+    address public SHORT_POSITION_TOKEN;
 
     // state variables
     uint public lastPrice;
