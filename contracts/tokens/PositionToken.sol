@@ -62,7 +62,7 @@ contract PositionToken is StandardToken, Ownable {
     function redeemToken(uint256 qtyToRedeem, address redeemer) external onlyOwner {
         // 1. burn tokens
         // 2. remove from total supply
-        // 3. remove from redeemer using safe math techniques
+        // 3. remove from redeemer
         // 4. fire event?
     }
 }
