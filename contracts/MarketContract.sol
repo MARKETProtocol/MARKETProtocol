@@ -17,6 +17,7 @@
 pragma solidity ^0.4.24;
 
 import "./Creatable.sol";
+import "./libraries/MathLib.sol";
 
 
 /// @title MarketContract base contract implement all needed functionality for trading.
@@ -31,6 +32,7 @@ contract MarketContract is Creatable {
     uint public PRICE_FLOOR;
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
     uint public QTY_MULTIPLIER;         // multiplier corresponding to the value of 1 increment in price to token base units
+    uint public COLLATERAL_PER_UNIT;    // required collateral amount for the full range of outcome tokens
     uint public EXPIRATION;
     address public LONG_POSITION_TOKEN;
     address public SHORT_POSITION_TOKEN;
@@ -73,6 +75,7 @@ contract MarketContract is Creatable {
         CONTRACT_NAME = contractName;
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         creator = baseAddresses[0];
+        COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
     }
 
     /*
