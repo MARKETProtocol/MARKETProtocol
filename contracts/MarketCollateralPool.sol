@@ -52,7 +52,7 @@ contract MarketCollateralPool is Ownable {
     // settlement has occurred.
     /// @param marketContractAddress address of the MARKET Contract being traded.
     /// @param qtyToRedeem signed qtyToRedeem, positive (+) for long tokens, negative(-) for short tokens
-    function settleAndClose(address marketContractAddress, int qtyToRedeem, bool isLong) external {
+    function settleAndClose(address marketContractAddress, int qtyToRedeem) external {
         MarketContract marketContract = MarketContract(marketContractAddress);
         require(marketContract.isSettled(), "Contract is not settled");
 
