@@ -18,6 +18,7 @@ pragma solidity ^0.4.24;
 
 import "./libraries/MathLib.sol";
 import "./MarketContract.sol";
+import "./tokens/PositionToken.sol";
 
 import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
@@ -51,41 +52,38 @@ contract MarketCollateralPool is Ownable {
     // settlement has occurred.
     /// @param marketContractAddress address of the MARKET Contract being traded.
     /// @param qtyToRedeem signed qtyToRedeem, positive (+) for long tokens, negative(-) for short tokens
-    function settleAndClose(address marketContractAddress, uint qtyToRedeem, bool isLong) external {
+    function settleAndClose(address marketContractAddress, int qtyToRedeem, bool isLong) external {
         MarketContract marketContract = MarketContract(marketContractAddress);
         require(marketContract.isSettled(), "Contract is not settled");
 
         // burn tokens being redeemed.
-        int signedQty; // used for calculating collateral to return
         MarketSide marketSide;
-        if(isLong) {
-            PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(qtyToRedeem, msg.sender);
-            signedQty = qtyToRedeem;
+        uint absQtyToRedeem = qtyToRedeem.abs(); // convert to a uint
+        if(qtyToRedeem > 0) {
+            PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(absQtyToRedeem, msg.sender);
             marketSide = MarketSide.Long;
         } else {
-            PositionToken(marketContract.SHORT_POSITION_TOKEN()).redeemToken(qtyToRedeem, msg.sender);
-            signedQty = qtyToRedeem * -1;
+            PositionToken(marketContract.SHORT_POSITION_TOKEN()).redeemToken(absQtyToRedeem, msg.sender);
             marketSide = MarketSide.Short;
         }
 
         // calculate amount of collateral to return and update pool balances
-        int signedQty = isLong ? qtyToRedeem : qtyToRedeem * -1;
         uint collateralToReturn = MathLib.calculateNeededCollateral(
             marketContract.PRICE_FLOOR(),
             marketContract.PRICE_CAP(),
             marketContract.QTY_MULTIPLIER(),
-            signedQty,
+            qtyToRedeem,
             marketContract.settlementPrice()
         );
         contractAddressToCollateralPoolBalance[marketContract] =
             contractAddressToCollateralPoolBalance[marketContract].subtract(collateralToReturn);
 
         // return collateral tokens
-        ERC20(collateralTokenAddress).safeTransfer(msg.sender, collateralToReturn);
+        ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransfer(msg.sender, collateralToReturn);
 
         emit TokensRedeemed(
             marketContractAddress,
-            qtyToMint,
+            absQtyToRedeem,
             collateralToReturn,
             uint8(marketSide)
         );
@@ -105,7 +103,7 @@ contract MarketCollateralPool is Ownable {
 
         // EXTERNAL CALL - transferring ERC20 tokens from sender to this contract.  User must have called
         // ERC20.approve in order for this call to succeed.
-        ERC20(collateralTokenAddress).safeTransfer(msg.sender, this, neededCollateral);
+        ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, this, neededCollateral);
 
         // Update the collateral pool locked balance.
         contractAddressToCollateralPoolBalance[marketContractAddress] =
@@ -121,20 +119,22 @@ contract MarketCollateralPool is Ownable {
     /// Called by a user that currently holds both short and long position tokens and would like to redeem them
     /// for their collateral.
     function redeemPositionTokens(address marketContractAddress, uint qtyToRedeem) {
+        MarketContract marketContract = MarketContract(marketContractAddress);
+
         // Redeem positions tokens by burning them.
         PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(qtyToRedeem, msg.sender);
         PositionToken(marketContract.SHORT_POSITION_TOKEN()).redeemToken(qtyToRedeem, msg.sender);
 
         // calculate collateral to return and update pool balance
         uint collateralToReturn = MathLib.multiply(qtyToRedeem, marketContract.COLLATERAL_PER_UNIT());
-        contractAddressToCollateralPoolBalance[marketContract] = contractAddressToCollateralPoolBalance[marketContract].subtract(collateralToReturn);
+        contractAddressToCollateralPoolBalance[marketContractAddress] = contractAddressToCollateralPoolBalance[marketContractAddress].subtract(collateralToReturn);
 
         // transfer collateral back to user
-        ERC20(collateralTokenAddress).safeTransfer(msg.sender, collateralToReturn);
+        ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransfer(msg.sender, collateralToReturn);
 
         emit TokensRedeemed(
             marketContractAddress,
-            qtyToMint,
+            qtyToRedeem,
             collateralToReturn,
             uint8(MarketSide.Both)
         );
