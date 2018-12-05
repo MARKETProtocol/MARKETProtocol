@@ -48,10 +48,9 @@ contract PositionToken is StandardToken, Ownable {
     /// @param qtyToMint quantity of position tokens to mint (in base units)
     /// @param recipient the person minting and receiving these position tokens.
     function mintAndSendToken(uint256 qtyToMint, address recipient) external onlyOwner {
-        // 1. mint token
-        // 2. add to total supply
-        // 3. transfer to recipient using safe math techniques
-        // 4. fire event?
+        totalSupply_ = totalSupply_.add(qtyToMint);                 // add to total supply
+        balances[recipient] = balances[recipient].add(qtyToMint);   // transfer to recipient balance
+        emit Transfer(address(0), recipient, qtyToMint);            // fire event to show balance.
     }
 
     /// @dev Called by our collateral pool when redemption occurs.  This means that either a single user is redeeming
@@ -60,9 +59,9 @@ contract PositionToken is StandardToken, Ownable {
     /// @param qtyToRedeem quantity of tokens to burn (remove from supply / circulation)
     /// @param redeemer the person redeeming these tokens (who are we taking the balance from)
     function redeemToken(uint256 qtyToRedeem, address redeemer) external onlyOwner {
-        // 1. burn tokens
-        // 2. remove from total supply
-        // 3. remove from redeemer
-        // 4. fire event?
+        // reduce the redeemer's balances.  This will throw if not enough balance to reduce!
+        balances[redeemer] = balances[redeemer].sub(qtyToRedeem);
+        totalSupply_ = totalSupply_.sub(_value);                    // reduce total supply
+        emit Transfer(redeemer, address(0), qtyToRedeem);           // fire event to update balances
     }
 }

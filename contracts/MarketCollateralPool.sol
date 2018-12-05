@@ -58,7 +58,7 @@ contract MarketCollateralPool is Ownable {
 
         // burn tokens being redeemed.
         MarketSide marketSide;
-        uint absQtyToRedeem = qtyToRedeem.abs(); // convert to a uint
+        uint absQtyToRedeem = qtyToRedeem.abs(); // convert to a uint for non signed functions
         if(qtyToRedeem > 0) {
             PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(absQtyToRedeem, msg.sender);
             marketSide = MarketSide.Long;
