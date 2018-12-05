@@ -61,7 +61,7 @@ contract PositionToken is StandardToken, Ownable {
     function redeemToken(uint256 qtyToRedeem, address redeemer) external onlyOwner {
         // reduce the redeemer's balances.  This will throw if not enough balance to reduce!
         balances[redeemer] = balances[redeemer].sub(qtyToRedeem);
-        totalSupply_ = totalSupply_.sub(_value);                    // reduce total supply
+        totalSupply_ = totalSupply_.sub(qtyToRedeem);                    // reduce total supply
         emit Transfer(redeemer, address(0), qtyToRedeem);           // fire event to update balances
     }
 }
