@@ -3,7 +3,6 @@ const ChainLinkOracle = artifacts.require('./chainlink/src/Oracle.sol');
 const MarketContractFactory = artifacts.require('./chainlink/MarketContractFactoryChainLink.sol');
 const OracleHub = artifacts.require('./chainlink/OracleHubChainLink.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
-const OrderLib = artifacts.require('./libraries/OrderLib.sol');
 
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
 const MarketToken = artifacts.require('./tokens/MarketToken.sol');
@@ -13,8 +12,6 @@ module.exports = function (deployer, network) {
   const marketContractExpiration = Math.floor(Date.now() / 1000) + 60 * 15; // expires in 15 minutes.
 
   if (network !== 'live') {
-
-    deployer.link(OrderLib, MarketContractFactory);
     return deployer.deploy(LinkToken).then(function (linkToken) {
       return deployer.deploy(ChainLinkOracle, LinkToken.address).then(function () {
         return MarketContractRegistry.deployed().then(function (registry) {
