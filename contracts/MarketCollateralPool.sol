@@ -37,8 +37,8 @@ contract MarketCollateralPool is Ownable {
     mapping(address => uint) public contractAddressToCollateralPoolBalance;                 // current balance of all collateral committed
     enum MarketSide { Long, Short, Both}
 
-    event TokensMinted(address indexed marketContract, uint qtyMinted, uint collateralLocked);
-    event TokensRedeemed(address indexed marketContract, uint qtyRedeemed, uint collateralUnlocked, uint8 marketSide);
+    event TokensMinted(address indexed marketContract, address indexed user, uint qtyMinted, uint collateralLocked);
+    event TokensRedeemed(address indexed marketContract, address indexed user, uint qtyRedeemed, uint collateralUnlocked, uint8 marketSide);
     event FactoryAddressRemoved(address indexed factoryAddress);
 
     constructor() public { }
@@ -71,7 +71,7 @@ contract MarketCollateralPool is Ownable {
         PositionToken(marketContract.LONG_POSITION_TOKEN()).mintAndSendToken(qtyToMint, msg.sender);
         PositionToken(marketContract.SHORT_POSITION_TOKEN()).mintAndSendToken(qtyToMint, msg.sender);
 
-        emit TokensMinted(marketContractAddress, qtyToMint, neededCollateral);
+        emit TokensMinted(marketContractAddress, msg.sender, qtyToMint, neededCollateral);
     }
 
     /// @notice Called by a user that currently holds both short and long position tokens and would like to redeem them
