@@ -25,9 +25,9 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
-/// @title MarketCollateralPool is a contract controlled by Market Contracts.  It holds collateral balances
-/// as well as user balances and open positions.  It should be instantiated and then linked to a specific market
-/// contract factory.
+/// @title MarketCollateralPool
+/// @notice This collateral pool houses all of the collateral for all market contracts currently in circulation.
+/// This pool facilitates locking of collateral and minting / redemption of position tokens for that collateral.
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketCollateralPool is Ownable {
     using MathLib for uint;
@@ -89,12 +89,11 @@ contract MarketCollateralPool is Ownable {
         );
     }
 
-    /*
-    // PUBLIC METHODS
-    */
-
-    /// Called by a user that wants to mint new PositionTokens (both long and short).  The user must approve (ERC20) the
-    /// transfer of collateral tokens before this call, or it will fail!
+    /// @notice Called by a user that would like to mint a new set of long and short token for a specified
+    /// market contract.  This will transfer and lock the correct amount of collateral into the pool
+    /// and issue them the requested qty of long and short tokens
+    /// @param marketContractAddress            address of the market contract to redeem tokens for
+    /// @param qtyToMint                      quantity of long / short tokens to mint.
     function mintPositionTokens(address marketContractAddress, uint qtyToMint) external {
         MarketContract marketContract = MarketContract(marketContractAddress);
         require(!marketContract.isSettled(), "Contract is already settled");
@@ -116,8 +115,11 @@ contract MarketCollateralPool is Ownable {
         emit TokensMinted(marketContractAddress, qtyToMint, neededCollateral);
     }
 
-    /// Called by a user that currently holds both short and long position tokens and would like to redeem them
+
+    /// @notice Called by a user that currently holds both short and long position tokens and would like to redeem them
     /// for their collateral.
+    /// @param marketContractAddress            address of the market contract to redeem tokens for
+    /// @param qtyToRedeem                      quantity of long / short tokens to redeem.
     function redeemPositionTokens(address marketContractAddress, uint qtyToRedeem) external {
         MarketContract marketContract = MarketContract(marketContractAddress);
 
