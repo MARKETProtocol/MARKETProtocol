@@ -5,8 +5,7 @@ const MarketToken = artifacts.require('MarketToken');
 const CollateralToken = artifacts.require('CollateralToken');
 const Helpers = require('./helpers/Helpers.js');
 
-// test to ensure callback gas is within limits when settling contracts
-contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
+contract('MarketContractOraclize', function(accounts) {
 
   let tradeHelper;
   let collateralPool;
@@ -31,7 +30,7 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
     tradeHelper = await Helpers.TradeHelper(
       marketContract,
       collateralToken,
-      collateralPool
+      collateralPool,
     );
   });
 
