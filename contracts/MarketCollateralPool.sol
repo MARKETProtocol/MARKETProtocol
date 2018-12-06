@@ -47,49 +47,6 @@ contract MarketCollateralPool is Ownable {
     // EXTERNAL METHODS
     */
 
-    // @notice called by a user after settlement has occurred.  This function will finalize all accounting around any
-    // outstanding positions and return all remaining collateral to the caller. This should only be called after
-    // settlement has occurred.
-    /// @param marketContractAddress address of the MARKET Contract being traded.
-    /// @param qtyToRedeem signed qtyToRedeem, positive (+) for long tokens, negative(-) for short tokens
-    function settleAndClose(address marketContractAddress, int qtyToRedeem) external {
-        MarketContract marketContract = MarketContract(marketContractAddress);
-        require(marketContract.isSettled(), "Contract is not settled");
-
-        // burn tokens being redeemed.
-        MarketSide marketSide;
-        uint absQtyToRedeem = qtyToRedeem.abs(); // convert to a uint for non signed functions
-        if (qtyToRedeem > 0) {
-            PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(absQtyToRedeem, msg.sender);
-            marketSide = MarketSide.Long;
-        } else {
-            PositionToken(marketContract.SHORT_POSITION_TOKEN()).redeemToken(absQtyToRedeem, msg.sender);
-            marketSide = MarketSide.Short;
-        }
-
-        // calculate amount of collateral to return and update pool balances
-        uint collateralToReturn = MathLib.calculateNeededCollateral(
-            marketContract.PRICE_FLOOR(),
-            marketContract.PRICE_CAP(),
-            marketContract.QTY_MULTIPLIER(),
-            qtyToRedeem,
-            marketContract.settlementPrice()
-        );
-        contractAddressToCollateralPoolBalance[marketContract] = contractAddressToCollateralPoolBalance[
-            marketContract
-        ].subtract(collateralToReturn);
-
-        // return collateral tokens
-        ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransfer(msg.sender, collateralToReturn);
-
-        emit TokensRedeemed(
-            marketContractAddress,
-            absQtyToRedeem,
-            collateralToReturn,
-            uint8(marketSide)
-        );
-    }
-
     /// @notice Called by a user that would like to mint a new set of long and short token for a specified
     /// market contract.  This will transfer and lock the correct amount of collateral into the pool
     /// and issue them the requested qty of long and short tokens
@@ -144,4 +101,48 @@ contract MarketCollateralPool is Ownable {
             uint8(MarketSide.Both)
         );
     }
+
+    // @notice called by a user after settlement has occurred.  This function will finalize all accounting around any
+    // outstanding positions and return all remaining collateral to the caller. This should only be called after
+    // settlement has occurred.
+    /// @param marketContractAddress address of the MARKET Contract being traded.
+    /// @param qtyToRedeem signed qtyToRedeem, positive (+) for long tokens, negative(-) for short tokens
+    function settleAndClose(address marketContractAddress, int qtyToRedeem) external {
+        MarketContract marketContract = MarketContract(marketContractAddress);
+        require(marketContract.isSettled(), "Contract is not settled");
+
+        // burn tokens being redeemed.
+        MarketSide marketSide;
+        uint absQtyToRedeem = qtyToRedeem.abs(); // convert to a uint for non signed functions
+        if (qtyToRedeem > 0) {
+            PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(absQtyToRedeem, msg.sender);
+            marketSide = MarketSide.Long;
+        } else {
+            PositionToken(marketContract.SHORT_POSITION_TOKEN()).redeemToken(absQtyToRedeem, msg.sender);
+            marketSide = MarketSide.Short;
+        }
+
+        // calculate amount of collateral to return and update pool balances
+        uint collateralToReturn = MathLib.calculateNeededCollateral(
+            marketContract.PRICE_FLOOR(),
+            marketContract.PRICE_CAP(),
+            marketContract.QTY_MULTIPLIER(),
+            qtyToRedeem,
+            marketContract.settlementPrice()
+        );
+        contractAddressToCollateralPoolBalance[marketContract] = contractAddressToCollateralPoolBalance[
+        marketContract
+        ].subtract(collateralToReturn);
+
+        // return collateral tokens
+        ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransfer(msg.sender, collateralToReturn);
+
+        emit TokensRedeemed(
+            marketContractAddress,
+            absQtyToRedeem,
+            collateralToReturn,
+            uint8(marketSide)
+        );
+    }
+
 }
