@@ -1,16 +1,13 @@
 const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
-const MarketTradingHub = artifacts.require('MarketTradingHub');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const MarketToken = artifacts.require('MarketToken');
 const CollateralToken = artifacts.require('CollateralToken');
-const OrderLib = artifacts.require('OrderLibMock');
 const Helpers = require('./helpers/Helpers.js');
 
 // test to ensure callback gas is within limits when settling contracts
 contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
 
-  let orderLib;
   let tradeHelper;
   let collateralPool;
   let collateralToken;
@@ -19,7 +16,6 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
   let marketContract;
   let marketContractInstance;
   let gasLimit;
-  let marketTradingHub;
 
   const accountMaker = accounts[0];
 
@@ -30,16 +26,12 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
     collateralPool = await MarketCollateralPool.deployed();
-    orderLib = await OrderLib.deployed();
     collateralToken = await CollateralToken.deployed();
-    marketTradingHub = await MarketTradingHub.deployed();
 
     tradeHelper = await Helpers.TradeHelper(
       marketContract,
-      orderLib,
       collateralToken,
-      collateralPool,
-      marketTradingHub
+      collateralPool
     );
   });
 
@@ -174,5 +166,16 @@ contract('MarketContractOraclize.CallBackExpiration', function(accounts) {
       error = err;
     }
     assert.ok(error instanceof Error, 'Contract with expiration set after 60 days is possible');
+  });
+
+  it('should fail for attempt to call Oraclize callback', async function() {
+    let error;
+    try {
+      await marketContract._callback.call();
+    } catch (err) {
+      error = err;
+    }
+
+    assert.ok(error instanceof Error, 'Oraclize callback should fail if not called by Oraclize');
   });
 });
