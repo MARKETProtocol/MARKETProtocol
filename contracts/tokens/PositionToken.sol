@@ -19,6 +19,7 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
+
 /// @title Position Token
 /// @notice A token that represents a claim to a collateral pool and a short or long position.
 /// The collateral pool acts as the owner of this contract and controls minting and redemption of these
@@ -45,7 +46,6 @@ contract PositionToken is StandardToken, Ownable {
         decimals = 18;
         MARKET_SIDE = marketSide;
     }
-
 
     /// @dev Called by our collateral pool to create a long or short position token. These tokens are minted,
     /// and then transferred to our recipient who is the party who is minting these tokens.  The collateral pool

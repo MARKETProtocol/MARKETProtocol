@@ -59,7 +59,7 @@ contract MarketCollateralPool is Ownable {
         // burn tokens being redeemed.
         MarketSide marketSide;
         uint absQtyToRedeem = qtyToRedeem.abs(); // convert to a uint for non signed functions
-        if(qtyToRedeem > 0) {
+        if (qtyToRedeem > 0) {
             PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(absQtyToRedeem, msg.sender);
             marketSide = MarketSide.Long;
         } else {
@@ -75,8 +75,9 @@ contract MarketCollateralPool is Ownable {
             qtyToRedeem,
             marketContract.settlementPrice()
         );
-        contractAddressToCollateralPoolBalance[marketContract] =
-            contractAddressToCollateralPoolBalance[marketContract].subtract(collateralToReturn);
+        contractAddressToCollateralPoolBalance[marketContract] = contractAddressToCollateralPoolBalance[
+            marketContract
+        ].subtract(collateralToReturn);
 
         // return collateral tokens
         ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransfer(msg.sender, collateralToReturn);
@@ -105,8 +106,9 @@ contract MarketCollateralPool is Ownable {
         ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, this, neededCollateral);
 
         // Update the collateral pool locked balance.
-        contractAddressToCollateralPoolBalance[marketContractAddress] =
-            contractAddressToCollateralPoolBalance[marketContractAddress].add(neededCollateral);
+        contractAddressToCollateralPoolBalance[marketContractAddress] = contractAddressToCollateralPoolBalance[
+            marketContractAddress
+        ].add(neededCollateral);
 
         // mint and distribute short and long position tokens to our caller
         PositionToken(marketContract.LONG_POSITION_TOKEN()).mintAndSendToken(qtyToMint, msg.sender);
@@ -114,7 +116,6 @@ contract MarketCollateralPool is Ownable {
 
         emit TokensMinted(marketContractAddress, qtyToMint, neededCollateral);
     }
-
 
     /// @notice Called by a user that currently holds both short and long position tokens and would like to redeem them
     /// for their collateral.
@@ -129,7 +130,9 @@ contract MarketCollateralPool is Ownable {
 
         // calculate collateral to return and update pool balance
         uint collateralToReturn = MathLib.multiply(qtyToRedeem, marketContract.COLLATERAL_PER_UNIT());
-        contractAddressToCollateralPoolBalance[marketContractAddress] = contractAddressToCollateralPoolBalance[marketContractAddress].subtract(collateralToReturn);
+        contractAddressToCollateralPoolBalance[marketContractAddress] = contractAddressToCollateralPoolBalance[
+            marketContractAddress
+        ].subtract(collateralToReturn);
 
         // transfer collateral back to user
         ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransfer(msg.sender, collateralToReturn);
