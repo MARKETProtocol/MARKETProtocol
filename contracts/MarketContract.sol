@@ -18,6 +18,7 @@ pragma solidity ^0.4.24;
 
 import "./Creatable.sol";
 import "./libraries/MathLib.sol";
+import "./tokens/PositionToken.sol";
 
 
 /// @title MarketContract base contract implement all needed functionality for trading.
@@ -76,6 +77,12 @@ contract MarketContract is Creatable {
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         creator = baseAddresses[0];
         COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
+
+        // create long and short tokens  // TODO: fix names!
+        PositionToken longToken = new PositionToken("Long Position Token", "LONG", 0);
+        PositionToken shortToken = new PositionToken("Short Position Token", "SHRT", 1);
+        LONG_POSITION_TOKEN = address(longToken);
+        SHORT_POSITION_TOKEN = address(shortToken);
     }
 
     /*

@@ -95,7 +95,7 @@ contract MarketCollateralPool is Ownable {
 
     /// Called by a user that wants to mint new PositionTokens (both long and short).  The user must approve (ERC20) the
     /// transfer of collateral tokens before this call, or it will fail!
-    function mintPositionTokens(address marketContractAddress, uint qtyToMint) {
+    function mintPositionTokens(address marketContractAddress, uint qtyToMint) external {
         MarketContract marketContract = MarketContract(marketContractAddress);
         require(!marketContract.isSettled(), "Contract is already settled");
 
@@ -118,7 +118,7 @@ contract MarketCollateralPool is Ownable {
 
     /// Called by a user that currently holds both short and long position tokens and would like to redeem them
     /// for their collateral.
-    function redeemPositionTokens(address marketContractAddress, uint qtyToRedeem) {
+    function redeemPositionTokens(address marketContractAddress, uint qtyToRedeem) external {
         MarketContract marketContract = MarketContract(marketContractAddress);
 
         // Redeem positions tokens by burning them.

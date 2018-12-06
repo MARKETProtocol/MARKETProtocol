@@ -19,6 +19,13 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
+/// @title Position Token
+/// @notice A token that represents a claim to a collateral pool and a short or long position.
+/// The collateral pool acts as the owner of this contract and controls minting and redemption of these
+/// tokens based on locked collateral in the pool.
+/// NOTE: We eventually can move all of this logic into a library to avoid deploying all of the logic
+/// every time a new market contract is deployed.
+/// @author Phil Elsasser <phil@marketprotocol.io>
 contract PositionToken is StandardToken, Ownable {
 
     string public name;
@@ -30,13 +37,12 @@ contract PositionToken is StandardToken, Ownable {
     constructor(
         string tokenName,
         string tokenSymbol,
-        uint8 tokenDecimals,
         uint8 marketSide
     ) public
     {
         name = tokenName;
         symbol = tokenSymbol;
-        decimals = tokenDecimals;
+        decimals = 18;
         MARKET_SIDE = marketSide;
     }
 
