@@ -30,7 +30,7 @@ contract('MarketContractOraclize', function(accounts) {
     tradeHelper = await Helpers.TradeHelper(
       marketContract,
       collateralToken,
-      collateralPool,
+      collateralPool
     );
   });
 
