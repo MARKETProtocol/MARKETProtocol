@@ -96,6 +96,7 @@ contract MarketCollateralPool is Ownable {
 
         emit TokensRedeemed(
             marketContractAddress,
+            msg.sender,
             qtyToRedeem,
             collateralToReturn,
             uint8(MarketSide.Both)
@@ -139,6 +140,7 @@ contract MarketCollateralPool is Ownable {
 
         emit TokensRedeemed(
             marketContractAddress,
+            msg.sender,
             absQtyToRedeem,
             collateralToReturn,
             uint8(marketSide)
