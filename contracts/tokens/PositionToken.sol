@@ -47,6 +47,7 @@ contract PositionToken is StandardToken, Ownable {
         symbol = tokenSymbol;
         decimals = 18;
         MARKET_SIDE = marketSide;
+        MARKET_CONTRACT_ADDRESS = marketContractAddress;
     }
 
     /// @dev Called by our collateral pool to create a long or short position token. These tokens are minted,
