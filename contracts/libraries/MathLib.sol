@@ -154,6 +154,6 @@ library MathLib {
         uint qtyMultiplier
     ) pure public returns (uint)
     {
-        multiply(subtract(priceCap, priceFloor), qtyMultiplier);
+      return multiply(subtract(priceCap, priceFloor), qtyMultiplier);
     }
 }

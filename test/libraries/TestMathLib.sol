@@ -86,7 +86,7 @@ contract TestMathLib {
 
         bytes4 test_abi = bytes4(keccak256("failSafeAddWhenGreaterThanIntMax()"));
         Assert.isFalse(address(this).call(test_abi), "Should assert");
-        }
+    }
 
     function failDivideFractionalByZero() public pure returns(uint256) {
         return MathLib.divideFractional(2, 6, 0);
@@ -154,5 +154,35 @@ contract TestMathLib {
         // neededCollateral for a short position and price greater than priceCap returns zero
         Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, shortQty, priceCap+1),
                      0, "collateral for a short position and price greater than priceCap should be 0");
+    }
+
+    function testCalculateTotalCollateralSingleUnit() public {
+        uint priceFloor = 10;
+        uint priceCap = 20;
+        uint multiplier = 1;
+        uint expectedTotalCollateral = 10;
+        uint actualTotalCollateral = MathLib.calculateTotalCollateral(priceFloor, priceCap, multiplier);
+        Assert.equal(actualTotalCollateral, expectedTotalCollateral, "total collateral of floor 10 and cap 20 with 1 multiplier should be 10");
+    }
+
+    function testCalculateTotalCollateralMultipleUnit() public {
+        uint priceFloor = 10;
+        uint priceCap = 20;
+        uint multiplier = 2;
+        uint expectedTotalCollateral = 20;
+        uint actualTotalCollateral = MathLib.calculateTotalCollateral(priceFloor, priceCap, multiplier);
+        Assert.equal(actualTotalCollateral, expectedTotalCollateral, "total collateral of floor 10 and cap 20 with 2 multiplier should be 20");
+    }
+
+    function failCalculatingTotalCollateralWithAbornormalPrices() public pure returns (uint256) {
+        uint higherPriceFloor = 20;
+        uint priceCap = 10;
+        uint multiplier = 1;
+        return MathLib.calculateTotalCollateral(higherPriceFloor, priceCap, multiplier);
+    }
+
+    function testCalculateTotalCollateralWithAbornormalPrices() public {
+        bytes4 testSignature = bytes4(keccak256("failCalculatingTotalCollateralWithAbornormalPrices()"));
+        Assert.isFalse(address(this).call(testSignature), "total collateral should fail for abnormal price margins");
     }
 }
