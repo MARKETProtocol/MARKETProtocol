@@ -2,7 +2,6 @@ const MarketContractChainLink = artifacts.require('MarketContractChainLink');
 const MarketContractFactoryChainLink = artifacts.require('MarketContractFactoryChainLink');
 const OracleHubChainLink = artifacts.require("OracleHubChainLink");
 const CollateralToken = artifacts.require('CollateralToken');
-const MarketToken = artifacts.require('MarketToken');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const utility = require('../utility.js');
 
@@ -21,13 +20,11 @@ contract('MarketContractFactoryChainLink', function(accounts) {
   let marketContractFactory;
   let oracleHub;
   let marketContractRegistry;
-  let marketToken;
 
   before(async function() {
     marketContractFactory = await MarketContractFactoryChainLink.deployed();
     oracleHub = await OracleHubChainLink.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
-    marketToken = await MarketToken.deployed();
   });
 
   it('Deploys a new MarketContract with the correct variables', async function() {
@@ -166,41 +163,6 @@ contract('MarketContractFactoryChainLink', function(accounts) {
 
     await marketContractFactory.setOracleHubAddress(originalHubAddress, {from: accounts[0]}); // set address back
 
-  });
-
-  it('Fails to deploy a new MarketContract for a caller without MKT tokens', async function() {
-
-    await marketContractFactory.deployMarketContractChainLink(
-      contractName,
-      CollateralToken.address,
-      [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, expiration],
-      oracleQueryURL,
-      oracleQueryPath,
-      'fakeSleepJobId',
-      'fakeOnDemandJobId',
-      { from: accounts[3]}
-    );
-
-    await marketToken.setMinBalanceForContractCreation(250000); // set a balance requirement
-
-    // if we call from an account with no MKT tokens, this should now fail!
-
-    let error = null;
-    try {
-      await marketContractFactory.deployMarketContractChainLink(
-        contractName,
-        CollateralToken.address,
-        [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, expiration],
-        oracleQueryURL,
-        oracleQueryPath,
-        'fakeSleepJobId',
-        'fakeOnDemandJobId',
-        { from: accounts[3]}
-      );
-    } catch (err) {
-      error = err;
-    }
-    assert.ok(error instanceof Error, 'should not be able to deploy a contract without MKT');
   });
 
 });

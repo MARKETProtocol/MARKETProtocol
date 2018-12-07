@@ -142,6 +142,5 @@ contract('OracleHubOraclize', function(accounts) {
       error = err;
     }
     assert.ok(error instanceof Error, 'should not be able call back from non oracle account!');
-
   });
 });
