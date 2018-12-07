@@ -75,8 +75,12 @@ contract MarketCollateralPool is Ownable {
         ].add(neededCollateral);
 
         // mint and distribute short and long position tokens to our caller
-        PositionToken(marketContract.LONG_POSITION_TOKEN()).mintAndSendToken(qtyToMint, msg.sender);
-        PositionToken(marketContract.SHORT_POSITION_TOKEN()).mintAndSendToken(qtyToMint, msg.sender);
+        PositionToken(marketContract.LONG_POSITION_TOKEN()).mintAndSendToken(
+            marketContractAddress, qtyToMint, msg.sender
+        );
+        PositionToken(marketContract.SHORT_POSITION_TOKEN()).mintAndSendToken(
+            marketContractAddress, qtyToMint, msg.sender
+        );
 
         emit TokensMinted(marketContractAddress, msg.sender, qtyToMint, neededCollateral);
     }
@@ -93,8 +97,12 @@ contract MarketCollateralPool is Ownable {
         MarketContract marketContract = MarketContract(marketContractAddress);
 
         // Redeem positions tokens by burning them.
-        PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(qtyToRedeem, msg.sender);
-        PositionToken(marketContract.SHORT_POSITION_TOKEN()).redeemToken(qtyToRedeem, msg.sender);
+        PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(
+            marketContractAddress, qtyToRedeem, msg.sender
+        );
+        PositionToken(marketContract.SHORT_POSITION_TOKEN()).redeemToken(
+            marketContractAddress, qtyToRedeem, msg.sender
+        );
 
         // calculate collateral to return and update pool balance
         uint collateralToReturn = MathLib.multiply(qtyToRedeem, marketContract.COLLATERAL_PER_UNIT());
@@ -130,10 +138,14 @@ contract MarketCollateralPool is Ownable {
         MarketSide marketSide;
         uint absQtyToRedeem = qtyToRedeem.abs(); // convert to a uint for non signed functions
         if (qtyToRedeem > 0) {
-            PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(absQtyToRedeem, msg.sender);
+            PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(
+                marketContractAddress, absQtyToRedeem, msg.sender
+            );
             marketSide = MarketSide.Long;
         } else {
-            PositionToken(marketContract.SHORT_POSITION_TOKEN()).redeemToken(absQtyToRedeem, msg.sender);
+            PositionToken(marketContract.SHORT_POSITION_TOKEN()).redeemToken(
+                marketContractAddress, absQtyToRedeem, msg.sender
+            );
             marketSide = MarketSide.Short;
         }
 
