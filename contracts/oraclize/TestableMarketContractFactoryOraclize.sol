@@ -20,7 +20,6 @@ import "./TestableMarketContractOraclize.sol";
 import "../MarketContractRegistryInterface.sol";
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "../tokens/MarketToken.sol";
 
 
 /// @title TestableMarketContractFactoryOraclize
@@ -28,18 +27,13 @@ import "../tokens/MarketToken.sol";
 contract TestableMarketContractFactoryOraclize is Ownable {
 
     address public marketContractRegistry;
-    address public MKT_TOKEN_ADDRESS;
-    MarketToken public MKT_TOKEN;
 
     event MarketContractCreated(address indexed creator, address indexed contractAddress);
 
     /// @dev deploys our factory and ties it the a supply registry address
     /// @param registryAddress - address of our MARKET registry
-    /// @param mktTokenAddress - MARKET Token address
-    constructor(address registryAddress, address mktTokenAddress) public {
+    constructor(address registryAddress) public {
         marketContractRegistry = registryAddress;
-        MKT_TOKEN_ADDRESS = mktTokenAddress;
-        MKT_TOKEN = MarketToken(mktTokenAddress);
     }
 
     /// @dev Deploys a new instance of a market contract and adds it to the whitelist.
@@ -63,7 +57,6 @@ contract TestableMarketContractFactoryOraclize is Ownable {
         string oracleQuery
     ) external
     {
-        require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
         MarketContractOraclize mktContract = new TestableMarketContractOraclize(
             contractName,
             [
@@ -78,10 +71,11 @@ contract TestableMarketContractFactoryOraclize is Ownable {
         emit MarketContractCreated(msg.sender, mktContract);
     }
 
-    /// @dev allows for the owner to set the desired registry for contract creation.
-    /// @param registryAddress desired registry address.
-    function setRegistryAddress(address registryAddress) external onlyOwner {
-        require(registryAddress != address(0));
-        marketContractRegistry = registryAddress;
-    }
+    // removing for time being due to OOG when deploying this contract. will fix later!
+//    /// @dev allows for the owner to set the desired registry for contract creation.
+//    /// @param registryAddress desired registry address.
+//    function setRegistryAddress(address registryAddress) external onlyOwner {
+//        require(registryAddress != address(0));
+//        marketContractRegistry = registryAddress;
+//    }
 }
