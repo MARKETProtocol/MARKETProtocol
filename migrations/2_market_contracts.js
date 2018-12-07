@@ -13,7 +13,6 @@ module.exports = function (deployer, network) {
         [MarketContractOraclize, MarketCollateralPool]
       );
 
-
       return deployer.deploy(MarketCollateralPool).then(function () {
         const marketTokenToLockForTrading = 0; // for testing purposes, require no loc
         const marketTokenAmountForContractCreation = 0; //for testing purposes require no balance

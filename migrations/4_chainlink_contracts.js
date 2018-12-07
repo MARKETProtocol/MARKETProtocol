@@ -16,7 +16,7 @@ module.exports = function (deployer, network) {
     return deployer.deploy(LinkToken).then(function (linkToken) {
       return deployer.deploy(ChainLinkOracle, LinkToken.address).then(function () {
         return MarketContractRegistry.deployed().then(function (registry) {
-          deployer.link(MathLib, [MarketContractFactory]).then(function () {
+          return deployer.link(MathLib, MarketContractFactory).then(function () {
             return deployer.deploy(
               MarketContractFactory,
               registry.address,
