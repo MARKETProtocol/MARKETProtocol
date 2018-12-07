@@ -71,10 +71,11 @@ contract TestableMarketContractFactoryOraclize is Ownable {
         emit MarketContractCreated(msg.sender, mktContract);
     }
 
-    /// @dev allows for the owner to set the desired registry for contract creation.
-    /// @param registryAddress desired registry address.
-    function setRegistryAddress(address registryAddress) external onlyOwner {
-        require(registryAddress != address(0));
-        marketContractRegistry = registryAddress;
-    }
+    // removing for time being due to OOG when deploying this contract. will fix later!
+//    /// @dev allows for the owner to set the desired registry for contract creation.
+//    /// @param registryAddress desired registry address.
+//    function setRegistryAddress(address registryAddress) external onlyOwner {
+//        require(registryAddress != address(0));
+//        marketContractRegistry = registryAddress;
+//    }
 }

@@ -29,8 +29,7 @@ contract MarketContractFactoryChainLink is Ownable {
     event MarketContractCreated(address indexed creator, address indexed contractAddress);
 
     constructor(
-        address registryAddress,
-        address mktTokenAddress
+        address registryAddress
     ) public {
         marketContractRegistry = registryAddress;
     }

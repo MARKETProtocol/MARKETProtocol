@@ -12,10 +12,10 @@ module.exports = function (deployer, network) {
   const marketContractExpiration = Math.floor(Date.now() / 1000) + 60 * 15; // expires in 15 minutes.
 
   if (network !== 'live') {
+    deployer.link(MathLib, MarketContractFactory);
     return deployer.deploy(LinkToken).then(function (linkToken) {
       return deployer.deploy(ChainLinkOracle, LinkToken.address).then(function () {
         return MarketContractRegistry.deployed().then(function (registry) {
-          return deployer.link(MathLib, MarketContractFactory).then(function () {
             return deployer.deploy(
               MarketContractFactory,
               registry.address,
@@ -54,6 +54,5 @@ module.exports = function (deployer, network) {
           });
         });
       });
-    });
   }
 };
