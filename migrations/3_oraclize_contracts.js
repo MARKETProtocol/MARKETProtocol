@@ -2,6 +2,7 @@ const MathLib = artifacts.require('./libraries/MathLib.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
 const MarketContractFactory = artifacts.require('./oraclize/MarketContractFactoryOraclize.sol');
+const MarketContract = artifacts.require('./oraclize/MarketContractOraclize.sol');
 const OracleHub = artifacts.require('./oraclize/OracleHubOraclize.sol');
 
 module.exports = function (deployer, network) {
@@ -9,7 +10,7 @@ module.exports = function (deployer, network) {
     const marketContractExpiration = Math.floor(Date.now() / 1000) + 60 * 15; // expires in 15 minutes.
     var gasLimit = web3.eth.getBlock('latest').gasLimit;
 
-    deployer.link(MathLib, MarketContractFactory);
+    deployer.link(MathLib, [MarketContractFactory, MarketContract]);
     return deployer.deploy(
       MarketContractFactory,
       MarketContractRegistry.address,

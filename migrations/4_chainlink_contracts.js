@@ -2,6 +2,7 @@ const MathLib = artifacts.require('./libraries/MathLib.sol');
 const LinkToken = artifacts.require('./chainlink/src/lib/LinkToken.sol');
 const ChainLinkOracle = artifacts.require('./chainlink/src/Oracle.sol');
 const MarketContractFactory = artifacts.require('./chainlink/MarketContractFactoryChainLink.sol');
+const MarketContract = artifacts.require('./chainlink/MarketContractChainLink.sol');
 const OracleHub = artifacts.require('./chainlink/OracleHubChainLink.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
 
@@ -12,7 +13,7 @@ module.exports = function (deployer, network) {
   const marketContractExpiration = Math.floor(Date.now() / 1000) + 60 * 15; // expires in 15 minutes.
 
   if (network !== 'live') {
-    deployer.link(MathLib, MarketContractFactory);
+    deployer.link(MathLib, [MarketContractFactory, MarketContract]);
     return deployer.deploy(LinkToken).then(function (linkToken) {
       return deployer.deploy(ChainLinkOracle, LinkToken.address).then(function () {
         return MarketContractRegistry.deployed().then(function (registry) {
