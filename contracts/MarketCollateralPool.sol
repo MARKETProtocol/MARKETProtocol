@@ -39,7 +39,6 @@ contract MarketCollateralPool is Ownable {
 
     event TokensMinted(address indexed marketContract, address indexed user, uint qtyMinted, uint collateralLocked);
     event TokensRedeemed(address indexed marketContract, address indexed user, uint qtyRedeemed, uint collateralUnlocked, uint8 marketSide);
-    event FactoryAddressRemoved(address indexed factoryAddress);
 
     constructor() public { }
 
