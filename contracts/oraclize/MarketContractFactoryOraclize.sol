@@ -17,16 +17,17 @@
 pragma solidity ^0.4.24;
 
 import "./MarketContractOraclize.sol";
+import "./OracleHubOraclize.sol";
 import "../MarketContractRegistryInterface.sol";
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-
 
 /// @title MarketContractFactoryOraclize
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketContractFactoryOraclize is Ownable {
 
     address public marketContractRegistry;
+    address public oracleHubAddress;
 
     event MarketContractCreated(address indexed creator, address indexed contractAddress);
 
@@ -63,10 +64,19 @@ contract MarketContractFactoryOraclize is Ownable {
                 msg.sender,
                 collateralTokenAddress
             ],
+            oracleHubAddress,
             contractSpecs,
             oracleDataSource,
             oracleQuery
         );
+
+        OracleHubOraclize(oracleHubAddress).requestQuery(
+            mktContract,
+            oracleDataSource,
+            oracleQuery,
+            mktContract.EXPIRATION()
+        );
+
         MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(mktContract);
         emit MarketContractCreated(msg.sender, mktContract);
     }
@@ -76,5 +86,13 @@ contract MarketContractFactoryOraclize is Ownable {
     function setRegistryAddress(address registryAddress) external onlyOwner {
         require(registryAddress != address(0));
         marketContractRegistry = registryAddress;
+    }
+
+    /// @dev allows for the owner to set a new oracle hub address which is responsible for providing data to our
+    /// contracts
+    /// @param hubAddress   address of the oracle hub, cannot be null address
+    function setOracleHubAddress(address hubAddress) external onlyOwner {
+        require(hubAddress != address(0));
+        oracleHubAddress = hubAddress;
     }
 }

@@ -30,7 +30,7 @@ contract('OracleHubChainLink', function(accounts) {
   it('Link balances can be withdrawn by owner', async function() {
 
     const initialBalance = await linkToken.balanceOf(oracleHubChainLink.address);
-    expect(initialBalance, 10e22, "Initial balance does not reflect migrations");
+    assert.isTrue(initialBalance.toNumber() >= 10e20, "Initial balance does not reflect migrations");
 
     const ownerAccont = await oracleHubChainLink.owner();
     assert.equal(ownerAccont, accounts[0], "Owner account of the Hub isn't our main test account");

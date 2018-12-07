@@ -34,8 +34,10 @@ contract PositionToken is StandardToken, Ownable {
     uint8 public decimals;
 
     uint8 public MARKET_SIDE; // 0 = Long, 1 = Short
+    address public MARKET_CONTRACT_ADDRESS;
 
     constructor(
+        address marketContractAddress,
         string tokenName,
         string tokenSymbol,
         uint8 marketSide
@@ -53,7 +55,11 @@ contract PositionToken is StandardToken, Ownable {
     /// position tokens
     /// @param qtyToMint quantity of position tokens to mint (in base units)
     /// @param recipient the person minting and receiving these position tokens.
-    function mintAndSendToken(uint256 qtyToMint, address recipient) external onlyOwner {
+    function mintAndSendToken(
+        address marketContractAddress,
+        uint256 qtyToMint,
+        address recipient
+    ) external onlyOwner onlyMarketContractAddress(marketContractAddress) {
         totalSupply_ = totalSupply_.add(qtyToMint);                 // add to total supply
         balances[recipient] = balances[recipient].add(qtyToMint);   // transfer to recipient balance
         emit Transfer(address(0), recipient, qtyToMint);            // fire event to show balance.
@@ -64,10 +70,22 @@ contract PositionToken is StandardToken, Ownable {
     /// side of the tokens are needed to redeem (handled by the collateral pool)
     /// @param qtyToRedeem quantity of tokens to burn (remove from supply / circulation)
     /// @param redeemer the person redeeming these tokens (who are we taking the balance from)
-    function redeemToken(uint256 qtyToRedeem, address redeemer) external onlyOwner {
+    function redeemToken(
+        address marketContractAddress,
+        uint256 qtyToRedeem,
+        address redeemer
+    ) external onlyOwner onlyMarketContractAddress(marketContractAddress) {
         // reduce the redeemer's balances.  This will throw if not enough balance to reduce!
         balances[redeemer] = balances[redeemer].sub(qtyToRedeem);
         totalSupply_ = totalSupply_.sub(qtyToRedeem);                    // reduce total supply
         emit Transfer(redeemer, address(0), qtyToRedeem);           // fire event to update balances
+    }
+
+    /// @notice only can be called with a market contract address that is tied to this token. This allows us to
+    /// ensure that no one else can attempt to tie this token to a different MarketContract with a different collateral
+    /// token to be use for spoofing token creation
+    modifier onlyMarketContractAddress(address marketContractAddress) {
+        require(MARKET_CONTRACT_ADDRESS == marketContractAddress);
+        _;
     }
 }

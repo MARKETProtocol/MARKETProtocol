@@ -1,16 +1,16 @@
-const MarketContractChainLink = artifacts.require('MarketContractChainLink');
-const MarketContractFactoryChainLink = artifacts.require('MarketContractFactoryChainLink');
-const OracleHubChainLink = artifacts.require("OracleHubChainLink");
+const MarketContractOraclize = artifacts.require('MarketContractOraclize');
+const MarketContractFactoryOraclize = artifacts.require('MarketContractFactoryOraclize');
+const OracleHubOraclize = artifacts.require("OracleHubOraclize");
 const CollateralToken = artifacts.require('CollateralToken');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const utility = require('../utility.js');
 
 
-contract('MarketContractFactoryChainLink', function(accounts) {
+contract('MarketContractFactoryOraclize', function(accounts) {
 
   const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50); //expires 50 minutes from now.
-  const oracleQueryURL = 'https://api.kraken.com/0/public/Ticker?pair=ETHUSD';
-  const oracleQueryPath = 'result.XETHZUSD.c.0';
+  const oracleDataSoure = 'URL';
+  const oracleQuery = 'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0';
   const contractName = 'ETHUSD';
   const priceCap = 60465;
   const priceFloor = 20155;
@@ -22,21 +22,19 @@ contract('MarketContractFactoryChainLink', function(accounts) {
   let marketContractRegistry;
 
   before(async function() {
-    marketContractFactory = await MarketContractFactoryChainLink.deployed();
-    oracleHub = await OracleHubChainLink.deployed();
+    marketContractFactory = await MarketContractFactoryOraclize.deployed();
+    oracleHub = await OracleHubOraclize.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
   });
 
   it('Deploys a new MarketContract with the correct variables', async function() {
 
-    await marketContractFactory.deployMarketContractChainLink(
+    await marketContractFactory.deployMarketContractOraclize(
       contractName,
       CollateralToken.address,
       [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, expiration],
-      oracleQueryURL,
-      oracleQueryPath,
-      'fakeSleepJobId',
-      'fakeOnDemandJobId'
+      oracleDataSoure,
+      oracleQuery
     );
 
     // Should fire the MarketContractCreated event!
@@ -47,9 +45,9 @@ contract('MarketContractFactoryChainLink', function(accounts) {
       'Event called is not MarketContractCreated'
     );
 
-    const marketContract = await MarketContractChainLink.at(events[0].args.contractAddress);
-    assert.equal(await marketContract.ORACLE_QUERY_URL(), oracleQueryURL);
-    assert.equal(await marketContract.ORACLE_QUERY_PATH(), oracleQueryPath);
+    const marketContract = await MarketContractOraclize.at(events[0].args.contractAddress);
+    assert.equal(await marketContract.ORACLE_DATA_SOURCE(), oracleDataSoure);
+    assert.equal(await marketContract.ORACLE_QUERY(), oracleQuery);
     assert.equal((await marketContract.EXPIRATION()).toNumber(), expiration);
     assert.equal((await marketContract.QTY_MULTIPLIER()).toNumber(), qtyMultiplier);
     assert.equal((await marketContract.PRICE_DECIMAL_PLACES()).toNumber(), priceDecimalPlaces);
@@ -59,43 +57,39 @@ contract('MarketContractFactoryChainLink', function(accounts) {
     assert.equal(await marketContract.CONTRACT_NAME(), contractName);
   });
 
-  it('Requests a chain link query when deploying a new MarketContract', async function() {
-    await marketContractFactory.deployMarketContractChainLink(
+  it('Requests a oraclize query when deploying a new MarketContract', async function() {
+    await marketContractFactory.deployMarketContractOraclize(
       contractName,
       CollateralToken.address,
       [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, expiration],
-      oracleQueryURL,
-      oracleQueryPath,
-      'fakeSleepJobId',
-      'fakeOnDemandJobId'
+      oracleDataSoure,
+      oracleQuery
     );
 
     // Should fire the requested event after creating the MarketContract
-    const events = await utility.getEvent(oracleHub, 'ChainlinkRequested');
+    const events = await utility.getEvent(oracleHub, 'OraclizeQueryRequested');
     assert.equal(
-      'ChainlinkRequested',
+      'OraclizeQueryRequested',
       events[0].event,
-      'Event called is not ChainlinkRequested'
+      'Event called is not OraclizeQueryRequested'
     );
   });
 
   it('Adds a new MarketContract to the white list', async function() {
 
-    await marketContractFactory.deployMarketContractChainLink(
+    await marketContractFactory.deployMarketContractOraclize(
       contractName,
       CollateralToken.address,
       [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, expiration],
-      oracleQueryURL,
-      oracleQueryPath,
-      'fakeSleepJobId',
-      'fakeOnDemandJobId'
+      oracleDataSoure,
+      oracleQuery
     );
 
     // Should fire the MarketContractCreated event!
     const events = await utility.getEvent(marketContractFactory, 'MarketContractCreated');
     const eventsRegistry = await utility.getEvent(marketContractRegistry, 'AddressAddedToWhitelist');
 
-    const marketContract = await MarketContractChainLink.at(events[0].args.contractAddress);
+    const marketContract = await MarketContractOraclize.at(events[0].args.contractAddress);
     assert.equal(
       'MarketContractCreated',
       events[0].event,

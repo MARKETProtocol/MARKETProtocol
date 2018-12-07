@@ -1,5 +1,6 @@
 const MarketContractChainLink = artifacts.require('MarketContractChainLink');
 const CollateralToken = artifacts.require('CollateralToken');
+const MathLib = artifacts.require('MathLib');
 
 
 contract('MarketContractChainLink', function(accounts) {
