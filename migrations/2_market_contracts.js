@@ -1,5 +1,6 @@
 const MathLib = artifacts.require('./libraries/MathLib.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
+const MarketToken = artifacts.require('./tokens/MarketToken.sol');
 const MarketContractOraclize = artifacts.require('./oraclize/MarketContractOraclize.sol');
 const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
@@ -19,7 +20,9 @@ module.exports = function (deployer, network) {
             .deploy(CollateralToken, 'CollateralToken', 'CTK', 10000, 18, {
               gas: gasLimit,
               from: web3.eth.accounts[0]
-          })
+          }).then(function () {
+            return deployer.deploy(MarketToken, 0, 0); // deploy just for testing.
+          });
         });
       });
     });
