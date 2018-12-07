@@ -19,6 +19,7 @@ pragma solidity ^0.4.24;
 import "./libraries/MathLib.sol";
 import "./MarketContract.sol";
 import "./tokens/PositionToken.sol";
+import "./MarketContractRegistryInterface.sol";
 
 import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
@@ -34,13 +35,16 @@ contract MarketCollateralPool is Ownable {
     using MathLib for int;
     using SafeERC20 for ERC20;
 
+    address public MARKET_CONTRACT_REGISTRY;
     mapping(address => uint) public contractAddressToCollateralPoolBalance;                 // current balance of all collateral committed
     enum MarketSide { Long, Short, Both}
 
     event TokensMinted(address indexed marketContract, address indexed user, uint qtyMinted, uint collateralLocked);
     event TokensRedeemed(address indexed marketContract, address indexed user, uint qtyRedeemed, uint collateralUnlocked, uint8 marketSide);
 
-    constructor() public { }
+    constructor(address marketContractRegistry) public {
+        MARKET_CONTRACT_REGISTRY = marketContractRegistry;
+    }
 
     /*
     // EXTERNAL METHODS
@@ -51,7 +55,11 @@ contract MarketCollateralPool is Ownable {
     /// and issue them the requested qty of long and short tokens
     /// @param marketContractAddress            address of the market contract to redeem tokens for
     /// @param qtyToMint                      quantity of long / short tokens to mint.
-    function mintPositionTokens(address marketContractAddress, uint qtyToMint) external {
+    function mintPositionTokens(
+        address marketContractAddress,
+        uint qtyToMint
+    ) external onlyWhiteListedAddress(marketContractAddress) {
+
         MarketContract marketContract = MarketContract(marketContractAddress);
         require(!marketContract.isSettled(), "Contract is already settled");
 
@@ -77,7 +85,11 @@ contract MarketCollateralPool is Ownable {
     /// for their collateral.
     /// @param marketContractAddress            address of the market contract to redeem tokens for
     /// @param qtyToRedeem                      quantity of long / short tokens to redeem.
-    function redeemPositionTokens(address marketContractAddress, uint qtyToRedeem) external {
+    function redeemPositionTokens(
+        address marketContractAddress,
+        uint qtyToRedeem
+    ) external onlyWhiteListedAddress(marketContractAddress) {
+
         MarketContract marketContract = MarketContract(marketContractAddress);
 
         // Redeem positions tokens by burning them.
@@ -107,7 +119,10 @@ contract MarketCollateralPool is Ownable {
     // settlement has occurred.
     /// @param marketContractAddress address of the MARKET Contract being traded.
     /// @param qtyToRedeem signed qtyToRedeem, positive (+) for long tokens, negative(-) for short tokens
-    function settleAndClose(address marketContractAddress, int qtyToRedeem) external {
+    function settleAndClose(
+        address marketContractAddress,
+        int qtyToRedeem
+    ) external onlyWhiteListedAddress(marketContractAddress) {
         MarketContract marketContract = MarketContract(marketContractAddress);
         require(marketContract.isSettled(), "Contract is not settled");
 
@@ -146,4 +161,12 @@ contract MarketCollateralPool is Ownable {
         );
     }
 
+    /// @notice only can be called with a market contract address that currently exists in our whitelist
+    /// this ensure's it is a market contract that has been created by us and therefore has a uniquely created
+    /// long and short token address.  If it didn't we could have spoofed contracts minting tokens with a
+    /// collateral token that wasn't the same as the intended token.
+    modifier onlyWhiteListedAddress(address marketContractAddress) {
+        require(MarketContractRegistryInterface(MARKET_CONTRACT_REGISTRY).isAddressWhiteListed(marketContractAddress));
+        _;
+    }
 }

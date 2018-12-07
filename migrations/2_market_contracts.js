@@ -12,7 +12,7 @@ module.exports = function (deployer, network) {
         [MarketContractOraclize, MarketCollateralPool]
       );
 
-      return deployer.deploy(MarketCollateralPool).then(function () {
+      return deployer.deploy(MarketCollateralPool, MarketContractRegistry.address).then(function () {
         var gasLimit = web3.eth.getBlock('latest').gasLimit;
         return MarketCollateralPool.deployed().then(function () {
           return deployer

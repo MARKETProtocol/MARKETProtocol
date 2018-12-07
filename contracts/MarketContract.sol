@@ -79,8 +79,8 @@ contract MarketContract is Creatable {
         COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
 
         // create long and short tokens  // TODO: fix names!
-        PositionToken longToken = new PositionToken("Long Position Token", "LONG", 0);
-        PositionToken shortToken = new PositionToken("Short Position Token", "SHRT", 1);
+        PositionToken longToken = new PositionToken(this, "Long Position Token", "LONG", 0);
+        PositionToken shortToken = new PositionToken(this, "Short Position Token", "SHRT", 1);
         LONG_POSITION_TOKEN = address(longToken);
         SHORT_POSITION_TOKEN = address(shortToken);
     }
