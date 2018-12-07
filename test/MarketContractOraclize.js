@@ -1,7 +1,6 @@
 const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
-const MarketToken = artifacts.require('MarketToken');
 const CollateralToken = artifacts.require('CollateralToken');
 const Helpers = require('./helpers/Helpers.js');
 
@@ -11,7 +10,6 @@ contract('MarketContractOraclize', function(accounts) {
   let collateralPool;
   let collateralToken;
   let marketContractRegistry;
-  let marketToken;
   let marketContract;
   let marketContractInstance;
   let gasLimit;
@@ -20,7 +18,6 @@ contract('MarketContractOraclize', function(accounts) {
 
   before(async function() {
 
-    marketToken = await MarketToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);

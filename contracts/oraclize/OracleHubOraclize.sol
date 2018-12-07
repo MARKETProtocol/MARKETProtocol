@@ -26,7 +26,7 @@ contract OracleHubOraclize is OracleHub, usingOraclize {
     mapping(address => OraclizeQuery) contractAddressToOraclizeQuery;
     mapping(bytes32 => OraclizeQuery) queryIDToOraclizeQuery;
     address public marketContractFactoryAddress;
-    mapping(bytes32 => bool) validQueryIDs;
+    mapping(bytes32 => bool) public validQueryIDs;
     uint constant public QUERY_CALLBACK_GAS = 160000;
 
     /// @dev all needed pieces of an oraclize query.
@@ -36,6 +36,7 @@ contract OracleHubOraclize is OracleHub, usingOraclize {
         string query;
     }
 
+    event OraclizeQueryRequested(address indexed marketContract, bytes32 indexed queryId);
 
     /// @dev creates our OracleHub
     /// @param contractFactoryAddress       address of our MarketContractFactory
@@ -47,6 +48,13 @@ contract OracleHubOraclize is OracleHub, usingOraclize {
     /*
     // EXTERNAL METHODS
     */
+
+    /// @dev allows us to withdraw eth as the owner of this contract
+    /// @param sendTo       address of where to send ETH
+    /// @param amount       amount of ETH (in baseUnits)
+    function withdrawEther(address sendTo, uint256 amount) external onlyOwner returns (bool) {
+        return sendTo.send(amount);
+    }
 
     /// @notice allows a user to request an extra query to oracle in order to push the contract into
     /// settlement.  A user may call this as many times as they like, since they are the ones paying for
@@ -66,6 +74,7 @@ contract OracleHubOraclize is OracleHub, usingOraclize {
         require(queryId != 0);
         validQueryIDs[queryId] = true;
         queryIDToOraclizeQuery[queryId] = oraclizeQuery;
+        emit OraclizeQueryRequested(marketContractAddress, queryId);
     }
 
 
@@ -102,6 +111,7 @@ contract OracleHubOraclize is OracleHub, usingOraclize {
         require(queryId != 0);
         validQueryIDs[queryId] = true;
         queryIDToOraclizeQuery[queryId] = oraclizeQuery;  // save query struct for later recall on callback.
+        emit OraclizeQueryRequested(marketContractAddress, queryId);
     }
 
     /// @notice only public for callbacks from oraclize, do not call

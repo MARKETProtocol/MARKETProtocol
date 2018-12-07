@@ -15,7 +15,7 @@ module.exports = function (deployer, network) {
       MarketContractRegistry.address,
       {gas: gasLimit, from: web3.eth.accounts[0]}
     ).then(function (factory) {
-      MarketContractRegistry.deployed().then(function (registryInstance) {
+      return MarketContractRegistry.deployed().then(function (registryInstance) {
         return registryInstance.addFactoryAddress(factory.address).then(function () { // white list the factory
           return deployer.deploy(
             OracleHub,
