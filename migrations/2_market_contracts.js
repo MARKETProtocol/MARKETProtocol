@@ -3,7 +3,6 @@ const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
 const MarketContractOraclize = artifacts.require('./oraclize/TestableMarketContractOraclize.sol');
 const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
-const MarketToken = artifacts.require('./tokens/MarketToken.sol');
 
 module.exports = function (deployer, network) {
   if (network !== 'live') {
@@ -14,20 +13,13 @@ module.exports = function (deployer, network) {
       );
 
       return deployer.deploy(MarketCollateralPool).then(function () {
-        const marketTokenToLockForTrading = 0; // for testing purposes, require no loc
-        const marketTokenAmountForContractCreation = 0; //for testing purposes require no balance
         var gasLimit = web3.eth.getBlock('latest').gasLimit;
-
         return MarketCollateralPool.deployed().then(function () {
           return deployer
-            .deploy(MarketToken, marketTokenToLockForTrading, marketTokenAmountForContractCreation)
-            .then(function () {
-              return deployer
-                .deploy(CollateralToken, 'CollateralToken', 'CTK', 10000, 18, {
-                  gas: gasLimit,
-                  from: web3.eth.accounts[0]
-                })
-            });
+            .deploy(CollateralToken, 'CollateralToken', 'CTK', 10000, 18, {
+              gas: gasLimit,
+              from: web3.eth.accounts[0]
+          })
         });
       });
     });

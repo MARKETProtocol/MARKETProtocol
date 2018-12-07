@@ -1,7 +1,6 @@
 const MathLib = artifacts.require('./libraries/MathLib.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
-const MarketToken = artifacts.require('./tokens/MarketToken.sol');
 const MarketContractFactory = artifacts.require(
   './oraclize/TestableMarketContractFactoryOraclize.sol'
 );
@@ -22,7 +21,6 @@ module.exports = function (deployer, network) {
           .deploy(
             MarketContractFactory,
             registryInstance.address,
-            MarketToken.address,
             {gas: gasLimit, from: web3.eth.accounts[0]}
           )
           .then(function (factory) {
