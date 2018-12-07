@@ -67,4 +67,59 @@ contract('MarketContractOraclize', function(accounts) {
     assert.ok(error instanceof Error, 'should not be able to be called after expiration');
   });
 
+  it('Should fail to deploy a contract with priceFloor equal to priceCap', async function() {
+    const marketContractExpirationInTenSeconds = Math.floor(Date.now() / 1000) + 10;
+    let error = null;
+    try {
+      await MarketContractOraclize.new(
+        'ETHUSD-EQUALPRICECAPPRICEFLOOR',
+        [ accountMaker, marketToken.address, collateralToken.address, collateralPool.address],
+        [100000, 100000, 2, 1, marketContractExpirationInTenSeconds],
+        'URL',
+        'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
+        { gas: gasLimit, accountMaker }
+      );
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(error instanceof Error, 'Contract with priceFloor equal to priceCap is possible');
+  });
+
+  it('Should fail to deploy a contract with expiration in the past', async function() {
+    const marketContractExpirationTenSecondsAgo = Math.floor(Date.now() / 1000) - 10;
+    let error = null;
+    try {
+      await MarketContractOraclize.new(
+        'ETHUSD-EQUALPRICECAPPRICEFLOOR',
+        [ accountMaker, marketToken.address, collateralToken.address, collateralPool.address],
+        [10, 100, 2, 1, marketContractExpirationTenSecondsAgo],
+        'URL',
+        'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
+        { gas: gasLimit, accountMaker }
+      );
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(error instanceof Error, 'Contract with expiration in the past is possible');
+  });
+
+  it('Should fail to deploy a contract with expiration set after 60 days', async function() {
+    const marketContractExpirationInSixtyOneDays =
+      Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 61;
+    let error = null;
+    try {
+      await MarketContractOraclize.new(
+        'ETHUSD-EQUALPRICECAPPRICEFLOOR',
+        [ accountMaker, marketToken.address, collateralToken.address, collateralPool.address],
+        [10, 100, 2, 1, marketContractExpirationInSixtyOneDays],
+        'URL',
+        'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
+        { gas: gasLimit, accountMaker }
+      );
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(error instanceof Error, 'Contract with expiration set after 60 days is possible');
+  });
+
 });
