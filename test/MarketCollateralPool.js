@@ -13,12 +13,11 @@ contract('MarketCollateralPool', function(accounts) {
   let collateralPool;
   let marketContract;
   let marketContractRegistry;
-  let orderLib;
   let qtyMultiplier;
   let priceFloor;
   let priceCap;
-  let tradeHelper;
-  let marketTradingHub;
+  let longPositionToken;
+  let shortPositionToken;
   const entryOrderPrice = 33025;
   const accountMaker = accounts[0];
   const accountTaker = accounts[1];
@@ -32,6 +31,8 @@ contract('MarketCollateralPool', function(accounts) {
     qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
     priceFloor = await marketContract.PRICE_FLOOR.call();
     priceCap = await marketContract.PRICE_CAP.call();
+    longPositionToken = PositionToken.at(await marketContract.LONG_POSITION_TOKEN());
+    shortPositionToken = PositionToken.at(await marketContract.SHORT_POSITION_TOKEN());
   });
 
   beforeEach(async function() {
@@ -69,99 +70,38 @@ contract('MarketCollateralPool', function(accounts) {
     assert.ok(error instanceof Error, 'should not be able to mint with no collateral approval balance');
 
     // 4. should allow to mint when user has collateral tokens and has approved them
-    console.log(await marketContract.SHORT_POSITION_TOKEN());
-    console.log(await marketContract.LONG_POSITION_TOKEN());
-
-    const posToken = PositionToken.at(await marketContract.SHORT_POSITION_TOKEN());
-    console.log(await posToken.owner());
-    console.log(await posToken.MARKET_CONTRACT_ADDRESS());
-    console.log(await posToken.name());
-
     const amountToApprove = 1e22;
     await collateralToken.approve(collateralPool.address, amountToApprove);
-    await collateralPool.mintPositionTokens(marketContract.address, 100, { from: accounts[0]});
+    const qtyToMint = 100;
+    await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, { from: accounts[0]});
+    const longPosTokenBalance = await longPositionToken.balanceOf(accounts[0]);
+    const shortPosTokenBalance = await shortPositionToken.balanceOf(accounts[0]);
 
+    assert.equal(longPosTokenBalance.toNumber(), qtyToMint, `incorrect amount of long tokens minted`);
+    assert.equal(shortPosTokenBalance.toNumber(), qtyToMint,`incorrect amount of long tokens minted`);
+  });
+
+  it(`should lock the correct amount of collateral`, async function() {
 
   });
 
+  it(`should redeem token sets`, async function() {
+    
+  });
 
-  //
-  // it('should close open positions and withdraw collateral to accounts when settleAndClose() is called', async function() {
-  //   const entryOrderPrice = 3000;
-  //   const settlementPrice = 20000; // force to settlement with price below price floor (20155)
-  //   const orderQty = 2;
-  //   const orderQtyToFill = 1;
-  //
-  //   await tradeHelper.tradeOrder(
-  //     [marketContract.address, accounts[0], accounts[1], accounts[2]],
-  //     [entryOrderPrice, orderQty, orderQtyToFill]
-  //   );
-  //   await tradeHelper.attemptToSettleContract(settlementPrice); // this should push our contract into settlement.
-  //
-  //   assert.isTrue(await marketContract.isSettled(), "Contract not settled properly!");
-  //
-  //   const expectedMakersTokenBalanceAfterSettlement = await tradeHelper.calculateSettlementToken(
-  //     accounts[0],
-  //     priceFloor,
-  //     priceCap,
-  //     qtyMultiplier,
-  //     orderQtyToFill,
-  //     settlementPrice
-  //   );
-  //
-  //   const expectedTakersTokenBalanceAfterSettlement = await tradeHelper.calculateSettlementToken(
-  //     accounts[1],
-  //     priceFloor,
-  //     priceCap,
-  //     qtyMultiplier,
-  //     -orderQtyToFill,
-  //     settlementPrice
-  //   );
-  //
-  //   // each account now calls settle and close, returning to them all collateral.
-  //   await collateralPool.settleAndClose(marketContract.address, { from: accounts[0] });
-  //   await collateralPool.settleAndClose(marketContract.address, { from: accounts[1] });
-  //   await collateralPool.settleAndClose(marketContract.address, { from: accounts[3] });
-  //
-  //   // makers and takers collateral pool balance is cleared
-  //   const makersCollateralBalanceAfterSettlement = await collateralPool.getUserUnallocatedBalance.call(
-  //     collateralToken.address,
-  //     accounts[0]
-  //   );
-  //   const takersCollateralBalanceAfterSettlement = await collateralPool.getUserUnallocatedBalance.call(
-  //     collateralToken.address,
-  //     accounts[1]
-  //   );
-  //
-  //   assert.equal(
-  //     makersCollateralBalanceAfterSettlement.toNumber(),
-  //     0,
-  //     'Makers collateral balance not returned'
-  //   );
-  //   assert.equal(
-  //     takersCollateralBalanceAfterSettlement.toNumber(),
-  //     0,
-  //     'Takers collateral balance not returned'
-  //   );
-  //
-  //   // check correct token amount is withdrawn to makers and takers account
-  //   const makersTokenBalanceAfterSettlement = await collateralToken.balanceOf.call(accounts[0]);
-  //   assert.equal(
-  //     makersTokenBalanceAfterSettlement.toNumber(),
-  //     expectedMakersTokenBalanceAfterSettlement.toNumber(),
-  //     'Makers account incorrectly settled'
-  //   );
-  //
-  //   const takersTokenBalanceAfterSettlement = await collateralToken.balanceOf.call(accounts[1]);
-  //   assert.equal(
-  //     takersTokenBalanceAfterSettlement.toNumber(),
-  //     expectedTakersTokenBalanceAfterSettlement.toNumber(),
-  //     'Takers account incorrectly settled'
-  //   );
-  // });
+  it(`should return correct amount of collateral when redeemed`, async function() {
+
+  });
+
+  it(`should redeem single tokens after settlement`, async function() {
+
+  });
+
+  it(`should return correct amount of collateral when redeemed after settlement`, async function() {
+
+  });
 
   it('should fail if settleAndClose() is called before settlement', async () => {
-
     // let error = null;
     // let settleAndCloseError = null;
     // try {
