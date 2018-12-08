@@ -5,7 +5,7 @@ const MarketContractFactory = artifacts.require('./chainlink/MarketContractFacto
 const MarketContract = artifacts.require('./chainlink/MarketContractChainLink.sol');
 const OracleHub = artifacts.require('./chainlink/OracleHubChainLink.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
-
+const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
 
 module.exports = function (deployer, network) {
@@ -20,6 +20,7 @@ module.exports = function (deployer, network) {
             return deployer.deploy(
               MarketContractFactory,
               registry.address,
+              MarketCollateralPool.address,
               {gas: gasLimit, from: web3.eth.accounts[0]}
             ).then(function (factory) {
               return registry.addFactoryAddress(factory.address).then(function () {

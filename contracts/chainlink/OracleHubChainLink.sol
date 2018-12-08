@@ -16,13 +16,13 @@
 
 pragma solidity ^0.4.24;
 
-import "../OracleHub.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "chainlink/solidity/contracts/Chainlinked.sol";
 import "../libraries/StringLib.sol";
 import "./MarketContractChainLink.sol";
 
 
-contract OracleHubChainLink is OracleHub, Chainlinked {
+contract OracleHubChainLink is Chainlinked, Ownable {
     using StringLib for *;
 
     /// @dev all needed pieces of a chainlink query.

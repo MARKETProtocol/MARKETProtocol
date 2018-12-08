@@ -19,20 +19,10 @@ pragma solidity ^0.4.24;
 import "./MarketContractChainLink.sol";
 import "./OracleHubChainLink.sol";
 import "../MarketContractRegistryInterface.sol";
+import "../MarketContractFactory.sol";
 
 
-contract MarketContractFactoryChainLink is Ownable {
-
-    address public marketContractRegistry;
-    address public oracleHubAddress;
-
-    event MarketContractCreated(address indexed creator, address indexed contractAddress);
-
-    constructor(
-        address registryAddress
-    ) public {
-        marketContractRegistry = registryAddress;
-    }
+contract MarketContractFactoryChainLink is MarketContractFactory {
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
     /// @param collateralTokenAddress address of the ERC20 token that will be used for collateral and pricing
@@ -61,7 +51,8 @@ contract MarketContractFactoryChainLink is Ownable {
             contractName,
             [
                 msg.sender,
-                collateralTokenAddress
+                collateralTokenAddress,
+                MARKET_COLLATERAL_POOL
             ],
             oracleHubAddress,
             contractSpecs,
@@ -79,20 +70,5 @@ contract MarketContractFactoryChainLink is Ownable {
 
         MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(mktContract);
         emit MarketContractCreated(msg.sender, mktContract);
-    }
-
-    /// @dev allows for the owner to set the desired registry for contract creation.
-    /// @param registryAddress desired registry address.
-    function setRegistryAddress(address registryAddress) external onlyOwner {
-        require(registryAddress != address(0));
-        marketContractRegistry = registryAddress;
-    }
-
-    /// @dev allows for the owner to set a new oracle hub address which is responsible for providing data to our
-    /// contracts
-    /// @param hubAddress   address of the oracle hub, cannot be null address
-    function setOracleHubAddress(address hubAddress) external onlyOwner {
-        require(hubAddress != address(0));
-        oracleHubAddress = hubAddress;
     }
 }

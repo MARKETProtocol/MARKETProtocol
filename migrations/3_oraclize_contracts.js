@@ -4,6 +4,7 @@ const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol')
 const MarketContractFactory = artifacts.require('./oraclize/MarketContractFactoryOraclize.sol');
 const MarketContract = artifacts.require('./oraclize/MarketContractOraclize.sol');
 const OracleHub = artifacts.require('./oraclize/OracleHubOraclize.sol');
+const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
 
 module.exports = function (deployer, network) {
   if (network !== 'live') {
@@ -14,6 +15,7 @@ module.exports = function (deployer, network) {
     return deployer.deploy(
       MarketContractFactory,
       MarketContractRegistry.address,
+      MarketCollateralPool.address,
       {gas: gasLimit, from: web3.eth.accounts[0]}
     ).then(function (factory) {
       return MarketContractRegistry.deployed().then(function (registryInstance) {

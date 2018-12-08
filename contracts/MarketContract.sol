@@ -29,6 +29,7 @@ contract MarketContract is Creatable {
 
     string public CONTRACT_NAME;
     address public COLLATERAL_TOKEN_ADDRESS;
+    address public COLLATERAL_POOL_ADDRESS;
     uint public PRICE_CAP;
     uint public PRICE_FLOOR;
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
@@ -51,6 +52,7 @@ contract MarketContract is Creatable {
     /// @param baseAddresses array of 2 addresses needed for our contract including:
     ///     creatorAddress                  address of the person creating the contract
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
+    ///     collateralPoolAddress           address of our collateral pool contract
     /// @param contractSpecs array of unsigned integers including:
     ///     floorPrice          minimum tradeable price of this contract, contract enters settlement if breached
     ///     capPrice            maximum tradeable price of this contract, contract enters settlement if breached
@@ -60,7 +62,7 @@ contract MarketContract is Creatable {
     ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
     constructor(
         string contractName,
-        address[2] baseAddresses,
+        address[3] baseAddresses,
         uint[5] contractSpecs
     ) public
     {
@@ -74,15 +76,16 @@ contract MarketContract is Creatable {
         require(EXPIRATION > now);
 
         CONTRACT_NAME = contractName;
-        COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         creator = baseAddresses[0];
+        COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
+        COLLATERAL_POOL_ADDRESS = baseAddresses[2];
         COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
 
         // create long and short tokens  // TODO: fix names!
-        PositionToken longToken = new PositionToken(this, "Long Position Token", "LONG", 0);
-        PositionToken shortToken = new PositionToken(this, "Short Position Token", "SHRT", 1);
-        LONG_POSITION_TOKEN = address(longToken);
-        SHORT_POSITION_TOKEN = address(shortToken);
+        PositionToken longPosToken = new PositionToken(COLLATERAL_POOL_ADDRESS, "Long Position Token", "LONG", 0);
+        PositionToken shortPosToken = new PositionToken(COLLATERAL_POOL_ADDRESS, "Short Position Token", "SHRT", 1);
+        LONG_POSITION_TOKEN = address(longPosToken);
+        SHORT_POSITION_TOKEN = address(shortPosToken);
     }
 
     /*
@@ -118,4 +121,5 @@ contract MarketContract is Creatable {
         settlementPrice = finalSettlementPrice;
         emit ContractSettled(finalSettlementPrice);
     }
+
 }

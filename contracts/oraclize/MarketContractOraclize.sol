@@ -31,6 +31,7 @@ contract MarketContractOraclize is MarketContract {
     /// @param baseAddresses array of 2 addresses needed for our contract including:
     ///     creatorAddress                  address of the person creating the contract
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
+    ///     collateralPoolAddress           address of our collateral pool contract
     /// @param oracleHubAddress     address of our oracle hub providing the callbacks
     /// @param contractSpecs array of unsigned integers including:
     ///     floorPrice              minimum tradeable price of this contract, contract enters settlement if breached
@@ -44,7 +45,7 @@ contract MarketContractOraclize is MarketContract {
     /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
     constructor(
         string contractName,
-        address[2] baseAddresses,
+        address[3] baseAddresses,
         address oracleHubAddress,
         uint[5] contractSpecs,
         string oracleDataSource,

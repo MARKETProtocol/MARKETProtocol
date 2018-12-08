@@ -32,12 +32,12 @@ contract PositionToken is StandardToken, Ownable {
     string public name;
     string public symbol;
     uint8 public decimals;
+    address public COLLATERAL_POOL_ADDRESS;
 
     uint8 public MARKET_SIDE; // 0 = Long, 1 = Short
-    address public MARKET_CONTRACT_ADDRESS;
 
     constructor(
-        address marketContractAddress,
+        address collateralPoolAddress,
         string tokenName,
         string tokenSymbol,
         uint8 marketSide
@@ -47,7 +47,7 @@ contract PositionToken is StandardToken, Ownable {
         symbol = tokenSymbol;
         decimals = 18;
         MARKET_SIDE = marketSide;
-        MARKET_CONTRACT_ADDRESS = marketContractAddress;
+        COLLATERAL_POOL_ADDRESS = collateralPoolAddress;
     }
 
     /// @dev Called by our collateral pool to create a long or short position token. These tokens are minted,
@@ -57,10 +57,9 @@ contract PositionToken is StandardToken, Ownable {
     /// @param qtyToMint quantity of position tokens to mint (in base units)
     /// @param recipient the person minting and receiving these position tokens.
     function mintAndSendToken(
-        address marketContractAddress,
         uint256 qtyToMint,
         address recipient
-    ) external onlyOwner onlyMarketContractAddress(marketContractAddress) {
+    ) external onlyCollateralPool {
         totalSupply_ = totalSupply_.add(qtyToMint);                 // add to total supply
         balances[recipient] = balances[recipient].add(qtyToMint);   // transfer to recipient balance
         emit Transfer(address(0), recipient, qtyToMint);            // fire event to show balance.
@@ -72,21 +71,19 @@ contract PositionToken is StandardToken, Ownable {
     /// @param qtyToRedeem quantity of tokens to burn (remove from supply / circulation)
     /// @param redeemer the person redeeming these tokens (who are we taking the balance from)
     function redeemToken(
-        address marketContractAddress,
         uint256 qtyToRedeem,
         address redeemer
-    ) external onlyOwner onlyMarketContractAddress(marketContractAddress) {
+    ) external onlyCollateralPool {
         // reduce the redeemer's balances.  This will throw if not enough balance to reduce!
         balances[redeemer] = balances[redeemer].sub(qtyToRedeem);
         totalSupply_ = totalSupply_.sub(qtyToRedeem);                    // reduce total supply
         emit Transfer(redeemer, address(0), qtyToRedeem);           // fire event to update balances
     }
 
-    /// @notice only can be called with a market contract address that is tied to this token. This allows us to
-    /// ensure that no one else can attempt to tie this token to a different MarketContract with a different collateral
-    /// token to be use for spoofing token creation
-    modifier onlyMarketContractAddress(address marketContractAddress) {
-        require(MARKET_CONTRACT_ADDRESS == marketContractAddress);
+    /// @notice only able to be called directly by our collateral pool which controls the position tokens
+    /// for this contract!
+    modifier onlyCollateralPool {
+        require(msg.sender == COLLATERAL_POOL_ADDRESS);
         _;
     }
 }

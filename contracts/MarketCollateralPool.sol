@@ -74,13 +74,16 @@ contract MarketCollateralPool is Ownable {
             marketContractAddress
         ].add(neededCollateral);
 
+        PositionToken longToken = PositionToken(marketContract.LONG_POSITION_TOKEN());
+        PositionToken shortToken = PositionToken(marketContract.SHORT_POSITION_TOKEN());
+
+        // Require the market contract address be the owner of the tokens (the contract that created them)
+        require(longToken.owner() == marketContractAddress);
+        require(shortToken.owner() == marketContractAddress);
+
         // mint and distribute short and long position tokens to our caller
-        PositionToken(marketContract.LONG_POSITION_TOKEN()).mintAndSendToken(
-            marketContractAddress, qtyToMint, msg.sender
-        );
-        PositionToken(marketContract.SHORT_POSITION_TOKEN()).mintAndSendToken(
-            marketContractAddress, qtyToMint, msg.sender
-        );
+        longToken.mintAndSendToken(qtyToMint, msg.sender);
+        shortToken.mintAndSendToken(qtyToMint, msg.sender);
 
         emit TokensMinted(marketContractAddress, msg.sender, qtyToMint, neededCollateral);
     }
@@ -93,16 +96,18 @@ contract MarketCollateralPool is Ownable {
         address marketContractAddress,
         uint qtyToRedeem
     ) external onlyWhiteListedAddress(marketContractAddress) {
-
         MarketContract marketContract = MarketContract(marketContractAddress);
 
         // Redeem positions tokens by burning them.
-        PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(
-            marketContractAddress, qtyToRedeem, msg.sender
-        );
-        PositionToken(marketContract.SHORT_POSITION_TOKEN()).redeemToken(
-            marketContractAddress, qtyToRedeem, msg.sender
-        );
+        PositionToken longToken = PositionToken(marketContract.LONG_POSITION_TOKEN());
+        PositionToken shortToken = PositionToken(marketContract.SHORT_POSITION_TOKEN());
+
+        // Require the market contract address be the owner of the tokens (the contract that created them)
+        require(longToken.owner() == marketContractAddress);
+        require(shortToken.owner() == marketContractAddress);
+
+        longToken.redeemToken(qtyToRedeem, msg.sender);
+        shortToken.redeemToken(qtyToRedeem, msg.sender);
 
         // calculate collateral to return and update pool balance
         uint collateralToReturn = MathLib.multiply(qtyToRedeem, marketContract.COLLATERAL_PER_UNIT());
@@ -137,17 +142,20 @@ contract MarketCollateralPool is Ownable {
         // burn tokens being redeemed.
         MarketSide marketSide;
         uint absQtyToRedeem = qtyToRedeem.abs(); // convert to a uint for non signed functions
+        PositionToken posToken;
         if (qtyToRedeem > 0) {
-            PositionToken(marketContract.LONG_POSITION_TOKEN()).redeemToken(
-                marketContractAddress, absQtyToRedeem, msg.sender
-            );
+            posToken = PositionToken(marketContract.LONG_POSITION_TOKEN());
             marketSide = MarketSide.Long;
         } else {
-            PositionToken(marketContract.SHORT_POSITION_TOKEN()).redeemToken(
-                marketContractAddress, absQtyToRedeem, msg.sender
-            );
+            posToken = PositionToken(marketContract.SHORT_POSITION_TOKEN());
             marketSide = MarketSide.Short;
         }
+
+        // ensure pos tokens owned by market contract address
+        require(posToken.owner() == marketContractAddress);
+
+        // redeem tokens
+        posToken.redeemToken(absQtyToRedeem, msg.sender);
 
         // calculate amount of collateral to return and update pool balances
         uint collateralToReturn = MathLib.calculateNeededCollateral(
@@ -157,8 +165,9 @@ contract MarketCollateralPool is Ownable {
             qtyToRedeem,
             marketContract.settlementPrice()
         );
+
         contractAddressToCollateralPoolBalance[marketContract] = contractAddressToCollateralPoolBalance[
-        marketContract
+            marketContract
         ].subtract(collateralToReturn);
 
         // return collateral tokens

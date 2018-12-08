@@ -16,12 +16,11 @@
 
 pragma solidity ^0.4.24;
 
-import "../OracleHub.sol";
 import "./MarketContractOraclize.sol";
 import "./oraclizeAPI.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-
-contract OracleHubOraclize is OracleHub, usingOraclize {
+contract OracleHubOraclize is usingOraclize, Ownable {
 
     mapping(address => OraclizeQuery) contractAddressToOraclizeQuery;
     mapping(bytes32 => OraclizeQuery) queryIDToOraclizeQuery;
