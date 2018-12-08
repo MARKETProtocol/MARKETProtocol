@@ -19,11 +19,26 @@ pragma solidity ^0.4.24;
 import "./MarketContractOraclize.sol";
 import "./OracleHubOraclize.sol";
 import "../MarketContractRegistryInterface.sol";
-import "../MarketContractFactory.sol";
+
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 /// @title MarketContractFactoryOraclize
 /// @author Phil Elsasser <phil@marketprotocol.io>
-contract MarketContractFactoryOraclize is MarketContractFactory {
+contract MarketContractFactoryOraclize is Ownable {
+
+    address public marketContractRegistry;
+    address public oracleHubAddress;
+    address public MARKET_COLLATERAL_POOL;
+
+    event MarketContractCreated(address indexed creator, address indexed contractAddress);
+
+    /// @dev deploys our factory and ties it the a supply registry address
+    /// @param registryAddress - address of our MARKET registry
+    /// @param collateralPoolAddress - address of our MARKET Collateral pool
+    constructor(address registryAddress, address collateralPoolAddress) public {
+        marketContractRegistry = registryAddress;
+        MARKET_COLLATERAL_POOL = collateralPoolAddress;
+    }
 
     /// @dev Deploys a new instance of a market contract and adds it to the whitelist.
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
@@ -68,5 +83,20 @@ contract MarketContractFactoryOraclize is MarketContractFactory {
 
         MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(mktContract);
         emit MarketContractCreated(msg.sender, mktContract);
+    }
+
+    /// @dev allows for the owner to set the desired registry for contract creation.
+    /// @param registryAddress desired registry address.
+    function setRegistryAddress(address registryAddress) external onlyOwner {
+        require(registryAddress != address(0));
+        marketContractRegistry = registryAddress;
+    }
+
+    /// @dev allows for the owner to set a new oracle hub address which is responsible for providing data to our
+    /// contracts
+    /// @param hubAddress   address of the oracle hub, cannot be null address
+    function setOracleHubAddress(address hubAddress) external onlyOwner {
+        require(hubAddress != address(0));
+        oracleHubAddress = hubAddress;
     }
 }
