@@ -32,12 +32,10 @@ contract PositionToken is StandardToken, Ownable {
     string public name;
     string public symbol;
     uint8 public decimals;
-    address public COLLATERAL_POOL_ADDRESS;
 
     uint8 public MARKET_SIDE; // 0 = Long, 1 = Short
 
     constructor(
-        address collateralPoolAddress,
         string tokenName,
         string tokenSymbol,
         uint8 marketSide
@@ -47,10 +45,9 @@ contract PositionToken is StandardToken, Ownable {
         symbol = tokenSymbol;
         decimals = 18;
         MARKET_SIDE = marketSide;
-        COLLATERAL_POOL_ADDRESS = collateralPoolAddress;
     }
 
-    /// @dev Called by our collateral pool to create a long or short position token. These tokens are minted,
+    /// @dev Called by our MarketContract (owner) to create a long or short position token. These tokens are minted,
     /// and then transferred to our recipient who is the party who is minting these tokens.  The collateral pool
     /// is the only caller (acts as the owner) because collateral must be deposited / locked prior to minting of new
     /// position tokens
@@ -59,13 +56,13 @@ contract PositionToken is StandardToken, Ownable {
     function mintAndSendToken(
         uint256 qtyToMint,
         address recipient
-    ) external onlyCollateralPool {
+    ) external onlyOwner {
         totalSupply_ = totalSupply_.add(qtyToMint);                 // add to total supply
         balances[recipient] = balances[recipient].add(qtyToMint);   // transfer to recipient balance
         emit Transfer(address(0), recipient, qtyToMint);            // fire event to show balance.
     }
 
-    /// @dev Called by our collateral pool when redemption occurs.  This means that either a single user is redeeming
+    /// @dev Called by our MarketContract (owner) when redemption occurs.  This means that either a single user is redeeming
     /// both short and long tokens in order to claim their collateral, or the contract has settled, and only a single
     /// side of the tokens are needed to redeem (handled by the collateral pool)
     /// @param qtyToRedeem quantity of tokens to burn (remove from supply / circulation)
@@ -73,17 +70,10 @@ contract PositionToken is StandardToken, Ownable {
     function redeemToken(
         uint256 qtyToRedeem,
         address redeemer
-    ) external onlyCollateralPool {
+    ) external onlyOwner {
         // reduce the redeemer's balances.  This will throw if not enough balance to reduce!
         balances[redeemer] = balances[redeemer].sub(qtyToRedeem);
         totalSupply_ = totalSupply_.sub(qtyToRedeem);                    // reduce total supply
         emit Transfer(redeemer, address(0), qtyToRedeem);           // fire event to update balances
-    }
-
-    /// @notice only able to be called directly by our collateral pool which controls the position tokens
-    /// for this contract!
-    modifier onlyCollateralPool {
-        require(msg.sender == COLLATERAL_POOL_ADDRESS);
-        _;
     }
 }

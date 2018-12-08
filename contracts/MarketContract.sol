@@ -82,10 +82,48 @@ contract MarketContract is Creatable {
         COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
 
         // create long and short tokens  // TODO: fix names!
-        PositionToken longPosToken = new PositionToken(COLLATERAL_POOL_ADDRESS, "Long Position Token", "LONG", 0);
-        PositionToken shortPosToken = new PositionToken(COLLATERAL_POOL_ADDRESS, "Short Position Token", "SHRT", 1);
+        PositionToken longPosToken = new PositionToken("Long Position Token", "LONG", 0);
+        PositionToken shortPosToken = new PositionToken("Short Position Token", "SHRT", 1);
         LONG_POSITION_TOKEN = address(longPosToken);
         SHORT_POSITION_TOKEN = address(shortPosToken);
+    }
+
+    /*
+    // EXTERNAL - onlyCollateralPool METHODS
+    */
+
+    /// @notice called only by our collateral pool to create long and short position tokens
+    /// @param qtyToMint    qty in base units of how many short and long tokens to mint
+    /// @param minter       address of minter to receive tokens
+    function mintPositionTokens(
+        uint256 qtyToMint,
+        address minter
+    ) external onlyCollateralPool {
+        // mint and distribute short and long position tokens to our caller
+        PositionToken(LONG_POSITION_TOKEN).mintAndSendToken(qtyToMint, minter);
+        PositionToken(SHORT_POSITION_TOKEN).mintAndSendToken(qtyToMint, minter);
+    }
+
+    /// @notice called only by our collateral pool to redeem long position tokens
+    /// @param qtyToRedeem  qty in base units of how many tokens to redeem
+    /// @param redeemer     address of person redeeming tokens
+    function redeemLongToken(
+        uint256 qtyToRedeem,
+        address redeemer
+    ) external onlyCollateralPool {
+        // mint and distribute short and long position tokens to our caller
+        PositionToken(LONG_POSITION_TOKEN).redeemToken(qtyToRedeem, redeemer);
+    }
+
+    /// @notice called only by our collateral pool to redeem short position tokens
+    /// @param qtyToRedeem  qty in base units of how many tokens to redeem
+    /// @param redeemer     address of person redeeming tokens
+    function redeemShortToken(
+        uint256 qtyToRedeem,
+        address redeemer
+    ) external onlyCollateralPool {
+        // mint and distribute short and long position tokens to our caller
+        PositionToken(SHORT_POSITION_TOKEN).redeemToken(qtyToRedeem, redeemer);
     }
 
     /*
@@ -120,6 +158,13 @@ contract MarketContract is Creatable {
     function settleContract(uint finalSettlementPrice) private {
         settlementPrice = finalSettlementPrice;
         emit ContractSettled(finalSettlementPrice);
+    }
+
+    /// @notice only able to be called directly by our collateral pool which controls the position tokens
+    /// for this contract!
+    modifier onlyCollateralPool {
+        require(msg.sender == COLLATERAL_POOL_ADDRESS);
+        _;
     }
 
 }

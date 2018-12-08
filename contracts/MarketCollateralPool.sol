@@ -74,16 +74,8 @@ contract MarketCollateralPool is Ownable {
             marketContractAddress
         ].add(neededCollateral);
 
-        PositionToken longToken = PositionToken(marketContract.LONG_POSITION_TOKEN());
-        PositionToken shortToken = PositionToken(marketContract.SHORT_POSITION_TOKEN());
-
-        // Require the market contract address be the owner of the tokens (the contract that created them)
-        require(longToken.owner() == marketContractAddress);
-        require(shortToken.owner() == marketContractAddress);
-
         // mint and distribute short and long position tokens to our caller
-        longToken.mintAndSendToken(qtyToMint, msg.sender);
-        shortToken.mintAndSendToken(qtyToMint, msg.sender);
+        marketContract.mintPositionTokens(qtyToMint, msg.sender);
 
         emit TokensMinted(marketContractAddress, msg.sender, qtyToMint, neededCollateral);
     }
@@ -98,16 +90,8 @@ contract MarketCollateralPool is Ownable {
     ) external onlyWhiteListedAddress(marketContractAddress) {
         MarketContract marketContract = MarketContract(marketContractAddress);
 
-        // Redeem positions tokens by burning them.
-        PositionToken longToken = PositionToken(marketContract.LONG_POSITION_TOKEN());
-        PositionToken shortToken = PositionToken(marketContract.SHORT_POSITION_TOKEN());
-
-        // Require the market contract address be the owner of the tokens (the contract that created them)
-        require(longToken.owner() == marketContractAddress);
-        require(shortToken.owner() == marketContractAddress);
-
-        longToken.redeemToken(qtyToRedeem, msg.sender);
-        shortToken.redeemToken(qtyToRedeem, msg.sender);
+        marketContract.redeemLongToken(qtyToRedeem, msg.sender);
+        marketContract.redeemShortToken(qtyToRedeem, msg.sender);
 
         // calculate collateral to return and update pool balance
         uint collateralToReturn = MathLib.multiply(qtyToRedeem, marketContract.COLLATERAL_PER_UNIT());
@@ -142,20 +126,13 @@ contract MarketCollateralPool is Ownable {
         // burn tokens being redeemed.
         MarketSide marketSide;
         uint absQtyToRedeem = qtyToRedeem.abs(); // convert to a uint for non signed functions
-        PositionToken posToken;
         if (qtyToRedeem > 0) {
-            posToken = PositionToken(marketContract.LONG_POSITION_TOKEN());
             marketSide = MarketSide.Long;
+            marketContract.redeemLongToken(absQtyToRedeem, msg.sender);
         } else {
-            posToken = PositionToken(marketContract.SHORT_POSITION_TOKEN());
             marketSide = MarketSide.Short;
+            marketContract.redeemShortToken(absQtyToRedeem, msg.sender);
         }
-
-        // ensure pos tokens owned by market contract address
-        require(posToken.owner() == marketContractAddress);
-
-        // redeem tokens
-        posToken.redeemToken(absQtyToRedeem, msg.sender);
 
         // calculate amount of collateral to return and update pool balances
         uint collateralToReturn = MathLib.calculateNeededCollateral(
