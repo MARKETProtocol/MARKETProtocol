@@ -23,9 +23,13 @@ contract('MarketCollateralPool', function(accounts) {
   let priceCap;
   let tradeHelper;
   let marketTradingHub;
+  let changeInBalance;
+  let actualEventEmitted;
+  let updatedUserBalanceEvent;
   const entryOrderPrice = 33025;
   const accountMaker = accounts[0];
   const accountTaker = accounts[1];
+  const expectedEventEmitted = 'UpdatedUserBalance';
 
   beforeEach(async function() {
     marketToken = await MarketToken.deployed();
@@ -580,6 +584,39 @@ contract('MarketCollateralPool', function(accounts) {
       updatePositionsError = err;
     }
     assert.ok(updatePositionsError instanceof Error, "didn't fail to call updatePositions from non MarketContract address");
+  });
+
+  it('should ensure that UpdatedUserBalance event emits the correct changeInBalance after token deposit.', async () => {
+
+    const tokenAllowance = 10000;
+    const amountToDeposit = 5000;
+
+    await collateralToken.transfer(accounts[1], tokenAllowance, { from: accounts[0] });
+    await marketToken.setLockQtyToAllowTrading(0);
+    await collateralToken.approve(collateralPool.address, amountToDeposit, { from: accounts[1] });
+
+    const depositTokensForTrading = await collateralPool.depositTokensForTrading(collateralToken.address, amountToDeposit, { from: accounts[1] });
+    updatedUserBalanceEvent = depositTokensForTrading.logs[0].args;
+    actualEventEmitted = depositTokensForTrading.logs[0].event;
+    changeInBalance = updatedUserBalanceEvent.changeInBalance.toNumber();
+
+    assert.equal(expectedEventEmitted, actualEventEmitted, 'expects the UpdatedUserBalance event to be emitted');
+    assert.ok(updatedUserBalanceEvent.changeInBalance, 'expects the UpdatedUserBalance event to contain changeInBalance');
+    assert.equal(changeInBalance, amountToDeposit,'expects changeInBalance to be equal to amount deposited');
+  });
+
+  it('should ensure that UpdatedUserBalance event emits the correct changeInBalance after withdrawal', async () => {
+
+    const amountToWithdraw = 500;
+
+    const withdrawTokens = await collateralPool.withdrawTokens(collateralToken.address, amountToWithdraw, { from: accounts[1] });
+    updatedUserBalanceEvent = withdrawTokens.logs[0].args;
+    actualEventEmitted = withdrawTokens.logs[0].event;
+    changeInBalance = updatedUserBalanceEvent.changeInBalance.toNumber();
+
+    assert.equal(expectedEventEmitted, actualEventEmitted, 'expects the UpdatedUserBalance event to be emitted');
+    assert.ok(updatedUserBalanceEvent.changeInBalance, 'expects the UpdatedUserBalance event to contain changeInBalance');
+    assert.equal(changeInBalance, -amountToWithdraw,'expects changeInBalance to be equal to amount deposited');
   });
 
 });
