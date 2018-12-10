@@ -54,7 +54,7 @@ contract MarketCollateralPool is Ownable {
 
     address public marketTradingHub;
 
-    event UpdatedUserBalance(address indexed collateralTokenAddress, address indexed user, uint balance);
+    event UpdatedUserBalance(address indexed collateralTokenAddress, address indexed user, uint balance, int changeInBalance);
 
     constructor() public { }
 
@@ -112,9 +112,11 @@ contract MarketCollateralPool is Ownable {
     /// @param depositAmount qty of ERC20 tokens to deposit to the smart contract to cover open orders and collateral
     function depositTokensForTrading(address collateralTokenAddress, uint256 depositAmount) external {
         uint256 balanceAfterDeposit = tokenAddressToAccountBalance[collateralTokenAddress][msg.sender].add(depositAmount);
+        uint256 balanceBeforeDeposit = tokenAddressToAccountBalance[collateralTokenAddress][msg.sender];
+        int256 changeInBalance = int256(balanceAfterDeposit).subtract(int256(balanceBeforeDeposit));
         ERC20(collateralTokenAddress).safeTransferFrom(msg.sender, this, depositAmount);
         tokenAddressToAccountBalance[collateralTokenAddress][msg.sender] = balanceAfterDeposit;
-        emit UpdatedUserBalance(collateralTokenAddress, msg.sender, balanceAfterDeposit);
+        emit UpdatedUserBalance(collateralTokenAddress, msg.sender, balanceAfterDeposit, changeInBalance);
     }
 
     // @notice called by a user after settlement has occurred.  This function will finalize all accounting around any
@@ -190,10 +192,11 @@ contract MarketCollateralPool is Ownable {
         uint256 balanceAfterWithdrawal = tokenAddressToAccountBalance[collateralTokenAddress][msg.sender].subtract(
             withdrawAmount
         );
-
+        uint256 balanceBeforeWithdrawal = tokenAddressToAccountBalance[collateralTokenAddress][msg.sender];
+        int256 changeInBalance = int256(balanceAfterWithdrawal).subtract(int256(balanceBeforeWithdrawal));
         tokenAddressToAccountBalance[collateralTokenAddress][msg.sender] = balanceAfterWithdrawal;   // update balance before external call!
         ERC20(collateralTokenAddress).safeTransfer(msg.sender, withdrawAmount);
-        emit UpdatedUserBalance(collateralTokenAddress, msg.sender, balanceAfterWithdrawal);
+        emit UpdatedUserBalance(collateralTokenAddress, msg.sender, balanceAfterWithdrawal, changeInBalance);
     }
 
     /*
@@ -211,13 +214,14 @@ contract MarketCollateralPool is Ownable {
     ) private
     {
         uint newBalance = tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][fromAddress].subtract(
-                collateralAmount
+            collateralAmount
         );
-
+        uint oldBalance = tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][fromAddress];
+        int256 changeInBalance = int256(newBalance).subtract(int256(oldBalance));
         tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][fromAddress] = newBalance;
         contractAddressToCollateralPoolBalance[marketContract] = contractAddressToCollateralPoolBalance[marketContract].add(collateralAmount);
 
-        emit UpdatedUserBalance(marketContract.COLLATERAL_TOKEN_ADDRESS(), fromAddress, newBalance);
+        emit UpdatedUserBalance(marketContract.COLLATERAL_TOKEN_ADDRESS(), fromAddress, newBalance, changeInBalance);
     }
 
     /// @notice withdraws collateral from pool to a user account upon exit or trade settlement
@@ -231,12 +235,14 @@ contract MarketCollateralPool is Ownable {
     ) private
     {
         uint newBalance = tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][toAddress].add(collateralAmount);
+        uint oldBalance = tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][toAddress];
+        int256 changeInBalance = int256(newBalance).subtract(int256(oldBalance));
         tokenAddressToAccountBalance[marketContract.COLLATERAL_TOKEN_ADDRESS()][toAddress] = newBalance;
         contractAddressToCollateralPoolBalance[marketContract] = contractAddressToCollateralPoolBalance[marketContract].subtract(
             collateralAmount
         );
 
-        emit UpdatedUserBalance(marketContract.COLLATERAL_TOKEN_ADDRESS(), toAddress, newBalance);
+        emit UpdatedUserBalance(marketContract.COLLATERAL_TOKEN_ADDRESS(), toAddress, newBalance, changeInBalance);
     }
 
     /// @dev handles all needed internal accounting when a user enters into a new trade
@@ -361,7 +367,7 @@ contract MarketCollateralPool is Ownable {
                         price
                     )
                 );
-//                qtyToReduce = 0; // completely reduced now!
+                //                qtyToReduce = 0; // completely reduced now!
                 break;
             }
         }
