@@ -21,27 +21,46 @@ contract('MarketCollateralPool', function(accounts) {
   const entryOrderPrice = 33025;
   const accountMaker = accounts[0];
   const accountTaker = accounts[1];
+  const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
+  const oracleDataSoure = 'URL';
+  const oracleQuery = 'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0';
 
   before(async function() {
-    marketContractRegistry = await MarketContractRegistry.deployed();
-    var whiteList = await marketContractRegistry.getAddressWhiteList.call();
-    marketContract = await MarketContractOraclize.at(whiteList[1]);
+    marketContractRegistry = await MarketContractRegistry.deployed();    
+  });
+
+  // forces the contract to be settled
+  async function settleContract() {
+    await marketContract.oracleCallBack(priceCap.plus(10), {from: accounts[0]}); // price above cap!
+  }
+
+  beforeEach(async function() {
     collateralPool = await MarketCollateralPool.deployed();
     collateralToken = await CollateralToken.deployed();
+    marketContract = await MarketContractOraclize.new(
+      "MyNewContract",
+      [
+        accounts[0],
+        collateralToken.address,
+        collateralPool.address
+      ],
+      accounts[0],  // substitute our address for the oracleHubAddress so we can callback from queries.
+      [
+        0,
+        150,
+        2,
+        2,
+        expiration
+      ],
+      oracleDataSoure,
+      oracleQuery
+    );
+    await marketContractRegistry.addAddressToWhiteList(marketContract.address, {from: accounts[0]});
     qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
     priceFloor = await marketContract.PRICE_FLOOR.call();
     priceCap = await marketContract.PRICE_CAP.call();
     longPositionToken = PositionToken.at(await marketContract.LONG_POSITION_TOKEN());
     shortPositionToken = PositionToken.at(await marketContract.SHORT_POSITION_TOKEN());
-  });
-
-  // forces the contract to be settled
-  function settleContract() {
-    await marketContract.oracleCallBack(priceCap.plus(10), {from: accounts[0]}); // price above cap!
-  }
-
-  beforeEach(async function() {
-
   });
 
   describe('mintPositionTokens()', function() {
@@ -162,7 +181,20 @@ contract('MarketCollateralPool', function(accounts) {
   
       assert.ok(error instanceof Error, 'should not be able to redeem single tokens before settlement');
     });
-  
+  })
+
+  describe('setlleAndClose()', function() {
+    it('should fail if settleAndClose() is called before settlement', async () => {
+      let error = null;
+      let settleAndCloseError = null;
+      try {
+        await collateralPool.settleAndClose(marketContract.address, { from: accounts[0] });
+      } catch (err) {
+        settleAndCloseError = err;
+      }
+      assert.ok(settleAndCloseError instanceof Error, 'settleAndClose() did not fail before settlement');
+    });
+
     it(`should redeem single tokens after settlement`, async function() {
       // 1. approve collateral and mint tokens
       const amountToApprove = 1e22;
@@ -174,13 +206,14 @@ contract('MarketCollateralPool', function(accounts) {
       await longPositionToken.transfer(accounts[1], 1, { from: accounts[0]})
 
       // 3. force contract to settlement
-      settleContract();
+      await settleContract();
   
       // 4. redeem all position tokens after settlement should pass
       let error = null;
       try {
         const qtyToRedeem = (await shortPositionToken.balanceOf.call(accounts[0])).toNumber();
-        await collateralPool.redeemPositionTokens(marketContract.address, qtyToRedeem, { from: accounts[0] });
+        await collateralPool.settleAndClose(marketContract.address, qtyToRedeem, { from: accounts[0] });
+        // await collateralPool.redeemPositionTokens(marketContract.address, qtyToRedeem, { from: accounts[0] });
       } catch (err) {
         error = err;
       }
@@ -190,19 +223,6 @@ contract('MarketCollateralPool', function(accounts) {
   
     it(`should return correct amount of collateral when redeemed after settlement`, async function() {
   
-    });
-  })
-
-  describe('setlleAndClose()', function() {
-    it('should fail if settleAndClose() is called before settlement', async () => {
-      // let error = null;
-      // let settleAndCloseError = null;
-      // try {
-      //   await collateralPool.settleAndClose.call(marketContract.address, { from: accounts[0] });
-      // } catch (err) {
-      //   settleAndCloseError = err;
-      // }
-      // assert.ok(settleAndCloseError instanceof Error, 'settleAndClose() did not fail before settlement');
     });
   });
 
