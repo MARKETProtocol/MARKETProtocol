@@ -63,5 +63,17 @@ module.exports = {
       }
     }
     return maxLoss * Math.abs(qty) * qtyMultiplier;
+  },
+
+  /**
+   * Calculate total collateral required for a price range
+   * 
+   * @param {number} priceFloor
+   * @param {number} priceCap
+   * @param {number} qtyMultiplier
+   * @return {number}
+   */
+  calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier) {
+    return (priceCap - priceFloor) * qtyMultiplier;
   }
 };
