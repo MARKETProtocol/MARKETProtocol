@@ -31,7 +31,9 @@ contract('MarketCollateralPool', function(accounts) {
 
   // forces the contract to be settled
   async function settleContract() {
-    await marketContract.oracleCallBack(priceCap.plus(10), {from: accounts[0]}); // price above cap!
+    const settlementPrice = priceCap.plus(10);
+    await marketContract.oracleCallBack(settlementPrice, {from: accounts[0]}); // price above cap!
+    return settlementPrice;
   }
 
   beforeEach(async function() {
@@ -64,7 +66,7 @@ contract('MarketCollateralPool', function(accounts) {
   });
 
   describe('mintPositionTokens()', function() {
-    it(`should mint position tokens`, async function() {
+    it('should mint position tokens', async function() {
 
       // 1. Start with fresh account
       const initialBalance = await collateralToken.balanceOf.call(accounts[1]);
@@ -102,11 +104,11 @@ contract('MarketCollateralPool', function(accounts) {
       const longPosTokenBalance = await longPositionToken.balanceOf(accounts[0]);
       const shortPosTokenBalance = await shortPositionToken.balanceOf(accounts[0]);
   
-      assert.equal(longPosTokenBalance.toNumber(), qtyToMint, `incorrect amount of long tokens minted`);
-      assert.equal(shortPosTokenBalance.toNumber(), qtyToMint,`incorrect amount of long tokens minted`);
+      assert.equal(longPosTokenBalance.toNumber(), qtyToMint, 'incorrect amount of long tokens minted');
+      assert.equal(shortPosTokenBalance.toNumber(), qtyToMint,'incorrect amount of long tokens minted');
     });
   
-    it(`should lock the correct amount of collateral`, async function() {
+    it('should lock the correct amount of collateral', async function() {
       // 1. Get initial token balance balance
       const initialCollateralBalance = await collateralToken.balanceOf.call(accounts[0]);
   
@@ -126,7 +128,7 @@ contract('MarketCollateralPool', function(accounts) {
   });
 
   describe('redeemPositionTokens()', function() {
-    it(`should redeem token sets and return correct amount of collateral`, async function() {
+    it('should redeem token sets and return correct amount of collateral', async function() {
       // 1. approve collateral and mint tokens
       const amountToApprove = 1e22;
       await collateralToken.approve(collateralPool.address, amountToApprove);
@@ -183,7 +185,7 @@ contract('MarketCollateralPool', function(accounts) {
     });
   })
 
-  describe('setlleAndClose()', function() {
+  describe('settleAndClose()', function() {
     it('should fail if settleAndClose() is called before settlement', async () => {
       let error = null;
       let settleAndCloseError = null;
@@ -195,7 +197,7 @@ contract('MarketCollateralPool', function(accounts) {
       assert.ok(settleAndCloseError instanceof Error, 'settleAndClose() did not fail before settlement');
     });
 
-    it(`should redeem single tokens after settlement`, async function() {
+    it('should redeem single short tokens after settlement', async function() {
       // 1. approve collateral and mint tokens
       const amountToApprove = 1e22;
       await collateralToken.approve(collateralPool.address, amountToApprove);
@@ -208,21 +210,47 @@ contract('MarketCollateralPool', function(accounts) {
       // 3. force contract to settlement
       await settleContract();
   
-      // 4. redeem all position tokens after settlement should pass
+      // 4. redeem all short position tokens after settlement should pass
+      const balanceBeforeRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
+      const qtyToRedeem = -1;
       let error = null;
       try {
-        const qtyToRedeem = (await shortPositionToken.balanceOf.call(accounts[0])).toNumber();
         await collateralPool.settleAndClose(marketContract.address, qtyToRedeem, { from: accounts[0] });
-        // await collateralPool.redeemPositionTokens(marketContract.address, qtyToRedeem, { from: accounts[0] });
       } catch (err) {
         error = err;
-      }
-  
+      } 
       assert.isNull(error, 'should be able to redeem single tokens after settlement');
+
+      // 5. balance of short tokens should be updated.
+      const expectedBalanceAfterRedeem = balanceBeforeRedeem.plus(qtyToRedeem);
+      const actualBalanceAfterRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
+      assert.equal(expectedBalanceAfterRedeem.toNumber(), actualBalanceAfterRedeem.toNumber(), 'short position tokens balance was not reduced');
     });
+
+    it('should return correct amount of collateral when redeemed after settlement', async function() {
+      // 1. approve collateral and mint tokens
+      const amountToApprove = 1e22;
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = 1;
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, { from: accounts[0]});
   
-    it(`should return correct amount of collateral when redeemed after settlement`, async function() {
+      // 2. transfer part of the long token
+      await longPositionToken.transfer(accounts[1], 1, { from: accounts[0]})
+
+      // 3. force contract to settlement
+      const settlementPrice = await settleContract();
   
+      // 4. redeem all shorts on settlement
+      const collateralBalanceBeforeRedeem = await collateralToken.balanceOf.call(accounts[0]);
+      const qtyToRedeem = (await shortPositionToken.balanceOf.call(accounts[0])).toNumber();
+      await collateralPool.settleAndClose(marketContract.address, -qtyToRedeem, { from: accounts[0] });
+      
+      // 5. should return appropriate collateral
+      const collateralToReturn = utility.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, qtyToRedeem, settlementPrice);
+      const expectedCollateralBalanceAfterRedeem = collateralBalanceBeforeRedeem.plus(collateralToReturn);
+      const actualCollateralBalanceAfterRedeem = await collateralToken.balanceOf.call(accounts[0]);
+      assert.equal(expectedCollateralBalanceAfterRedeem.toNumber(), actualCollateralBalanceAfterRedeem.toNumber(), 'short position tokens balance was not reduced')
+      
     });
   });
 
