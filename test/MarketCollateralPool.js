@@ -37,10 +37,8 @@ contract('MarketCollateralPool', function(accounts) {
     return await marketContract.settlementPrice.call({ from: accounts[0] });
   }
 
-  beforeEach(async function() {
-    collateralPool = await MarketCollateralPool.deployed();
-    collateralToken = await CollateralToken.deployed();
-    marketContract = await MarketContractOraclize.new(
+  async function createMarketContract(collateralToken, collateralPool) {
+    return await MarketContractOraclize.new(
       'MyNewContract',
       [accounts[0], collateralToken.address, collateralPool.address],
       accounts[0], // substitute our address for the oracleHubAddress so we can callback from queries.
@@ -48,7 +46,12 @@ contract('MarketCollateralPool', function(accounts) {
       oracleDataSoure,
       oracleQuery
     );
+  }
 
+  beforeEach(async function() {
+    collateralPool = await MarketCollateralPool.deployed();
+    collateralToken = await CollateralToken.deployed();
+    marketContract = await createMarketContract(collateralToken, collateralPool);
     await marketContractRegistry.addAddressToWhiteList(marketContract.address, {
       from: accounts[0]
     });
@@ -60,6 +63,29 @@ contract('MarketCollateralPool', function(accounts) {
   });
 
   describe('mintPositionTokens()', function() {
+    it('should fail for non whitelisted addresses', async function() {
+      // 1. create unregistered contract
+      const unregisteredContract = await createMarketContract(collateralToken, collateralPool);
+
+      // 2. Approve appropriate tokens
+      const amountToApprove = 1e22;
+      await collateralToken.approve(collateralPool.address, amountToApprove, { from: accounts[0] });
+
+      // 3. minting tokens should fail
+      let error = null;
+      try {
+        await collateralPool.mintPositionTokens(unregisteredContract.address, 1, {
+          from: accounts[0]
+        });
+      } catch (err) {
+        error = err;
+      }
+      assert.ok(
+        error instanceof Error,
+        'should not be able to mint from contracts not whitelisted'
+      );
+    });
+
     it('should mint position tokens', async function() {
       // 1. Start with fresh account
       const initialBalance = await collateralToken.balanceOf.call(accounts[1]);
@@ -84,6 +110,7 @@ contract('MarketCollateralPool', function(accounts) {
         'Account 0 does not have a balance of collateral'
       );
 
+      await collateralToken.approve(collateralPool.address, 0); // set zero approval
       const initialApproval = await collateralToken.allowance.call(
         accounts[0],
         collateralPool.address
@@ -208,6 +235,27 @@ contract('MarketCollateralPool', function(accounts) {
   });
 
   describe('redeemPositionTokens()', function() {
+    it('should fail for non whitelisted addresses', async function() {
+      // 1. create unregistered contract
+      const unregisteredContract = await createMarketContract(collateralToken, collateralPool);
+
+      // 2. redeemingPositionTokens should fail for correct reason.
+      let error = null;
+      try {
+        await collateralPool.redeemPositionTokens(unregisteredContract.address, 1, {
+          from: accounts[0]
+        });
+      } catch (err) {
+        error = err;
+      }
+
+      // TODO: When we upgrade to truffle 5, update test to check for actual failure reason
+      assert.ok(
+        error instanceof Error,
+        'should not be able to mint from contracts not whitelisted'
+      );
+    });
+
     it('should redeem token sets and return correct amount of collateral', async function() {
       // 1. approve collateral and mint tokens
       const amountToApprove = 1e22;
