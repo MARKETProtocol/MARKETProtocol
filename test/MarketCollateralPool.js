@@ -396,7 +396,7 @@ contract('MarketCollateralPool', function(accounts) {
   });
 
   describe('settleAndClose()', function() {
-    it('should fail if settleAndClose() is called before settlement', async () => {
+    it('should fail if called before settlement', async () => {
       let settleAndCloseError = null;
       try {
         await collateralPool.settleAndClose(marketContract.address, { from: accounts[0] });
@@ -407,6 +407,44 @@ contract('MarketCollateralPool', function(accounts) {
         settleAndCloseError instanceof Error,
         'settleAndClose() did not fail before settlement'
       );
+    });
+
+    it('should fail if user has insufficient tokens', async function() {
+      let error = null;
+
+      // 1. approve collateral and mint tokens
+      const amountToApprove = 1e22;
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = 1;
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
+        from: accounts[0]
+      });
+
+      // 2. force contract to settlement
+      const settlementPrice = await settleContract();
+
+      // 3. attempt to redeem too much long tokens
+      const longTokenQtyToRedeem = (await longPositionToken.balanceOf.call(accounts[0])).plus(1);
+      try {
+        await collateralPool.settleAndClose(marketContract.address, longTokenQtyToRedeem, {
+          from: accounts[0]
+        });
+      } catch (err) {
+        error = err;
+      }
+      assert.instanceOf(error, Error, 'should not be able to redeem insufficient long tokens');
+
+      // 4. attempt to redeem too much short tokens
+      error = null;
+      const shortTokenQtyToRedeem = (await longPositionToken.balanceOf.call(accounts[0])).plus(1).times(-1);
+      try {
+        await collateralPool.settleAndClose(marketContract.address, shortTokenQtyToRedeem, {
+          from: accounts[0]
+        });
+      } catch (err) {
+        error = err;
+      }
+      assert.instanceOf(error, Error, 'should not be able to redeem insufficient short tokens');
     });
 
     it('should redeem short and long tokens after settlement', async function() {
