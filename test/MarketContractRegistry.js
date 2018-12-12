@@ -200,36 +200,24 @@ contract('MarketContractRegistry', function(accounts) {
 
     let error = null;
     try {
-      await marketContractRegistry.removeFactoryAddress(
-        fakeFactoryAddress,
-        { from: accounts[0] }
-      );
+      await marketContractRegistry.removeFactoryAddress(fakeFactoryAddress, { from: accounts[0] });
     } catch (err) {
       error = err;
     }
-    assert.ok(
-      error instanceof Error,
-      "removing non factory address should fail!"
-    );
+    assert.ok(error instanceof Error, 'removing non factory address should fail!');
 
-    await marketContractRegistry.removeFactoryAddress(
-      factoryAddress,
-      { from: accounts[0] }
-    );
+    await marketContractRegistry.removeFactoryAddress(factoryAddress, { from: accounts[0] });
 
     assert.isTrue(
       !(await marketContractRegistry.factoryAddressWhiteList(factoryAddress)),
-      "Removed factory address not removed from mapping"
+      'Removed factory address not removed from mapping'
     );
 
-    await marketContractRegistry.addFactoryAddress(
-      factoryAddress,
-      { from: accounts[0] }
-    );
+    await marketContractRegistry.addFactoryAddress(factoryAddress, { from: accounts[0] });
 
     assert.isTrue(
       await marketContractRegistry.factoryAddressWhiteList(factoryAddress),
-      "Factory address added back"
+      'Factory address added back'
     );
   });
 });

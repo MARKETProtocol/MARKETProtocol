@@ -67,7 +67,7 @@ module.exports = {
 
   /**
    * Calculate total collateral required for a price range
-   * 
+   *
    * @param {number} priceFloor
    * @param {number} priceCap
    * @param {number} qtyMultiplier

@@ -13,8 +13,13 @@
 
 const utility = require('../utility');
 
-module.exports = async function(marketContract, orderLib, collateralToken, collateralPool, tradingHub) {
-
+module.exports = async function(
+  marketContract,
+  orderLib,
+  collateralToken,
+  collateralPool,
+  tradingHub
+) {
   async function tradeOrder(
     [marketContractAddress, accountMaker, accountTaker, feeAccount],
     [orderPrice, orderQty, qtyToFill],
@@ -41,7 +46,7 @@ module.exports = async function(marketContract, orderLib, collateralToken, colla
       orderSignature[0], // v
       orderSignature[1], // r
       orderSignature[2], // s
-      { from: accountTaker}
+      { from: accountTaker }
     );
     return { orderHash, orderSignature, unsignedOrderValues };
   }
@@ -94,7 +99,10 @@ module.exports = async function(marketContract, orderLib, collateralToken, colla
     settlementPrice
   ) {
     const tokenBalanceOfUser = await collateralToken.balanceOf.call(address);
-    const userAccountBalance = await collateralPool.getUserUnallocatedBalance.call(collateralToken.address, address);
+    const userAccountBalance = await collateralPool.getUserUnallocatedBalance.call(
+      collateralToken.address,
+      address
+    );
     const collateralLeft = utility.calculateNeededCollateral(
       priceFloor,
       priceCap,
