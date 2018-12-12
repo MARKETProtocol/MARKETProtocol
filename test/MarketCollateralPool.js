@@ -20,6 +20,11 @@ contract('MarketCollateralPool', function(accounts) {
   const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
   const oracleDataSoure = 'URL';
   const oracleQuery = 'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0';
+  const MarketSides = {
+    Long: 0,
+    Short: 1,
+    Both: 2
+  };
 
   before(async function() {
     marketContractRegistry = await MarketContractRegistry.deployed();
@@ -27,9 +32,8 @@ contract('MarketCollateralPool', function(accounts) {
 
   // forces the contract to be settled
   async function settleContract() {
-    const settlementPrice = priceCap.plus(10);
-    await marketContract.oracleCallBack(settlementPrice, { from: accounts[0] }); // price above cap!
-    return settlementPrice;
+    await marketContract.oracleCallBack(priceCap.plus(10), { from: accounts[0] }); // price above cap!
+    return await marketContract.settlementPrice.call({ from: accounts[0] });
   }
 
   beforeEach(async function() {
@@ -122,7 +126,7 @@ contract('MarketCollateralPool', function(accounts) {
       assert.equal(expectedBalanceAfterMint.toNumber(), actualBalanceAfterMint.toNumber(), 'incorrect collateral amount locked for minting');
     });
 
-    it('should fail if contract is settled', async () => {
+    it('should fail if contract is settled', async function() {
       // 1. force contract to settlement
       await settleContract();
 
@@ -139,6 +143,26 @@ contract('MarketCollateralPool', function(accounts) {
       }
 
       assert.ok(error instanceof Error, 'should not be able to mint position tokens after settlement');
+    });
+
+    it('should emit TokensMinted', async function() {
+      // 1. Approve and mint tokens
+      const amountToApprove = 1e22;
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = 100;
+      const amountToBeLocked = qtyToMint * utility.calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier);
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, { from: accounts[0] });
+
+
+      // 2. assert correct TokensMinted event emitted
+      const emittedEvents = await utility.getEvent(collateralPool, 'TokensMinted');
+      const tokensMintedEvent = emittedEvents[0];
+
+      assert.equal(tokensMintedEvent.event, 'TokensMinted', 'event TokensMinted was not emitted');
+      assert.equal(tokensMintedEvent.args.marketContract, marketContract.address, 'incorrect marketContract arg for TokensMinted');
+      assert.equal(tokensMintedEvent.args.user, accounts[0], 'incorrect user arg for TokensMinted');
+      assert.equal(tokensMintedEvent.args.qtyMinted.toNumber(), qtyToMint, 'incorrect qtyMinted arg for TokensMinted');
+      assert.equal(tokensMintedEvent.args.collateralLocked.toNumber(), amountToBeLocked, 'incorrect collateralLocked arg for TokensMinted');
     });
   });
 
@@ -172,6 +196,31 @@ contract('MarketCollateralPool', function(accounts) {
       const actualCollateralBalanceAfterRedeem = await collateralToken.balanceOf.call(accounts[0]);
 
       assert.equal(expectedCollateralBalanceAfterRedeem.toNumber(), actualCollateralBalanceAfterRedeem.toNumber(), 'incorrect collateral amount returned after redeeming');
+    });
+
+    it('should emit TokensRedeemed', async function() {
+      // 1. approve collateral and mint tokens
+      const amountToApprove = 1e22;
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = 100;
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, { from: accounts[0] });
+
+      // 2. redeem tokens
+      const qtyToRedeem = 50;
+      const collateralAmountToBeReleased = qtyToRedeem * utility.calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier);
+      await collateralPool.redeemPositionTokens(marketContract.address, qtyToRedeem, { from: accounts[0] });
+
+
+      // 2. assert correct TokensMinted event emitted
+      const emittedEvents = await utility.getEvent(collateralPool, 'TokensRedeemed');
+      const tokensRedeemedEvent = emittedEvents[0];
+
+      assert.equal(tokensRedeemedEvent.event, 'TokensRedeemed', 'event TokensRedeemed was not emitted');
+      assert.equal(tokensRedeemedEvent.args.marketContract, marketContract.address, 'incorrect marketContract arg for TokensRedeemed');
+      assert.equal(tokensRedeemedEvent.args.user, accounts[0], 'incorrect user arg for TokensRedeemed');
+      assert.equal(tokensRedeemedEvent.args.qtyRedeemed.toNumber(), qtyToRedeem, 'incorrect qtyRedeemed arg for TokensRedeemed');
+      assert.equal(tokensRedeemedEvent.args.collateralUnlocked.toNumber(), collateralAmountToBeReleased, 'incorrect collateralUnlocked arg for TokensRedeemed');
+      assert.equal(tokensRedeemedEvent.args.marketSide.toNumber(), MarketSides.Both, 'incorrect marketSide arg for TokensRedeemed');
     });
 
     it('should fail to redeem single tokens before settlement', async function() {
@@ -221,7 +270,7 @@ contract('MarketCollateralPool', function(accounts) {
       await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, { from: accounts[0] });
 
       // 2. force contract to settlement
-      await settleContract();
+      const settlementPrice = await settleContract();
 
       // 3. redeem all short position tokens after settlement should pass
       const shortTokenBalanceBeforeRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
@@ -238,7 +287,19 @@ contract('MarketCollateralPool', function(accounts) {
       const actualShortTokenBalanceAfterRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
       assert.equal(expectedShortTokenBalanceAfterRedeem.toNumber(), actualShortTokenBalanceAfterRedeem.toNumber(), 'short position tokens balance was not reduced');
 
-      // 5. redeem all long position tokens after settlement should pass
+      // 5. ensure correct events are emitted for short settlement
+      const shortCollateralAmountReleased = utility.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, shortTokenQtyToRedeem, settlementPrice);
+      let emittedEvents = await utility.getEvent(collateralPool, 'TokensRedeemed');
+      const shortTokensRedeemedEvent = emittedEvents[0];
+
+      assert.equal(shortTokensRedeemedEvent.event, 'TokensRedeemed', 'event TokensRedeemed was not emitted');
+      assert.equal(shortTokensRedeemedEvent.args.marketContract, marketContract.address, 'incorrect marketContract arg for TokensRedeemed');
+      assert.equal(shortTokensRedeemedEvent.args.user, accounts[0], 'incorrect user arg for TokensRedeemed');
+      assert.equal(shortTokensRedeemedEvent.args.qtyRedeemed.toNumber(), Math.abs(shortTokenQtyToRedeem), 'incorrect qtyRedeemed arg for TokensRedeemed');
+      assert.equal(shortTokensRedeemedEvent.args.collateralUnlocked.toNumber(), shortCollateralAmountReleased, 'incorrect collateralUnlocked arg for TokensRedeemed');
+      assert.equal(shortTokensRedeemedEvent.args.marketSide.toNumber(), MarketSides.Short, 'incorrect marketSide arg for TokensRedeemed');
+
+      // 6. redeem all long position tokens after settlement should pass
       const longTokenBalanceBeforeRedeem = await longPositionToken.balanceOf.call(accounts[0]);
       const longTokenQtyToRedeem = 1;
       error = null;
@@ -249,10 +310,22 @@ contract('MarketCollateralPool', function(accounts) {
       }
       assert.isNull(error, 'should be able to redeem long tokens after settlement');
 
-      // 6. balance of long tokens should be updated.
+      // 7. balance of long tokens should be updated.
       const expectedLongTokenBalanceAfterRedeem = longTokenBalanceBeforeRedeem.minus(longTokenQtyToRedeem);
       const actualLongTokenBalanceAfterRedeem = await longPositionToken.balanceOf.call(accounts[0]);
       assert.equal(expectedLongTokenBalanceAfterRedeem.toNumber(), actualLongTokenBalanceAfterRedeem.toNumber(), 'long position tokens balance was not reduced');
+
+      // 8. ensure correct events are emitted for long settlement
+      const longCollateralAmountReleased = utility.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, longTokenQtyToRedeem, settlementPrice);
+      emittedEvents = await utility.getEvent(collateralPool, 'TokensRedeemed');
+      const longTokensRedeemedEvent = emittedEvents[0];
+
+      assert.equal(longTokensRedeemedEvent.event, 'TokensRedeemed', 'event TokensRedeemed was not emitted');
+      assert.equal(longTokensRedeemedEvent.args.marketContract, marketContract.address, 'incorrect marketContract arg for TokensRedeemed');
+      assert.equal(longTokensRedeemedEvent.args.user, accounts[0], 'incorrect user arg for TokensRedeemed');
+      assert.equal(longTokensRedeemedEvent.args.qtyRedeemed.toNumber(), longTokenQtyToRedeem, 'incorrect qtyRedeemed arg for TokensRedeemed');
+      assert.equal(longTokensRedeemedEvent.args.collateralUnlocked.toNumber(), longCollateralAmountReleased, 'incorrect collateralUnlocked arg for TokensRedeemed');
+      assert.equal(longTokensRedeemedEvent.args.marketSide.toNumber(), MarketSides.Long, 'incorrect marketSide arg for TokensRedeemed');
     });
 
     it('should return correct amount of collateral when redeemed after settlement', async function() {
