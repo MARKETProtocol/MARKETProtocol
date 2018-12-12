@@ -123,7 +123,7 @@ contract('MarketCollateralPool', function(accounts) {
       const expectedBalanceAfterMint = initialCollateralBalance.minus(amountToBeLocked);
       const actualBalanceAfterMint = await collateralToken.balanceOf.call(accounts[0]);
 
-      assert.equal(expectedBalanceAfterMint.toNumber(), actualBalanceAfterMint.toNumber(), 'incorrect collateral amount locked for minting');
+      assert.equal(actualBalanceAfterMint.toNumber(), expectedBalanceAfterMint.toNumber(), 'incorrect collateral amount locked for minting');
     });
 
     it('should fail if contract is settled', async function() {
@@ -187,15 +187,15 @@ contract('MarketCollateralPool', function(accounts) {
       const finalLongPosTokenBalance = await longPositionToken.balanceOf(accounts[0]);
       const finalShortPosTokenBalance = await shortPositionToken.balanceOf(accounts[0]);
 
-      assert.equal(expectedFinalLongPosTokenBalance.toNumber(), finalLongPosTokenBalance.toNumber(), 'incorrect long position token balance after redeeming');
-      assert.equal(expectedFinalShortPosTokenBalance.toNumber(), finalShortPosTokenBalance.toNumber(), 'incorrect short position token balance after redeeming');
+      assert.equal(finalLongPosTokenBalance.toNumber(), expectedFinalLongPosTokenBalance.toNumber(), 'incorrect long position token balance after redeeming');
+      assert.equal(finalShortPosTokenBalance.toNumber(), expectedFinalShortPosTokenBalance.toNumber(), 'incorrect short position token balance after redeeming');
 
       // 4. assert correct collateral is returned
       const collateralAmountToBeReleased = qtyToRedeem * utility.calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier);
       const expectedCollateralBalanceAfterRedeem = collateralBalanceBeforeRedeem.plus(collateralAmountToBeReleased);
       const actualCollateralBalanceAfterRedeem = await collateralToken.balanceOf.call(accounts[0]);
 
-      assert.equal(expectedCollateralBalanceAfterRedeem.toNumber(), actualCollateralBalanceAfterRedeem.toNumber(), 'incorrect collateral amount returned after redeeming');
+      assert.equal(actualCollateralBalanceAfterRedeem.toNumber(), expectedCollateralBalanceAfterRedeem.toNumber(), 'incorrect collateral amount returned after redeeming');
     });
 
     it('should emit TokensRedeemed', async function() {
@@ -231,7 +231,7 @@ contract('MarketCollateralPool', function(accounts) {
       await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, { from: accounts[0] });
       const shortTokenBalance = (await shortPositionToken.balanceOf.call(accounts[0])).toNumber();
       const longTokenBalance = (await longPositionToken.balanceOf.call(accounts[0])).toNumber();
-      assert.equal(shortTokenBalance, longTokenBalance, 'long token and short token balances are not equals');
+      assert.isTrue(shortTokenBalance === longTokenBalance, 'long token and short token balances are not equals');
 
       // 2. transfer part of the long token
       await longPositionToken.transfer(accounts[1], 1, { from: accounts[0] });
@@ -285,7 +285,7 @@ contract('MarketCollateralPool', function(accounts) {
       // 4. balance of short tokens should be updated.
       const expectedShortTokenBalanceAfterRedeem = shortTokenBalanceBeforeRedeem.plus(shortTokenQtyToRedeem);
       const actualShortTokenBalanceAfterRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
-      assert.equal(expectedShortTokenBalanceAfterRedeem.toNumber(), actualShortTokenBalanceAfterRedeem.toNumber(), 'short position tokens balance was not reduced');
+      assert.equal(actualShortTokenBalanceAfterRedeem.toNumber(), expectedShortTokenBalanceAfterRedeem.toNumber(), 'short position tokens balance was not reduced');
 
       // 5. ensure correct events are emitted for short settlement
       const shortCollateralAmountReleased = utility.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, shortTokenQtyToRedeem, settlementPrice);
@@ -313,7 +313,7 @@ contract('MarketCollateralPool', function(accounts) {
       // 7. balance of long tokens should be updated.
       const expectedLongTokenBalanceAfterRedeem = longTokenBalanceBeforeRedeem.minus(longTokenQtyToRedeem);
       const actualLongTokenBalanceAfterRedeem = await longPositionToken.balanceOf.call(accounts[0]);
-      assert.equal(expectedLongTokenBalanceAfterRedeem.toNumber(), actualLongTokenBalanceAfterRedeem.toNumber(), 'long position tokens balance was not reduced');
+      assert.equal(actualLongTokenBalanceAfterRedeem.toNumber(), expectedLongTokenBalanceAfterRedeem.toNumber(), 'long position tokens balance was not reduced');
 
       // 8. ensure correct events are emitted for long settlement
       const longCollateralAmountReleased = utility.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, longTokenQtyToRedeem, settlementPrice);
@@ -350,7 +350,7 @@ contract('MarketCollateralPool', function(accounts) {
       const collateralToReturn = utility.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, qtyToRedeem, settlementPrice);
       const expectedCollateralBalanceAfterRedeem = collateralBalanceBeforeRedeem.plus(collateralToReturn);
       const actualCollateralBalanceAfterRedeem = await collateralToken.balanceOf.call(accounts[0]);
-      assert.equal(expectedCollateralBalanceAfterRedeem.toNumber(), actualCollateralBalanceAfterRedeem.toNumber(), 'short position tokens balance was not reduced');
+      assert.equal(actualCollateralBalanceAfterRedeem.toNumber(), expectedCollateralBalanceAfterRedeem.toNumber(), 'short position tokens balance was not reduced');
 
     });
   });
