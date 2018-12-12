@@ -174,7 +174,8 @@ contract('OracleHubOraclize', function(accounts) {
   // });
 
   it('gas used by OracleHub callback is within specified limit', async function() {
-    const marketContractExpirationInTenSeconds = Math.floor(Date.now() / 1000) + 10;
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    const marketContractExpirationInThreeSeconds = nowInSeconds + 3;
     const priceFloor = 1;
     const priceCap = 150;
     let gasLimit = 6500000; // gas limit for development network
@@ -198,7 +199,7 @@ contract('OracleHubOraclize', function(accounts) {
         priceCap,
         2,
         2,
-        marketContractExpirationInTenSeconds
+        marketContractExpirationInThreeSeconds
       ],
       oracleDataSource,
       oracleQuery
@@ -207,10 +208,10 @@ contract('OracleHubOraclize', function(accounts) {
     // request query update
     await oracleHub.setFactoryAddress(accounts[1], {from: accounts[0]});
     await oracleHub.requestQuery(
-      marketContract.address,
-      'URL',
-      'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
-      marketContractExpiration,
+      deployedMarketContract.address,
+      oracleDataSource,
+      oracleQuery,
+      nowInSeconds + 5,
       {from: accounts[1]}
     );
 
@@ -224,7 +225,7 @@ contract('OracleHubOraclize', function(accounts) {
       }
       assert.equal(response.event, 'ContractSettled');
       txReceipt = await web3.eth.getTransactionReceipt(response.transactionHash);
-      console.log('Oraclize callback gas used : ' + txReceipt.gasUsed);
+      // console.log('Oraclize callback gas used : ' + txReceipt.gasUsed);
       assert.isBelow(
         txReceipt.gasUsed,
         oraclizeCallbackGasCost.toNumber(),
@@ -241,6 +242,8 @@ contract('OracleHubOraclize', function(accounts) {
       await web3.eth.getTransactionReceipt(response.transactionHash);
       updatedLastPriceEvent.stopWatching();
     });
+
+    // await oracleHub.requestOnDemandQuery(deployedMarketContract.address, { from: accounts[0], value: web3.toWei(5)});
 
     const waitForContractSettledEvent = ms =>
       new Promise((resolve, reject) => {
