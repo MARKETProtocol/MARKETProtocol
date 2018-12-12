@@ -164,7 +164,7 @@ contract MarketCollateralPool is Ownable {
     /// long and short token address.  If it didn't we could have spoofed contracts minting tokens with a
     /// collateral token that wasn't the same as the intended token.
     modifier onlyWhiteListedAddress(address marketContractAddress) {
-        require(MarketContractRegistryInterface(MARKET_CONTRACT_REGISTRY).isAddressWhiteListed(marketContractAddress));
+        require(MarketContractRegistryInterface(MARKET_CONTRACT_REGISTRY).isAddressWhiteListed(marketContractAddress), "Contract is not whitelisted");
         _;
     }
 }
