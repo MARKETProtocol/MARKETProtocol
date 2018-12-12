@@ -17,29 +17,27 @@
 pragma solidity ^0.4.24;
 
 import "./MarketContractOraclize.sol";
+import "./OracleHubOraclize.sol";
 import "../MarketContractRegistryInterface.sol";
-import "../tokens/MarketToken.sol";
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-
 
 /// @title MarketContractFactoryOraclize
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketContractFactoryOraclize is Ownable {
 
     address public marketContractRegistry;
-    address public MKT_TOKEN_ADDRESS;
-    MarketToken public MKT_TOKEN;
+    address public oracleHubAddress;
+    address public MARKET_COLLATERAL_POOL;
 
     event MarketContractCreated(address indexed creator, address indexed contractAddress);
 
     /// @dev deploys our factory and ties it the a supply registry address
     /// @param registryAddress - address of our MARKET registry
-    /// @param mktTokenAddress - MARKET Token address
-    constructor(address registryAddress, address mktTokenAddress) public {
+    /// @param collateralPoolAddress - address of our MARKET Collateral pool
+    constructor(address registryAddress, address collateralPoolAddress) public {
         marketContractRegistry = registryAddress;
-        MKT_TOKEN_ADDRESS = mktTokenAddress;
-        MKT_TOKEN = MarketToken(mktTokenAddress);
+        MARKET_COLLATERAL_POOL = collateralPoolAddress;
     }
 
     /// @dev Deploys a new instance of a market contract and adds it to the whitelist.
@@ -63,17 +61,26 @@ contract MarketContractFactoryOraclize is Ownable {
         string oracleQuery
     ) external
     {
-        require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
         MarketContractOraclize mktContract = new MarketContractOraclize(
             contractName,
             [
                 msg.sender,
-                collateralTokenAddress
+                collateralTokenAddress,
+                MARKET_COLLATERAL_POOL
             ],
+            oracleHubAddress,
             contractSpecs,
             oracleDataSource,
             oracleQuery
         );
+
+        OracleHubOraclize(oracleHubAddress).requestQuery(
+            mktContract,
+            oracleDataSource,
+            oracleQuery,
+            mktContract.EXPIRATION()
+        );
+
         MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(mktContract);
         emit MarketContractCreated(msg.sender, mktContract);
     }
@@ -83,5 +90,13 @@ contract MarketContractFactoryOraclize is Ownable {
     function setRegistryAddress(address registryAddress) external onlyOwner {
         require(registryAddress != address(0));
         marketContractRegistry = registryAddress;
+    }
+
+    /// @dev allows for the owner to set a new oracle hub address which is responsible for providing data to our
+    /// contracts
+    /// @param hubAddress   address of the oracle hub, cannot be null address
+    function setOracleHubAddress(address hubAddress) external onlyOwner {
+        require(hubAddress != address(0));
+        oracleHubAddress = hubAddress;
     }
 }

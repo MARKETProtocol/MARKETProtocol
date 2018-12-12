@@ -16,13 +16,13 @@
 
 pragma solidity ^0.4.24;
 
-import "../OracleHub.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "chainlink/solidity/contracts/Chainlinked.sol";
 import "../libraries/StringLib.sol";
 import "./MarketContractChainLink.sol";
 
 
-contract OracleHubChainLink is OracleHub, Chainlinked {
+contract OracleHubChainLink is Chainlinked, Ownable {
     using StringLib for *;
 
     /// @dev all needed pieces of a chainlink query.
@@ -66,10 +66,9 @@ contract OracleHubChainLink is OracleHub, Chainlinked {
     /// @param marketContractAddress - address of the MarketContract
     function requestOnDemandQuery(address marketContractAddress) external {
         // TODO: enforce ETH payment to cover LINK, refund if settled?
-        ChainLinkQuery memory chainLinkQuery = contractAddressToChainLinkQuery[marketContractAddress];
-        createRunAndRequest(chainLinkQuery, true);
-        // if we refund for pushing to settlement we will need to record the caller of this function
-        // since it will be asynchronous with the callback
+        ChainLinkQuery storage chainLinkQuery = contractAddressToChainLinkQuery[marketContractAddress];
+        bytes32 requestId = createRunAndRequest(chainLinkQuery, true);
+        requestIDToChainLinkQuery[requestId] = chainLinkQuery;  // save query struct for later recall on callback.
     }
 
     /// @dev allows for the owner to set a factory address that is then allowed the priviledge of creating

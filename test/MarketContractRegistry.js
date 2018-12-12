@@ -1,19 +1,16 @@
-const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
+const MarketContractOraclize = artifacts.require('MarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
-const MarketToken = artifacts.require('MarketToken');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const CollateralToken = artifacts.require('CollateralToken');
 const MarketContractFactory = artifacts.require('./chainlink/MarketContractFactoryChainLink.sol');
 
 contract('MarketContractRegistry', function(accounts) {
   let collateralPool;
-  let marketToken;
   let marketContract;
   let collateralToken;
   let marketContractRegistry;
 
   beforeEach(async function() {
-    marketToken = await MarketToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
     marketContract = await MarketContractOraclize.at(whiteList[1]);
@@ -203,36 +200,24 @@ contract('MarketContractRegistry', function(accounts) {
 
     let error = null;
     try {
-      await marketContractRegistry.removeFactoryAddress(
-        fakeFactoryAddress,
-        { from: accounts[0] }
-      );
+      await marketContractRegistry.removeFactoryAddress(fakeFactoryAddress, { from: accounts[0] });
     } catch (err) {
       error = err;
     }
-    assert.ok(
-      error instanceof Error,
-      "removing non factory address should fail!"
-    );
+    assert.ok(error instanceof Error, 'removing non factory address should fail!');
 
-    await marketContractRegistry.removeFactoryAddress(
-      factoryAddress,
-      { from: accounts[0] }
-    );
+    await marketContractRegistry.removeFactoryAddress(factoryAddress, { from: accounts[0] });
 
     assert.isTrue(
       !(await marketContractRegistry.factoryAddressWhiteList(factoryAddress)),
-      "Removed factory address not removed from mapping"
+      'Removed factory address not removed from mapping'
     );
 
-    await marketContractRegistry.addFactoryAddress(
-      factoryAddress,
-      { from: accounts[0] }
-    );
+    await marketContractRegistry.addFactoryAddress(factoryAddress, { from: accounts[0] });
 
     assert.isTrue(
       await marketContractRegistry.factoryAddressWhiteList(factoryAddress),
-      "Factory address added back"
+      'Factory address added back'
     );
   });
 });

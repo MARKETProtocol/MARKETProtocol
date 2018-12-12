@@ -144,6 +144,16 @@ library MathLib {
                 maxLoss = subtract(priceCap, price);
             }
         }
-        neededCollateral = maxLoss * abs(qty) * qtyMultiplier;
+        neededCollateral = multiply(multiply(maxLoss, abs(qty)),  qtyMultiplier);
+    }
+
+    /// @notice determines the amount of needed collateral for minting a long and short position token
+    function calculateTotalCollateral(
+        uint priceFloor,
+        uint priceCap,
+        uint qtyMultiplier
+    ) pure public returns (uint)
+    {
+      return multiply(subtract(priceCap, priceFloor), qtyMultiplier);
     }
 }

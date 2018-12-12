@@ -19,26 +19,22 @@ pragma solidity ^0.4.24;
 import "./MarketContractChainLink.sol";
 import "./OracleHubChainLink.sol";
 import "../MarketContractRegistryInterface.sol";
-import "../tokens/MarketToken.sol";
 
 
 contract MarketContractFactoryChainLink is Ownable {
 
     address public marketContractRegistry;
     address public oracleHubAddress;
-
-    address public MKT_TOKEN_ADDRESS;
-    MarketToken public MKT_TOKEN;
+    address public MARKET_COLLATERAL_POOL;
 
     event MarketContractCreated(address indexed creator, address indexed contractAddress);
 
-    constructor(
-        address registryAddress,
-        address mktTokenAddress
-    ) public {
+    /// @dev deploys our factory and ties it the a supply registry address
+    /// @param registryAddress - address of our MARKET registry
+    /// @param collateralPoolAddress - address of our MARKET Collateral pool
+    constructor(address registryAddress, address collateralPoolAddress) public {
         marketContractRegistry = registryAddress;
-        MKT_TOKEN_ADDRESS = mktTokenAddress;
-        MKT_TOKEN = MarketToken(mktTokenAddress);
+        MARKET_COLLATERAL_POOL = collateralPoolAddress;
     }
 
     /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
@@ -64,13 +60,12 @@ contract MarketContractFactoryChainLink is Ownable {
         bytes32 onDemandJobId
     ) external
     {
-        require(MKT_TOKEN.isBalanceSufficientForContractCreation(msg.sender));    // creator must be MKT holder
-
         MarketContractChainLink mktContract = new MarketContractChainLink(
             contractName,
             [
                 msg.sender,
-                collateralTokenAddress
+                collateralTokenAddress,
+                MARKET_COLLATERAL_POOL
             ],
             oracleHubAddress,
             contractSpecs,
