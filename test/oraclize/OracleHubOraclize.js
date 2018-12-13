@@ -160,7 +160,7 @@ contract('OracleHubOraclize', function(accounts) {
     let txReceipt = null;
 
     await oracleHub.setFactoryAddress(accounts[1], { from: accounts[0] });
-    await oracleHub.requestQuery(marketContract.address, oracleDataSource, oracleQuery, 1, {
+    await oracleHub.requestQuery(marketContract.address, oracleDataSource, oracleQuery, 0, {
       from: accounts[1]
     });
 
@@ -218,13 +218,9 @@ contract('OracleHubOraclize', function(accounts) {
 
     // request query update
     await oracleHub.setFactoryAddress(accounts[1], { from: accounts[0] });
-    await oracleHub.requestQuery(
-      deployedMarketContract.address,
-      oracleDataSource,
-      oracleQuery,
-      nowInSeconds + 5,
-      { from: accounts[1] }
-    );
+    await oracleHub.requestQuery(deployedMarketContract.address, oracleDataSource, oracleQuery, 0, {
+      from: accounts[1]
+    });
 
     let oraclizeCallbackGasCost = await oracleHub.QUERY_CALLBACK_GAS.call();
     let contractSettledEvent = deployedMarketContract.ContractSettled();
