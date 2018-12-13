@@ -93,7 +93,8 @@ contract('OracleHubOraclize', function(accounts) {
   it('requestQuery can be called by factory address', async function() {
     let error = null;
     const marketContractExpiration = Math.floor(Date.now() / 1000) + 600;
-    try {
+
+    await utility.shouldFail(async function() {
       await oracleHub.requestQuery(
         marketContract.address,
         'URL',
@@ -101,13 +102,7 @@ contract('OracleHubOraclize', function(accounts) {
         marketContractExpiration,
         { from: accounts[1] }
       );
-    } catch (err) {
-      error = err;
-    }
-    assert.ok(
-      error instanceof Error,
-      'should not be able to call request query from non factory address'
-    );
+    }, 'should not be able to call request query from non factory address');
 
     const originalContractFactoryAddress = await oracleHub.marketContractFactoryAddress();
     // set factory address to an account we can call from
@@ -147,13 +142,9 @@ contract('OracleHubOraclize', function(accounts) {
     const eventsChainLinkRequested = await utility.getEvent(oracleHub, 'OraclizeQueryRequested');
     const queryId = eventsChainLinkRequested[0].args.queryId;
 
-    let error = null;
-    try {
+    utility.shouldFail(async function() {
       await oracleHub.__callback(queryId, '215.61', { from: accounts[1] });
-    } catch (err) {
-      error = err;
-    }
-    assert.ok(error instanceof Error, 'should not be able call back from non oracle account!');
+    }, 'should not be able call back from non oracle account!');
   });
 
   it('callback should invoke marketContract.oracleCallback()', async function() {
@@ -186,7 +177,7 @@ contract('OracleHubOraclize', function(accounts) {
         setTimeout(check, 1000);
       });
 
-    await waitForUpdatedLastPriceEvent(120000);
+    await waitForUpdatedLastPriceEvent(200000);
     assert.notEqual(
       txReceipt,
       null,
@@ -252,7 +243,7 @@ contract('OracleHubOraclize', function(accounts) {
         setTimeout(check, 1000);
       });
 
-    await waitForContractSettledEvent(120000);
+    await waitForContractSettledEvent(200000);
     assert.notEqual(
       txReceipt,
       null,
@@ -302,7 +293,7 @@ contract('OracleHubOraclize', function(accounts) {
           setTimeout(check, 1000);
         });
 
-      await waitForQueryEvent(60000);
+      await waitForQueryEvent(200000);
       assert.notEqual(txReceipt, null, 'did not emit OraclizeQueryRequested event');
     });
   });
