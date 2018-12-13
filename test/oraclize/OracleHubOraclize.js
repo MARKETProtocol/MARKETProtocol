@@ -12,19 +12,34 @@ contract('OracleHubOraclize', function(accounts) {
   let collateralToken;
   let marketContract;
 
+  const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
   const oracleDataSource = 'URL';
   const oracleQuery = 'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0';
+
+  async function createMarketContract(collateralToken, collateralPool) {
+    return await MarketContractOraclize.new(
+      'MyNewContract',
+      [accounts[0], collateralToken.address, collateralPool.address],
+      oracleHub.address,
+      [0, 150, 2, 2, expiration],
+      oracleDataSource,
+      oracleQuery
+    );
+  }
 
   before(async function() {
     oracleHub = await OracleHubOraclize.deployed();
     collateralPool = await MarketCollateralPool.deployed();
     collateralToken = await CollateralToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
-    var whiteList = await marketContractRegistry.getAddressWhiteList.call();
-    marketContract = await MarketContractOraclize.at(whiteList[whiteList.length - 1]);
   });
 
-  beforeEach(async function() {});
+  beforeEach(async function() {
+    marketContract = await createMarketContract(collateralToken, collateralPool);
+    await marketContractRegistry.addAddressToWhiteList(marketContract.address, {
+      from: accounts[0]
+    });
+  });
 
   it('ETH balances can be withdrawn by owner', async function() {
     const initialBalance = await web3.eth.getBalance(oracleHub.address);
@@ -146,32 +161,47 @@ contract('OracleHubOraclize', function(accounts) {
     assert.ok(error instanceof Error, 'should not be able call back from non oracle account!');
   });
 
-  // it('callback should invoke marketContract.oracleCallback()', async function() {
-  //   const marketContractExpiration = Math.floor(Date.now() / 1000) + 600;
-  //   await oracleHub.setFactoryAddress(accounts[1], {from: accounts[0]});
-  //   await oracleHub.requestQuery(
-  //     marketContract.address,
-  //     'URL',
-  //     'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
-  //     marketContractExpiration,
-  //     {from: accounts[1]}
-  //   );
-  //
-  //   return await new Promise(function(resolve, reject) {
-  //     const intervalId = setInterval(function() {
-  //       utility.getEvent(marketContract, 'UpdatedLastPrice')
-  //         .then(function(emittedEvents) {
-  //           console.log('Event', emittedEvents);
-  //           if (emittedEvents.length >= 1) {
-  //             clearInterval(intervalId);
-  //             assert.equal(emittedEvents[0].event, 'UpdatedLastPrice');
-  //             resolve();
-  //           }
-  //         });
-  //
-  //     }, 1500);
-  //   });
-  // });
+  it('callback should invoke marketContract.oracleCallback()', async function() {
+    let txReceipt = null;
+
+    await oracleHub.setFactoryAddress(accounts[1], {from: accounts[0]});
+    await oracleHub.requestQuery(
+      marketContract.address,
+      oracleDataSource,
+      oracleQuery,
+      1,
+      { from: accounts[1] }
+    );
+
+    let updatedLastPriceEvent = marketContract.UpdatedLastPrice();
+    updatedLastPriceEvent.watch(async (err, eventLogs) => {
+      if (err) {
+        console.log(err);
+      }
+      assert.equal(eventLogs.event, 'UpdatedLastPrice');
+      txReceipt = await web3.eth.getTransactionReceipt(eventLogs.transactionHash);
+      updatedLastPriceEvent.stopWatching();
+    });
+
+    const waitForUpdatedLastPriceEvent = ms =>
+      new Promise((resolve, reject) => {
+        const check = () => {
+          if (txReceipt) resolve();
+          else if ((ms -= 1000) < 0) reject(new Error('Oraclize time out!'));
+          else {
+            setTimeout(check, 1000);
+          }
+        };
+        setTimeout(check, 1000);
+      });
+
+    await waitForUpdatedLastPriceEvent(60000);
+    assert.notEqual(
+      txReceipt,
+      null,
+      'Oraclize callback did not inovke marketContract.oracleCallback()'
+    );
+  });
 
   it('gas used by OracleHub callback is within specified limit', async function() {
     const nowInSeconds = Math.floor(Date.now() / 1000);
@@ -217,7 +247,6 @@ contract('OracleHubOraclize', function(accounts) {
 
     let oraclizeCallbackGasCost = await oracleHub.QUERY_CALLBACK_GAS.call();
     let contractSettledEvent = deployedMarketContract.ContractSettled();
-    let updatedLastPriceEvent = deployedMarketContract.UpdatedLastPrice();
 
     contractSettledEvent.watch(async (err, response) => {
       if (err) {
@@ -233,17 +262,6 @@ contract('OracleHubOraclize', function(accounts) {
       );
       contractSettledEvent.stopWatching();
     });
-
-    updatedLastPriceEvent.watch(async (err, response) => {
-      if (err) {
-        console.log(err);
-      }
-      assert.equal(response.event, 'UpdatedLastPrice');
-      await web3.eth.getTransactionReceipt(response.transactionHash);
-      updatedLastPriceEvent.stopWatching();
-    });
-
-    // await oracleHub.requestOnDemandQuery(deployedMarketContract.address, { from: accounts[0], value: web3.toWei(5)});
 
     const waitForContractSettledEvent = ms =>
       new Promise((resolve, reject) => {
@@ -263,6 +281,54 @@ contract('OracleHubOraclize', function(accounts) {
       null,
       'Oraclize callback did not arrive. Please increase QUERY_CALLBACK_GAS!'
     );
+  });
+
+  describe('requestOnDemandQuery()', function() {
+    it('should fail if not eth is sent', async function() {
+      let error = null;
+      try {
+        await oracleHub.requestOnDemandQuery(marketContract.address, {from: accounts[0]});
+      } catch(err) {
+        error = err;
+      }
+
+      assert.instanceOf(error, Error, 'query did not fail');
+    });
+
+    it('should emit OraclizeQueryRequested', async function() {
+      let txReceipt = null;
+
+      await oracleHub.requestOnDemandQuery(marketContract.address, {from: accounts[0], value: web3.toWei(1)});
+
+      let oraclizeQueryRequestEvent = oracleHub.OraclizeQueryRequested();
+      oraclizeQueryRequestEvent.watch(async (err, eventLogs) => {
+        if (err) {
+          console.log(err);
+        }
+        assert.equal(eventLogs.event, 'OraclizeQueryRequested');
+        txReceipt = await web3.eth.getTransactionReceipt(eventLogs.transactionHash);
+        oraclizeQueryRequestEvent.stopWatching();
+      });
+
+      const waitForQueryEvent = ms =>
+        new Promise((resolve, reject) => {
+          const check = () => {
+            if (txReceipt) resolve();
+            else if ((ms -= 1000) < 0) reject(new Error('Oraclize time out!'));
+            else {
+              setTimeout(check, 1000);
+            }
+          };
+          setTimeout(check, 1000);
+        });
+
+      await waitForQueryEvent(60000);
+      assert.notEqual(
+        txReceipt,
+        null,
+        'Oraclize callback did not inovke marketContract.oracleCallback()'
+      );
+    });
   });
 
 });
