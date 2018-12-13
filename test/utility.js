@@ -87,16 +87,20 @@ module.exports = {
    * @param {string} userAddress
    * @return {MarketContractOraclize}
    */
-  createMarketContract(collateralToken, collateralPool, userAddress) {
+  createMarketContract(collateralToken, collateralPool, userAddress, oracleHubAddress) {
     const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
     const oracleDataSoure = 'URL';
     const oracleQuery =
       'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0';
 
+    if (!oracleHubAddress) {
+      oracleHubAddress = userAddress;
+    }
+
     return MarketContractOraclize.new(
       'MyNewContract',
       [userAddress, collateralToken.address, collateralPool.address],
-      userAddress, // substitute our address for the oracleHubAddress so we can callback from queries.
+      oracleHubAddress,
       [0, 150, 2, 2, expiration],
       oracleDataSoure,
       oracleQuery

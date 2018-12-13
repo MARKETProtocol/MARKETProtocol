@@ -12,20 +12,8 @@ contract('OracleHubOraclize', function(accounts) {
   let collateralToken;
   let marketContract;
 
-  const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
-  const oracleDataSource = 'URL';
-  const oracleQuery = 'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0';
-
-  async function createMarketContract(collateralToken, collateralPool) {
-    return await MarketContractOraclize.new(
-      'MyNewContract',
-      [accounts[0], collateralToken.address, collateralPool.address],
-      oracleHub.address,
-      [0, 150, 2, 2, expiration],
-      oracleDataSource,
-      oracleQuery
-    );
-  }
+  let oracleDataSource;
+  let oracleQuery;
 
   before(async function() {
     oracleHub = await OracleHubOraclize.deployed();
@@ -35,10 +23,17 @@ contract('OracleHubOraclize', function(accounts) {
   });
 
   beforeEach(async function() {
-    marketContract = await createMarketContract(collateralToken, collateralPool);
+    marketContract = await utility.createMarketContract(
+      collateralToken,
+      collateralPool,
+      accounts[0],
+      oracleHub.address
+    );
     await marketContractRegistry.addAddressToWhiteList(marketContract.address, {
       from: accounts[0]
     });
+    oracleDataSource = await marketContract.ORACLE_DATA_SOURCE.call();
+    oracleQuery = await marketContract.ORACLE_QUERY.call();
   });
 
   it('ETH balances can be withdrawn by owner', async function() {
@@ -164,14 +159,10 @@ contract('OracleHubOraclize', function(accounts) {
   it('callback should invoke marketContract.oracleCallback()', async function() {
     let txReceipt = null;
 
-    await oracleHub.setFactoryAddress(accounts[1], {from: accounts[0]});
-    await oracleHub.requestQuery(
-      marketContract.address,
-      oracleDataSource,
-      oracleQuery,
-      1,
-      { from: accounts[1] }
-    );
+    await oracleHub.setFactoryAddress(accounts[1], { from: accounts[0] });
+    await oracleHub.requestQuery(marketContract.address, oracleDataSource, oracleQuery, 1, {
+      from: accounts[1]
+    });
 
     let updatedLastPriceEvent = marketContract.UpdatedLastPrice();
     updatedLastPriceEvent.watch(async (err, eventLogs) => {
@@ -217,32 +208,22 @@ contract('OracleHubOraclize', function(accounts) {
     let txReceipt = null; // Oraclize callback transaction receipt
 
     const deployedMarketContract = await MarketContractOraclize.new(
-      "ETHUSD-10",
-      [
-        accounts[0],
-        collateralToken.address,
-        collateralPool.address,
-      ],
+      'ETHUSD-10',
+      [accounts[0], collateralToken.address, collateralPool.address],
       oracleHub.address,
-      [
-        priceFloor,
-        priceCap,
-        2,
-        2,
-        marketContractExpirationInThreeSeconds
-      ],
+      [priceFloor, priceCap, 2, 2, marketContractExpirationInThreeSeconds],
       oracleDataSource,
       oracleQuery
     );
 
     // request query update
-    await oracleHub.setFactoryAddress(accounts[1], {from: accounts[0]});
+    await oracleHub.setFactoryAddress(accounts[1], { from: accounts[0] });
     await oracleHub.requestQuery(
       deployedMarketContract.address,
       oracleDataSource,
       oracleQuery,
       nowInSeconds + 5,
-      {from: accounts[1]}
+      { from: accounts[1] }
     );
 
     let oraclizeCallbackGasCost = await oracleHub.QUERY_CALLBACK_GAS.call();
@@ -287,8 +268,8 @@ contract('OracleHubOraclize', function(accounts) {
     it('should fail if not eth is sent', async function() {
       let error = null;
       try {
-        await oracleHub.requestOnDemandQuery(marketContract.address, {from: accounts[0]});
-      } catch(err) {
+        await oracleHub.requestOnDemandQuery(marketContract.address, { from: accounts[0] });
+      } catch (err) {
         error = err;
       }
 
@@ -298,7 +279,10 @@ contract('OracleHubOraclize', function(accounts) {
     it('should emit OraclizeQueryRequested', async function() {
       let txReceipt = null;
 
-      await oracleHub.requestOnDemandQuery(marketContract.address, {from: accounts[0], value: web3.toWei(1)});
+      await oracleHub.requestOnDemandQuery(marketContract.address, {
+        from: accounts[0],
+        value: web3.toWei(1)
+      });
 
       let oraclizeQueryRequestEvent = oracleHub.OraclizeQueryRequested();
       oraclizeQueryRequestEvent.watch(async (err, eventLogs) => {
@@ -330,5 +314,4 @@ contract('OracleHubOraclize', function(accounts) {
       );
     });
   });
-
 });
