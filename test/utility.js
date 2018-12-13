@@ -1,3 +1,5 @@
+const MarketContractOraclize = artifacts.require('MarketContractOraclize');
+
 module.exports = {
   /**
    * Signs a message.
@@ -75,5 +77,42 @@ module.exports = {
    */
   calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier) {
     return (priceCap - priceFloor) * qtyMultiplier;
+  },
+
+  /**
+   * Create MarketContract
+   *
+   * @param {CollateralToken} collateralToken
+   * @param {MarketCollateralPool} collateralPool
+   * @param {string} userAddress
+   * @return {MarketContractOraclize}
+   */
+  createMarketContract(collateralToken, collateralPool, userAddress) {
+    const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
+    const oracleDataSoure = 'URL';
+    const oracleQuery =
+      'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0';
+
+    return MarketContractOraclize.new(
+      'MyNewContract',
+      [userAddress, collateralToken.address, collateralPool.address],
+      userAddress, // substitute our address for the oracleHubAddress so we can callback from queries.
+      [0, 150, 2, 2, expiration],
+      oracleDataSoure,
+      oracleQuery
+    );
+  },
+
+  /**
+   * Settle MarketContract
+   *
+   * @param {MarketContractOraclize} marketContract
+   * @param {number} priceCap
+   * @param {string} userAddress
+   * @return {MarketContractOraclize}
+   */
+  async settleContract(marketContract, priceCap, userAddress) {
+    await marketContract.oracleCallBack(priceCap.plus(10), { from: userAddress }); // price above cap!
+    return await marketContract.settlementPrice.call({ from: userAddress });
   }
 };

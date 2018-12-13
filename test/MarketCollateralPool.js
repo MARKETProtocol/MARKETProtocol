@@ -1,4 +1,3 @@
-const MarketContractOraclize = artifacts.require('MarketContractOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const CollateralToken = artifacts.require('CollateralToken');
@@ -17,10 +16,6 @@ contract('MarketCollateralPool', function(accounts) {
   let longPositionToken;
   let shortPositionToken;
 
-  const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
-  const oracleDataSoure = 'URL';
-  const oracleQuery =
-    'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0';
   const MarketSides = {
     Long: 0,
     Short: 1,
@@ -31,30 +26,19 @@ contract('MarketCollateralPool', function(accounts) {
     marketContractRegistry = await MarketContractRegistry.deployed();
   });
 
-  // forces the contract to be settled
-  async function settleContract() {
-    await marketContract.oracleCallBack(priceCap.plus(10), { from: accounts[0] }); // price above cap!
-    return await marketContract.settlementPrice.call({ from: accounts[0] });
-  }
-
-  async function createMarketContract(collateralToken, collateralPool) {
-    return await MarketContractOraclize.new(
-      'MyNewContract',
-      [accounts[0], collateralToken.address, collateralPool.address],
-      accounts[0], // substitute our address for the oracleHubAddress so we can callback from queries.
-      [0, 150, 2, 2, expiration],
-      oracleDataSoure,
-      oracleQuery
-    );
-  }
-
   beforeEach(async function() {
     collateralPool = await MarketCollateralPool.deployed();
     collateralToken = await CollateralToken.deployed();
-    marketContract = await createMarketContract(collateralToken, collateralPool);
+    marketContract = await utility.createMarketContract(
+      collateralToken,
+      collateralPool,
+      accounts[0]
+    );
+
     await marketContractRegistry.addAddressToWhiteList(marketContract.address, {
       from: accounts[0]
     });
+
     qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
     priceFloor = await marketContract.PRICE_FLOOR.call();
     priceCap = await marketContract.PRICE_CAP.call();
@@ -65,7 +49,11 @@ contract('MarketCollateralPool', function(accounts) {
   describe('mintPositionTokens()', function() {
     it('should fail for non whitelisted addresses', async function() {
       // 1. create unregistered contract
-      const unregisteredContract = await createMarketContract(collateralToken, collateralPool);
+      const unregisteredContract = await utility.createMarketContract(
+        collateralToken,
+        collateralPool,
+        accounts[0]
+      );
 
       // 2. Approve appropriate tokens
       const amountToApprove = 1e22;
@@ -106,7 +94,7 @@ contract('MarketCollateralPool', function(accounts) {
       // 3. should fail to mint when user has not approved transfer of collateral (erc20 approve)
       const accountBalance = await collateralToken.balanceOf.call(accounts[0]);
       assert.isTrue(
-        accountBalance.toNumber() != 0,
+        accountBalance.toNumber() !== 0,
         'Account 0 does not have a balance of collateral'
       );
 
@@ -146,7 +134,7 @@ contract('MarketCollateralPool', function(accounts) {
       assert.equal(
         shortPosTokenBalance.toNumber(),
         qtyToMint,
-        'incorrect amount of long tokens minted'
+        'incorrect amount of short tokens minted'
       );
     });
 
@@ -177,7 +165,7 @@ contract('MarketCollateralPool', function(accounts) {
 
     it('should fail if contract is settled', async function() {
       // 1. force contract to settlement
-      await settleContract();
+      await utility.settleContract(marketContract, priceCap, accounts[0]);
 
       // 2. approve collateral and mint tokens should fail
       const amountToApprove = 1e22;
@@ -237,7 +225,11 @@ contract('MarketCollateralPool', function(accounts) {
   describe('redeemPositionTokens()', function() {
     it('should fail for non whitelisted addresses', async function() {
       // 1. create unregistered contract
-      const unregisteredContract = await createMarketContract(collateralToken, collateralPool);
+      const unregisteredContract = await utility.createMarketContract(
+        collateralToken,
+        collateralPool,
+        accounts[0]
+      );
 
       // 2. redeemingPositionTokens should fail for correct reason.
       let error = null;
@@ -421,7 +413,7 @@ contract('MarketCollateralPool', function(accounts) {
       });
 
       // 2. force contract to settlement
-      const settlementPrice = await settleContract();
+      const settlementPrice = await utility.settleContract(marketContract, priceCap, accounts[0]);
 
       // 3. attempt to redeem too much long tokens
       const longTokenQtyToRedeem = (await longPositionToken.balanceOf.call(accounts[0])).plus(1);
@@ -436,7 +428,9 @@ contract('MarketCollateralPool', function(accounts) {
 
       // 4. attempt to redeem too much short tokens
       error = null;
-      const shortTokenQtyToRedeem = (await longPositionToken.balanceOf.call(accounts[0])).plus(1).times(-1);
+      const shortTokenQtyToRedeem = (await longPositionToken.balanceOf.call(accounts[0]))
+        .plus(1)
+        .times(-1);
       try {
         await collateralPool.settleAndClose(marketContract.address, shortTokenQtyToRedeem, {
           from: accounts[0]
@@ -459,7 +453,7 @@ contract('MarketCollateralPool', function(accounts) {
       });
 
       // 2. force contract to settlement
-      const settlementPrice = await settleContract();
+      const settlementPrice = await utility.settleContract(marketContract, priceCap, accounts[0]);
 
       // 3. redeem all short position tokens after settlement should pass
       const shortTokenBalanceBeforeRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
@@ -608,7 +602,7 @@ contract('MarketCollateralPool', function(accounts) {
       await longPositionToken.transfer(accounts[1], 1, { from: accounts[0] });
 
       // 3. force contract to settlement
-      const settlementPrice = await settleContract();
+      const settlementPrice = await utility.settleContract(marketContract, priceCap, accounts[0]);
 
       // 4. redeem all shorts on settlement
       const collateralBalanceBeforeRedeem = await collateralToken.balanceOf.call(accounts[0]);
