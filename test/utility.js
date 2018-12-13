@@ -85,9 +85,17 @@ module.exports = {
    * @param {CollateralToken} collateralToken
    * @param {MarketCollateralPool} collateralPool
    * @param {string} userAddress
+   * @param {string | null} oracleHubAddress
+   * @param {number[] | null} contractSpecs
    * @return {MarketContractOraclize}
    */
-  createMarketContract(collateralToken, collateralPool, userAddress, oracleHubAddress) {
+  createMarketContract(
+    collateralToken,
+    collateralPool,
+    userAddress,
+    oracleHubAddress,
+    contractSpecs
+  ) {
     const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
     const oracleDataSoure = 'URL';
     const oracleQuery =
@@ -97,11 +105,15 @@ module.exports = {
       oracleHubAddress = userAddress;
     }
 
+    if (!contractSpecs) {
+      contractSpecs = [0, 150, 2, 2, expiration];
+    }
+
     return MarketContractOraclize.new(
       'MyNewContract',
       [userAddress, collateralToken.address, collateralPool.address],
       oracleHubAddress,
-      [0, 150, 2, 2, expiration],
+      contractSpecs,
       oracleDataSoure,
       oracleQuery
     );
@@ -118,5 +130,16 @@ module.exports = {
   async settleContract(marketContract, priceCap, userAddress) {
     await marketContract.oracleCallBack(priceCap.plus(10), { from: userAddress }); // price above cap!
     return await marketContract.settlementPrice.call({ from: userAddress });
+  },
+
+  async shouldFail(block, message) {
+    let error = null;
+    try {
+      await block();
+    } catch (err) {
+      error = err;
+    }
+
+    assert.instanceOf(error, Error, message);
   }
 };
