@@ -303,11 +303,7 @@ contract('OracleHubOraclize', function(accounts) {
         });
 
       await waitForQueryEvent(60000);
-      assert.notEqual(
-        txReceipt,
-        null,
-        'Oraclize callback did not inovke marketContract.oracleCallback()'
-      );
+      assert.notEqual(txReceipt, null, 'did not emit OraclizeQueryRequested event');
     });
   });
 });
