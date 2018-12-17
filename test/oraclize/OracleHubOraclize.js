@@ -177,7 +177,7 @@ contract('OracleHubOraclize', function(accounts) {
         setTimeout(check, 1000);
       });
 
-    await waitForUpdatedLastPriceEvent(260000);
+    await waitForUpdatedLastPriceEvent(300000);
     assert.notEqual(
       txReceipt,
       null,
@@ -243,7 +243,7 @@ contract('OracleHubOraclize', function(accounts) {
         setTimeout(check, 1000);
       });
 
-    await waitForContractSettledEvent(260000);
+    await waitForContractSettledEvent(300000);
     assert.notEqual(
       txReceipt,
       null,
@@ -288,7 +288,7 @@ contract('OracleHubOraclize', function(accounts) {
           setTimeout(check, 1000);
         });
 
-      await waitForQueryEvent(260000);
+      await waitForQueryEvent(300000);
       assert.notEqual(txReceipt, null, 'did not emit OraclizeQueryRequested event');
     });
   });
