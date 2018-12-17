@@ -177,7 +177,7 @@ contract('OracleHubOraclize', function(accounts) {
         setTimeout(check, 1000);
       });
 
-    await waitForUpdatedLastPriceEvent(200000);
+    await waitForUpdatedLastPriceEvent(260000);
     assert.notEqual(
       txReceipt,
       null,
@@ -243,7 +243,7 @@ contract('OracleHubOraclize', function(accounts) {
         setTimeout(check, 1000);
       });
 
-    await waitForContractSettledEvent(200000);
+    await waitForContractSettledEvent(260000);
     assert.notEqual(
       txReceipt,
       null,
@@ -253,14 +253,9 @@ contract('OracleHubOraclize', function(accounts) {
 
   describe('requestOnDemandQuery()', function() {
     it('should fail if not eth is sent', async function() {
-      let error = null;
-      try {
+      await utility.shouldFail(async function() {
         await oracleHub.requestOnDemandQuery(marketContract.address, { from: accounts[0] });
-      } catch (err) {
-        error = err;
-      }
-
-      assert.instanceOf(error, Error, 'query did not fail');
+      }, 'query did not fail');
     });
 
     it('should emit OraclizeQueryRequested', async function() {
@@ -293,7 +288,7 @@ contract('OracleHubOraclize', function(accounts) {
           setTimeout(check, 1000);
         });
 
-      await waitForQueryEvent(200000);
+      await waitForQueryEvent(260000);
       assert.notEqual(txReceipt, null, 'did not emit OraclizeQueryRequested event');
     });
   });

@@ -48,7 +48,7 @@ contract('OracleHubChainLink', function(accounts) {
     oracleHubChainLink.withdrawLink(accounts[1], balanceToTransfer, { from: accounts[0] });
     const transferredBalance = await linkToken.balanceOf(accounts[1]);
 
-    assert.equal(balanceToTransfer, transferredBalance, 'Withdraw of link failed');
+    assert.equal(balanceToTransfer, transferredBalance.toNumber(), 'Withdraw of link failed');
   });
 
   it('Factory address can be set by owner', async function() {
