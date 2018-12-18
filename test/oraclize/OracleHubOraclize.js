@@ -169,7 +169,7 @@ contract('OracleHubOraclize', function(accounts) {
       new Promise((resolve, reject) => {
         const check = () => {
           if (txReceipt) resolve();
-          else if ((ms -= 1000) < 0) reject(new Error('Oraclize time out!'));
+          // else if ((ms -= 1000) < 0) reject(new Error('Oraclize time out!'));
           else {
             setTimeout(check, 1000);
           }
@@ -204,7 +204,8 @@ contract('OracleHubOraclize', function(accounts) {
       oracleHub.address,
       [priceFloor, priceCap, 2, 2, marketContractExpirationInThreeSeconds],
       oracleDataSource,
-      oracleQuery
+      oracleQuery,
+      { gas: gasLimit }
     );
 
     // request query update
@@ -235,7 +236,7 @@ contract('OracleHubOraclize', function(accounts) {
       new Promise((resolve, reject) => {
         const check = () => {
           if (txReceipt) resolve();
-          else if ((ms -= 1000) < 0) reject(new Error('Oraclize time out!'));
+          // else if ((ms -= 1000) < 0) reject(new Error('Oraclize time out!'));
           else {
             setTimeout(check, 1000);
           }
@@ -280,7 +281,7 @@ contract('OracleHubOraclize', function(accounts) {
         new Promise((resolve, reject) => {
           const check = () => {
             if (txReceipt) resolve();
-            else if ((ms -= 1000) < 0) reject(new Error('Oraclize time out!'));
+            // else if ((ms -= 1000) < 0) reject(new Error('Oraclize time out!'));
             else {
               setTimeout(check, 1000);
             }
