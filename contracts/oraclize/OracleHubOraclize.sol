@@ -48,6 +48,9 @@ contract OracleHubOraclize is usingOraclize, Ownable {
     // EXTERNAL METHODS
     */
 
+    /// @dev allows for more ETH to be deposited in order to pay for transaction costs with oraclize.it
+    function() external payable { }
+
     /// @dev allows us to withdraw eth as the owner of this contract
     /// @param sendTo       address of where to send ETH
     /// @param amount       amount of ETH (in baseUnits)
@@ -77,7 +80,7 @@ contract OracleHubOraclize is usingOraclize, Ownable {
     }
 
 
-    /// @dev allows for the owner to set a factory address that is then allowed the priviledge of creating
+    /// @dev allows for the owner to set a factory address that is then allowed the privilege of creating
     /// queries.
     function setFactoryAddress(address contractFactoryAddress) external onlyOwner {
         marketContractFactoryAddress = contractFactoryAddress;
@@ -136,7 +139,7 @@ contract OracleHubOraclize is usingOraclize, Ownable {
 
     /// @dev only callable by the designated factory!
     modifier onlyFactory() {
-        require(msg.sender == marketContractFactoryAddress);
+        require(msg.sender == marketContractFactoryAddress, "Only callable by the factory");
         _;
     }
 }

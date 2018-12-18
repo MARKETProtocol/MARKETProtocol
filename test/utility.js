@@ -96,7 +96,7 @@ module.exports = {
     oracleHubAddress,
     contractSpecs
   ) {
-    const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
+    const expiration = new Date().getTime() / 1000 + 60 * 50; // expires 50 minutes from now.
     const oracleDataSoure = 'URL';
     const oracleQuery =
       'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0';
