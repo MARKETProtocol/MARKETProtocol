@@ -252,45 +252,45 @@ contract('OracleHubOraclize', function(accounts) {
     );
   });
 
-  describe('requestOnDemandQuery()', function() {
-    it('should fail if not eth is sent', async function() {
-      await utility.shouldFail(async function() {
-        await oracleHub.requestOnDemandQuery(marketContract.address, { from: accounts[0] });
-      }, 'query did not fail');
-    });
-
-    it('should emit OraclizeQueryRequested', async function() {
-      let txReceipt = null;
-
-      await oracleHub.requestOnDemandQuery(marketContract.address, {
-        from: accounts[0],
-        value: web3.toWei(1)
-      });
-
-      let oraclizeQueryRequestEvent = oracleHub.OraclizeQueryRequested();
-      oraclizeQueryRequestEvent.watch(async (err, eventLogs) => {
-        if (err) {
-          console.log(err);
-        }
-        assert.equal(eventLogs.event, 'OraclizeQueryRequested');
-        txReceipt = await web3.eth.getTransactionReceipt(eventLogs.transactionHash);
-        oraclizeQueryRequestEvent.stopWatching();
-      });
-
-      const waitForQueryEvent = ms =>
-        new Promise((resolve, reject) => {
-          const check = () => {
-            if (txReceipt) resolve();
-            // else if ((ms -= 1000) < 0) reject(new Error('Oraclize time out!'));
-            else {
-              setTimeout(check, 1000);
-            }
-          };
-          setTimeout(check, 1000);
-        });
-
-      await waitForQueryEvent(300000);
-      assert.notEqual(txReceipt, null, 'did not emit OraclizeQueryRequested event');
-    });
-  });
+  // describe('requestOnDemandQuery()', function() {
+  //   it('should fail if not eth is sent', async function() {
+  //     await utility.shouldFail(async function() {
+  //       await oracleHub.requestOnDemandQuery(marketContract.address, { from: accounts[0] });
+  //     }, 'query did not fail');
+  //   });
+  //
+  //   it('should emit OraclizeQueryRequested', async function() {
+  //     let txReceipt = null;
+  //
+  //     await oracleHub.requestOnDemandQuery(marketContract.address, {
+  //       from: accounts[0],
+  //       value: web3.toWei(1)
+  //     });
+  //
+  //     let oraclizeQueryRequestEvent = oracleHub.OraclizeQueryRequested();
+  //     oraclizeQueryRequestEvent.watch(async (err, eventLogs) => {
+  //       if (err) {
+  //         console.log(err);
+  //       }
+  //       assert.equal(eventLogs.event, 'OraclizeQueryRequested');
+  //       txReceipt = await web3.eth.getTransactionReceipt(eventLogs.transactionHash);
+  //       oraclizeQueryRequestEvent.stopWatching();
+  //     });
+  //
+  //     const waitForQueryEvent = ms =>
+  //       new Promise((resolve, reject) => {
+  //         const check = () => {
+  //           if (txReceipt) resolve();
+  //           // else if ((ms -= 1000) < 0) reject(new Error('Oraclize time out!'));
+  //           else {
+  //             setTimeout(check, 1000);
+  //           }
+  //         };
+  //         setTimeout(check, 1000);
+  //       });
+  //
+  //     await waitForQueryEvent(300000);
+  //     assert.notEqual(txReceipt, null, 'did not emit OraclizeQueryRequested event');
+  //   });
+  // });
 });
