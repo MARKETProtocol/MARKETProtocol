@@ -1,12 +1,13 @@
 <!--
-  Thank you for your pull request. Please provide a description above and review
-  the requirements below.
+  Thank you for your pull request. Please provide a description
+  above and review the requirements below.
 
-  Contributors guide: https://github.com/MARKETProtocol/meta/blob/master/CONTRIBUTING.md
+  Contributors guide:
+  https://github.com/MARKETProtocol/meta/blob/master/CONTRIBUTING.md
 -->
 
 ##### Description
-<!-- A description on what this PR aims to solve -->
+<!-- A description on what this PR aims to solve. -->
 
 ##### Checklist
 <!-- Remove items that do not apply. For completed items, change [ ] to [x]. -->
@@ -19,7 +20,9 @@
 <!-- Provide affected core subsystem(s) (like Docs, UI, UX, Tests etc). -->
 
 ##### Testing
-<!-- Why should the PR reviewer trust that this change doesn't break anything? How have you tested this change? -->
+<!-- Why should the PR reviewer trust that this change doesn't break
+  anything? How have you tested this change?
+-->
 
 ##### Refers/Fixes
 <!--
