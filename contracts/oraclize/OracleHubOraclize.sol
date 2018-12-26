@@ -62,7 +62,7 @@ contract OracleHubOraclize is usingOraclize, Ownable {
     function requestOnDemandQuery(address marketContractAddress) external payable {
         OraclizeQuery storage oraclizeQuery = contractAddressToOraclizeQuery[marketContractAddress];
         uint cost = oraclize_getPrice(oraclizeQuery.dataSource, QUERY_CALLBACK_GAS);
-        require(msg.value >= cost); // user must pay enough to cover query and callback
+        require(msg.value >= cost, "requires a higher cost"); // user must pay enough to cover query and callback
 
         bytes32 queryId = oraclize_query(
             oraclizeQuery.dataSource,

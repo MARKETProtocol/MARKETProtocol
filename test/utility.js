@@ -85,19 +85,35 @@ module.exports = {
    * @param {CollateralToken} collateralToken
    * @param {MarketCollateralPool} collateralPool
    * @param {string} userAddress
+   * @param {string | null} oracleHubAddress
+   * @param {number[] | null} contractSpecs
    * @return {MarketContractOraclize}
    */
-  createMarketContract(collateralToken, collateralPool, userAddress) {
+  createMarketContract(
+    collateralToken,
+    collateralPool,
+    userAddress,
+    oracleHubAddress,
+    contractSpecs
+  ) {
     const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
     const oracleDataSoure = 'URL';
     const oracleQuery =
       'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0';
 
+    if (!oracleHubAddress) {
+      oracleHubAddress = userAddress;
+    }
+
+    if (!contractSpecs) {
+      contractSpecs = [0, 150, 2, 2, expiration];
+    }
+
     return MarketContractOraclize.new(
       'MyNewContract',
       [userAddress, collateralToken.address, collateralPool.address],
-      userAddress, // substitute our address for the oracleHubAddress so we can callback from queries.
-      [0, 150, 2, 2, expiration],
+      oracleHubAddress,
+      contractSpecs,
       oracleDataSoure,
       oracleQuery
     );
@@ -114,5 +130,16 @@ module.exports = {
   async settleContract(marketContract, priceCap, userAddress) {
     await marketContract.oracleCallBack(priceCap.plus(10), { from: userAddress }); // price above cap!
     return await marketContract.settlementPrice.call({ from: userAddress });
+  },
+
+  async shouldFail(block, message) {
+    let error = null;
+    try {
+      await block();
+    } catch (err) {
+      error = err;
+    }
+
+    assert.instanceOf(error, Error, message);
   }
 };
