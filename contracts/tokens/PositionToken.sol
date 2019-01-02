@@ -43,7 +43,7 @@ contract PositionToken is StandardToken, Ownable {
     {
         name = tokenName;
         symbol = tokenSymbol;
-        decimals = 18;
+        decimals = 5;
         MARKET_SIDE = marketSide;
     }
 
