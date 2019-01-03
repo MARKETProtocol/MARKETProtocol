@@ -1,39 +1,30 @@
 const OracleHubOraclize = artifacts.require('OracleHubOraclize');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const MarketContractOraclize = artifacts.require('MarketContractOraclize');
+const MarketContractFactoryOraclize = artifacts.require('MarketContractFactoryOraclize');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const CollateralToken = artifacts.require('CollateralToken');
+
 const utility = require('../utility.js');
 
 contract('OracleHubOraclize', function(accounts) {
+  const oracleQuery =
+    'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0';
+  const oracleDataSoure = 'URL';
+  const contractName = 'ETHUSD';
+
   let oracleHub;
   let marketContractRegistry;
   let collateralPool;
   let collateralToken;
-  let marketContract;
-
-  let oracleDataSource;
-  let oracleQuery;
+  let marketContractFactory;
 
   before(async function() {
     oracleHub = await OracleHubOraclize.deployed();
     collateralPool = await MarketCollateralPool.deployed();
     collateralToken = await CollateralToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
-  });
-
-  beforeEach(async function() {
-    marketContract = await utility.createMarketContract(
-      collateralToken,
-      collateralPool,
-      accounts[0],
-      oracleHub.address
-    );
-    await marketContractRegistry.addAddressToWhiteList(marketContract.address, {
-      from: accounts[0]
-    });
-    oracleDataSource = await marketContract.ORACLE_DATA_SOURCE.call();
-    oracleQuery = await marketContract.ORACLE_QUERY.call();
+    marketContractFactory = await MarketContractFactoryOraclize.deployed();
   });
 
   it('ETH balances can be withdrawn by owner', async function() {
@@ -60,8 +51,6 @@ contract('OracleHubOraclize', function(accounts) {
 
     assert.equal(initialBalance - finalBalance, balanceToTransfer, 'contract value is off');
     assert.isTrue(finalAccountBalance > accountBalance, 'account 1 received the transfer');
-    // @perfectmak - can you please make the above test more exact, I am brain dead and struggling
-    // with big number precision/
   });
 
   it('Factory address can be set by owner', async function() {
@@ -94,17 +83,36 @@ contract('OracleHubOraclize', function(accounts) {
     let error = null;
     const marketContractExpiration = Math.floor(Date.now() / 1000) + 600;
 
+    // Create a new market contract so we have a valid address to use.
+    await marketContractFactory.deployMarketContractOraclize(
+      contractName,
+      CollateralToken.address,
+      [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, expiration],
+      oracleDataSoure,
+      oracleQuery
+    );
+
+    // Should fire the MarketContractCreated event!
+    let events = await utility.getEvent(marketContractFactory, 'MarketContractCreated');
+    assert.equal(
+      'MarketContractCreated',
+      events[0].event,
+      'Event called is not MarketContractCreated'
+    );
+    let marketContract = await MarketContractOraclize.at(events[0].args.contractAddress);
+
+    // we can now attempt to request a valid query, but it should fail, because we are not calling
+    // from the factory address
     await utility.shouldFail(async function() {
       await oracleHub.requestQuery(
         marketContract.address,
-        'URL',
-        'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
+        oracleDataSoure,
+        oracleQuery,
         marketContractExpiration,
         { from: accounts[1] }
       );
     }, 'should not be able to call request query from non factory address');
 
-    const originalContractFactoryAddress = await oracleHub.marketContractFactoryAddress();
     // set factory address to an account we can call from
     oracleHub.setFactoryAddress(accounts[1], { from: accounts[0] });
     oracleHub.requestQuery(
@@ -123,7 +131,8 @@ contract('OracleHubOraclize', function(accounts) {
       'Event called is not OraclizeQueryRequested'
     );
 
-    await oracleHub.setFactoryAddress(originalContractFactoryAddress, { from: accounts[0] });
+    // set back to proceed with tests.
+    await oracleHub.setFactoryAddress(marketContractFactory.address, { from: accounts[0] });
   });
 
   it('callBack cannot be called by a non oracle address', async function() {
