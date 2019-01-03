@@ -7,6 +7,11 @@ MARKET Protocol has been created to provide a secure, flexible, open source foun
 
 Join our [Discord Community](https://marketprotocol.io/discord) to interact with members of our dev staff and other contributors.
 
+## Dependencies
+This project uses Node.js version 8.10.0 - 8.11.3.
+
+If you are running multiple versions of Node.js, consider using [Node Version Manager](https://github.com/creationix/nvm) (nvm). nvm is an easy way to configure and manage different Node.js versions to work with your projects.
+
 ## Getting Started
 
 A Makefile is provided for easy setup of the environment.
