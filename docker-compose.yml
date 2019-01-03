@@ -16,7 +16,7 @@ services:
     stdin_open: true
 
   eth-bridge:
-    image: cryptomental/ethereum-bridge:latest
+    image: philelsasser/ethereum-bridge:latest
     entrypoint: >
       /bin/bash -c "
         while ! curl ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} &>/dev/null;
@@ -52,7 +52,7 @@ services:
     stdin_open: true
 
   eth-bridge-coverage:
-    image: cryptomental/ethereum-bridge:latest
+    image: philelsasser/ethereum-bridge:latest
     entrypoint: >
       /bin/bash -c "
         while ! curl ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} &>/dev/null;
