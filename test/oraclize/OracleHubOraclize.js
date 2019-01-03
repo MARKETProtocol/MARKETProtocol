@@ -1,8 +1,6 @@
 const OracleHubOraclize = artifacts.require('OracleHubOraclize');
-const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const MarketContractOraclize = artifacts.require('MarketContractOraclize');
 const MarketContractFactoryOraclize = artifacts.require('MarketContractFactoryOraclize');
-const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const CollateralToken = artifacts.require('CollateralToken');
 
 const utility = require('../utility.js');
@@ -19,17 +17,13 @@ contract('OracleHubOraclize', function(accounts) {
   const qtyMultiplier = 10;
 
   let oracleHub;
-  let marketContractRegistry;
-  let collateralPool;
   let collateralToken;
   let marketContractFactory;
   let events;
 
   before(async function() {
     oracleHub = await OracleHubOraclize.deployed();
-    collateralPool = await MarketCollateralPool.deployed();
     collateralToken = await CollateralToken.deployed();
-    marketContractRegistry = await MarketContractRegistry.deployed();
     marketContractFactory = await MarketContractFactoryOraclize.deployed();
   });
 
