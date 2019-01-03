@@ -1,39 +1,30 @@
 const OracleHubOraclize = artifacts.require('OracleHubOraclize');
-const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const MarketContractOraclize = artifacts.require('MarketContractOraclize');
-const MarketCollateralPool = artifacts.require('MarketCollateralPool');
+const MarketContractFactoryOraclize = artifacts.require('MarketContractFactoryOraclize');
 const CollateralToken = artifacts.require('CollateralToken');
+
 const utility = require('../utility.js');
 
 contract('OracleHubOraclize', function(accounts) {
-  let oracleHub;
-  let marketContractRegistry;
-  let collateralPool;
-  let collateralToken;
-  let marketContract;
+  const oracleQuery =
+    'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0';
+  const oracleDataSoure = 'URL';
+  const contractName = 'ETHUSD';
+  const marketContractExpiration = Math.floor(Date.now() / 1000) + 600;
+  const priceCap = 60465;
+  const priceFloor = 20155;
+  const priceDecimalPlaces = 2;
+  const qtyMultiplier = 10;
 
-  let oracleDataSource;
-  let oracleQuery;
+  let oracleHub;
+  let collateralToken;
+  let marketContractFactory;
+  let events;
 
   before(async function() {
     oracleHub = await OracleHubOraclize.deployed();
-    collateralPool = await MarketCollateralPool.deployed();
     collateralToken = await CollateralToken.deployed();
-    marketContractRegistry = await MarketContractRegistry.deployed();
-  });
-
-  beforeEach(async function() {
-    marketContract = await utility.createMarketContract(
-      collateralToken,
-      collateralPool,
-      accounts[0],
-      oracleHub.address
-    );
-    await marketContractRegistry.addAddressToWhiteList(marketContract.address, {
-      from: accounts[0]
-    });
-    oracleDataSource = await marketContract.ORACLE_DATA_SOURCE.call();
-    oracleQuery = await marketContract.ORACLE_QUERY.call();
+    marketContractFactory = await MarketContractFactoryOraclize.deployed();
   });
 
   it('ETH balances can be withdrawn by owner', async function() {
@@ -60,8 +51,6 @@ contract('OracleHubOraclize', function(accounts) {
 
     assert.equal(initialBalance - finalBalance, balanceToTransfer, 'contract value is off');
     assert.isTrue(finalAccountBalance > accountBalance, 'account 1 received the transfer');
-    // @perfectmak - can you please make the above test more exact, I am brain dead and struggling
-    // with big number precision/
   });
 
   it('Factory address can be set by owner', async function() {
@@ -91,20 +80,36 @@ contract('OracleHubOraclize', function(accounts) {
   });
 
   it('requestQuery can be called by factory address', async function() {
-    let error = null;
-    const marketContractExpiration = Math.floor(Date.now() / 1000) + 600;
+    // Create a new market contract so we have a valid address to use.
+    await marketContractFactory.deployMarketContractOraclize(
+      contractName,
+      CollateralToken.address,
+      [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, marketContractExpiration],
+      oracleDataSoure,
+      oracleQuery
+    );
 
+    // Should fire the MarketContractCreated event!
+    events = await utility.getEvent(marketContractFactory, 'MarketContractCreated');
+    assert.equal(
+      'MarketContractCreated',
+      events[0].event,
+      'Event called is not MarketContractCreated'
+    );
+    let marketContract = await MarketContractOraclize.at(events[0].args.contractAddress);
+
+    // we can now attempt to request a valid query, but it should fail, because we are not calling
+    // from the factory address
     await utility.shouldFail(async function() {
       await oracleHub.requestQuery(
         marketContract.address,
-        'URL',
-        'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
+        oracleDataSoure,
+        oracleQuery,
         marketContractExpiration,
         { from: accounts[1] }
       );
     }, 'should not be able to call request query from non factory address');
 
-    const originalContractFactoryAddress = await oracleHub.marketContractFactoryAddress();
     // set factory address to an account we can call from
     oracleHub.setFactoryAddress(accounts[1], { from: accounts[0] });
     oracleHub.requestQuery(
@@ -116,29 +121,29 @@ contract('OracleHubOraclize', function(accounts) {
     );
 
     // Should fire the requested event!
-    const events = await utility.getEvent(oracleHub, 'OraclizeQueryRequested');
+    events = await utility.getEvent(oracleHub, 'OraclizeQueryRequested');
     assert.equal(
       'OraclizeQueryRequested',
       events[0].event,
       'Event called is not OraclizeQueryRequested'
     );
 
-    await oracleHub.setFactoryAddress(originalContractFactoryAddress, { from: accounts[0] });
+    // set back to proceed with tests.
+    await oracleHub.setFactoryAddress(marketContractFactory.address, { from: accounts[0] });
   });
 
   it('callBack cannot be called by a non oracle address', async function() {
-    // we first need a valid request ID to call with, so lets create a valid request.
-    // set factory address to an account we can call from
-    const marketContractExpiration = Math.floor(Date.now() / 1000) + 600;
-    await oracleHub.setFactoryAddress(accounts[1], { from: accounts[0] });
-    await oracleHub.requestQuery(
-      marketContract.address,
-      'URL',
-      'json(https://api.kraken.com/0/public/Ticker?pair=ETHUSD).result.XETHZUSD.c.0',
-      marketContractExpiration,
-      { from: accounts[1] }
+    // we first need a valid request ID to call with, so lets create a valid request
+    // and market contract
+    await marketContractFactory.deployMarketContractOraclize(
+      contractName,
+      CollateralToken.address,
+      [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, marketContractExpiration],
+      oracleDataSoure,
+      oracleQuery
     );
 
+    // by creating a contract, we should have also created a valid request with a query id.
     const eventsChainLinkRequested = await utility.getEvent(oracleHub, 'OraclizeQueryRequested');
     const queryId = eventsChainLinkRequested[0].args.queryId;
 
@@ -148,14 +153,30 @@ contract('OracleHubOraclize', function(accounts) {
   });
 
   it('callback should invoke marketContract.oracleCallback()', async function() {
-    let txReceipt = null;
+    // Create a new market contract so we have a valid address and also a new request.
+    // we will set the expiration for a moment from now, so we should see the call back immediately.
+    let quickExpiration = Math.floor(Date.now() / 1000) + 5; //expires in 5 seconds
+    await marketContractFactory.deployMarketContractOraclize(
+      contractName,
+      CollateralToken.address,
+      [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, quickExpiration],
+      oracleDataSoure,
+      oracleQuery
+    );
 
-    await oracleHub.setFactoryAddress(accounts[1], { from: accounts[0] });
-    await oracleHub.requestQuery(marketContract.address, oracleDataSource, oracleQuery, 0, {
-      from: accounts[1]
-    });
+    // Should fire the MarketContractCreated event!
+    events = await utility.getEvent(marketContractFactory, 'MarketContractCreated');
+    assert.equal(
+      'MarketContractCreated',
+      events[0].event,
+      'Event called is not MarketContractCreated'
+    );
+    let marketContract = await MarketContractOraclize.at(events[0].args.contractAddress);
 
+    // Our market contract should get a updated query in 5 seconds and we can confirm by listening
+    // to the updated last price event.
     let updatedLastPriceEvent = marketContract.UpdatedLastPrice();
+    let txReceipt;
     updatedLastPriceEvent.watch(async (err, eventLogs) => {
       if (err) {
         console.log(err);
@@ -177,45 +198,38 @@ contract('OracleHubOraclize', function(accounts) {
         setTimeout(check, 1000);
       });
 
-    await waitForUpdatedLastPriceEvent(300000);
+    await waitForUpdatedLastPriceEvent(30000);
     assert.notEqual(
       txReceipt,
       null,
-      'Oraclize callback did not inovke marketContract.oracleCallback()'
+      'Oraclize callback did not invoke marketContract.oracleCallback()'
     );
   });
 
   it('gas used by OracleHub callback is within specified limit', async function() {
-    const nowInSeconds = Math.floor(Date.now() / 1000);
-    const marketContractExpirationInThreeSeconds = nowInSeconds + 3;
-    const priceFloor = 1;
-    const priceCap = 150;
-    let gasLimit = 6500000; // gas limit for development network
-    let block = web3.eth.getBlock('latest');
-    if (block.gasLimit > 7000000) {
-      // coverage network
-      gasLimit = block.gasLimit;
-    }
-    let txReceipt = null; // Oraclize callback transaction receipt
-
-    const deployedMarketContract = await MarketContractOraclize.new(
-      'ETHUSD-10',
-      [accounts[0], collateralToken.address, collateralPool.address],
-      oracleHub.address,
-      [priceFloor, priceCap, 2, 2, marketContractExpirationInThreeSeconds],
-      oracleDataSource,
-      oracleQuery,
-      { gas: gasLimit }
+    // Create a new market contract so we have a valid address and also a new request.
+    // we will set the expiration for a moment from now, so we should see the call back immediately.
+    let quickExpiration = Math.floor(Date.now() / 1000) + 5; //expires in 5 seconds
+    await marketContractFactory.deployMarketContractOraclize(
+      contractName,
+      CollateralToken.address,
+      [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, quickExpiration],
+      oracleDataSoure,
+      oracleQuery
     );
 
-    // request query update
-    await oracleHub.setFactoryAddress(accounts[1], { from: accounts[0] });
-    await oracleHub.requestQuery(deployedMarketContract.address, oracleDataSource, oracleQuery, 0, {
-      from: accounts[1]
-    });
+    // Should fire the MarketContractCreated event!
+    events = await utility.getEvent(marketContractFactory, 'MarketContractCreated');
+    assert.equal(
+      'MarketContractCreated',
+      events[0].event,
+      'Event called is not MarketContractCreated'
+    );
+    let marketContract = await MarketContractOraclize.at(events[0].args.contractAddress);
 
     let oraclizeCallbackGasCost = await oracleHub.QUERY_CALLBACK_GAS.call();
-    let contractSettledEvent = deployedMarketContract.ContractSettled();
+    let contractSettledEvent = marketContract.ContractSettled();
+    let txReceipt; // Oraclize callback transaction receipt
 
     contractSettledEvent.watch(async (err, response) => {
       if (err) {
@@ -244,7 +258,7 @@ contract('OracleHubOraclize', function(accounts) {
         setTimeout(check, 1000);
       });
 
-    await waitForContractSettledEvent(300000);
+    await waitForContractSettledEvent(30000);
     assert.notEqual(
       txReceipt,
       null,
@@ -253,16 +267,42 @@ contract('OracleHubOraclize', function(accounts) {
   });
 
   describe('requestOnDemandQuery()', function() {
+    let marketContractForDemandQuery;
+
+    before(async function() {
+      // Create a new market contract for this test suite
+      await marketContractFactory.deployMarketContractOraclize(
+        contractName,
+        CollateralToken.address,
+        [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, marketContractExpiration],
+        oracleDataSoure,
+        oracleQuery
+      );
+
+      // Should fire the MarketContractCreated event!
+      events = await utility.getEvent(marketContractFactory, 'MarketContractCreated');
+      assert.equal(
+        'MarketContractCreated',
+        events[0].event,
+        'Event called is not MarketContractCreated'
+      );
+      marketContractForDemandQuery = await MarketContractOraclize.at(
+        events[0].args.contractAddress
+      );
+    });
+
     it('should fail if not eth is sent', async function() {
       await utility.shouldFail(async function() {
-        await oracleHub.requestOnDemandQuery(marketContract.address, { from: accounts[0] });
+        await oracleHub.requestOnDemandQuery(marketContractForDemandQuery.address, {
+          from: accounts[0]
+        });
       }, 'query did not fail');
     });
 
     it('should emit OraclizeQueryRequested', async function() {
-      let txReceipt = null;
+      let txReceipt;
 
-      await oracleHub.requestOnDemandQuery(marketContract.address, {
+      await oracleHub.requestOnDemandQuery(marketContractForDemandQuery.address, {
         from: accounts[0],
         value: web3.toWei(1)
       });
@@ -289,7 +329,7 @@ contract('OracleHubOraclize', function(accounts) {
           setTimeout(check, 1000);
         });
 
-      await waitForQueryEvent(300000);
+      await waitForQueryEvent(30000);
       assert.notEqual(txReceipt, null, 'did not emit OraclizeQueryRequested event');
     });
   });
