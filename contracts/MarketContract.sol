@@ -133,8 +133,7 @@ contract MarketContract is Creatable {
     /// @dev checks our last query price to see if our contract should enter settlement due to it being past our
     //  expiration date or outside of our tradeable ranges.
     function checkSettlement() internal {
-        if (isSettled)   // already settled.
-            return;
+        require(!isSettled); // already settled.
 
         uint newSettlementPrice;
         if (now > EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
