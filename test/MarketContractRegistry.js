@@ -191,6 +191,30 @@ contract('MarketContractRegistry', function(accounts) {
     );
   });
 
+  it('Cannot re-add white listed contract', async function() {
+    const ownerAddress = await marketContractRegistry.owner.call();
+    assert.equal(accounts[0], ownerAddress, "owner isn't our first account");
+
+    var isAddressWhiteListed = await marketContractRegistry.isAddressWhiteListed.call(
+      marketContract.address
+    );
+    assert.isTrue(isAddressWhiteListed, 'Deployed Market Contract is not White Listed');
+
+    // attempt to add the contract to the whitelist a second time should fail!
+    let error = null;
+    try {
+      await marketContractRegistry.addAddressToWhiteList(marketContract.address, {
+        from: ownerAddress
+      });
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(
+      error instanceof Error,
+      "Adding contract to whitelist when its already there didn't fail"
+    );
+  });
+
   it('Only owner is able to remove factory address', async function() {
     const ownerAddress = await marketContractRegistry.owner.call();
     assert.equal(accounts[0], ownerAddress, "owner isn't our first account");
