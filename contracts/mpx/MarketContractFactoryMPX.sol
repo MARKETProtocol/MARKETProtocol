@@ -21,9 +21,9 @@ import "../MarketContractRegistryInterface.sol";
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-/// @title MarketContractFactoryOraclize
+/// @title MarketContractFactoryMPX
 /// @author Phil Elsasser <phil@marketprotocol.io>
-contract MarketContractFactoryOraclize is Ownable {
+contract MarketContractFactoryMPX is Ownable {
 
     address public marketContractRegistry;
     address public oracleHubAddress;
