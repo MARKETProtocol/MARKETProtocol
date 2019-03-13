@@ -64,9 +64,9 @@ contract MarketContract is Ownable {
     ///     qtyMultiplier       multiply traded qty by this value from base units of collateral token.
     ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
     constructor(
-        string contractName,
-        address[3] baseAddresses,
-        uint[5] contractSpecs
+        string memory contractName,
+        address[3] memory baseAddresses,
+        uint[5] memory contractSpecs
     ) public
     {
         PRICE_FLOOR = contractSpecs[0];
@@ -79,7 +79,6 @@ contract MarketContract is Ownable {
         require(EXPIRATION > now);
 
         CONTRACT_NAME = contractName;
-        owner = baseAddresses[0];
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         COLLATERAL_POOL_ADDRESS = baseAddresses[2];
         COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
@@ -89,6 +88,7 @@ contract MarketContract is Ownable {
         PositionToken shortPosToken = new PositionToken("Short Position Token", "SHRT", 1);
         LONG_POSITION_TOKEN = address(longPosToken);
         SHORT_POSITION_TOKEN = address(shortPosToken);
+        transferOwnership(baseAddresses[0]);
     }
 
     /*

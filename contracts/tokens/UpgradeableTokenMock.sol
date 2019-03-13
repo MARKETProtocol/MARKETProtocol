@@ -36,8 +36,6 @@ contract UpgradeableTokenMock is UpgradeableToken, UpgradeableTarget {
     */
     function upgradeFrom(address from, uint256 value) external {
         require(msg.sender == PREVIOUS_TOKEN_ADDRESS);    // this can only be called from the  previous token!
-        balances[from] = balances[from].add(value);         // credit new balance from upgrade.
-        totalSupply_ = totalSupply_.add(value);             // keep track of total supply
-        emit Transfer(address(0), from, value);
+        _mint(from, value);
     }
 }

@@ -47,7 +47,7 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
 
     /// @notice all currently whitelisted addresses
     /// returns array of addresses
-    function getAddressWhiteList() external view returns (address[]) {
+    function getAddressWhiteList() external view returns (address[] memory) {
         return addressWhiteList;
     }
 
@@ -74,7 +74,7 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
     /// a decentralized smart contract of community members to vote
     /// @param contractAddress contract to removed from white list
     function addAddressToWhiteList(address contractAddress) external {
-        require(msg.sender == owner || factoryAddressWhiteList[msg.sender], "Can only be added by factory or owner");
+        require(isOwner() || factoryAddressWhiteList[msg.sender], "Can only be added by factory or owner");
         require(!isWhiteListed[contractAddress]);
         isWhiteListed[contractAddress] = true;
         addressWhiteList.push(contractAddress);

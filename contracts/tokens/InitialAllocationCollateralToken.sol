@@ -30,8 +30,8 @@ contract InitialAllocationCollateralToken is CollateralToken {
 
     /// @dev creates a token that allows for all addresses to retrieve an initial token allocation.
     constructor (
-        string tokenName,
-        string tokenSymbol,
+        string memory tokenName,
+        string memory tokenSymbol,
         uint256 initialTokenAllocation,
         uint8 tokenDecimals
     ) public CollateralToken(
@@ -47,7 +47,7 @@ contract InitialAllocationCollateralToken is CollateralToken {
     function getInitialAllocation() external {
         require(!isInitialAllocationClaimed[msg.sender]);
         isInitialAllocationClaimed[msg.sender] = true;
-        balances[msg.sender] = balances[msg.sender].add(INITIAL_TOKEN_ALLOCATION);
+        _mint(msg.sender, INITIAL_TOKEN_ALLOCATION);
         totalTokenAllocationsRequested++;
         emit AllocationClaimed(msg.sender);
     }

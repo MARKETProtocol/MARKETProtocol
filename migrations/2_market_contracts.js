@@ -1,14 +1,14 @@
 const MathLib = artifacts.require('./libraries/MathLib.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
 const MarketToken = artifacts.require('./tokens/MarketToken.sol');
-const MarketContractOraclize = artifacts.require('./oraclize/MarketContractOraclize.sol');
+const MarketContractMPX = artifacts.require('./mpx/MarketContractMPX.sol');
 const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
 
 module.exports = function(deployer, network) {
   if (network !== 'live') {
     deployer.deploy([MathLib, MarketContractRegistry]).then(function() {
-      deployer.link(MathLib, [MarketContractOraclize, MarketCollateralPool]);
+      deployer.link(MathLib, [MarketContractMPX, MarketCollateralPool]);
 
       return deployer.deploy(MarketCollateralPool, MarketContractRegistry.address).then(function() {
         var gasLimit = web3.eth.getBlock('latest').gasLimit;

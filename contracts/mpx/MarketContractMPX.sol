@@ -42,12 +42,12 @@ contract MarketContractMPX is MarketContract {
     /// @param oracleURL url of data
     /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
     constructor(
-        string contractName,
-        address[3] baseAddresses,
+        string memory contractName,
+        address[3] memory baseAddresses,
         address oracleHubAddress,
-        uint[5] contractSpecs,
-        string oracleURL,
-        string oracleStatistic
+        uint[5] memory contractSpecs,
+        string memory oracleURL,
+        string memory oracleStatistic
     ) MarketContract(
         contractName,
         baseAddresses,

@@ -67,7 +67,7 @@ contract MarketCollateralPool is Ownable {
 
         // EXTERNAL CALL - transferring ERC20 tokens from sender to this contract.  User must have called
         // ERC20.approve in order for this call to succeed.
-        ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, this, neededCollateral);
+        ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, address(this), neededCollateral);
 
         // Update the collateral pool locked balance.
         contractAddressToCollateralPoolBalance[marketContractAddress] = contractAddressToCollateralPoolBalance[
@@ -143,8 +143,8 @@ contract MarketCollateralPool is Ownable {
             marketContract.settlementPrice()
         );
 
-        contractAddressToCollateralPoolBalance[marketContract] = contractAddressToCollateralPoolBalance[
-            marketContract
+        contractAddressToCollateralPoolBalance[marketContractAddress] = contractAddressToCollateralPoolBalance[
+            marketContractAddress
         ].subtract(collateralToReturn);
 
         // return collateral tokens
