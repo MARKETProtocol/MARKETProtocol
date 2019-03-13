@@ -24,6 +24,7 @@ import "./MarketContractRegistryInterface.sol";
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
 
+    // whitelist accounting
     mapping(address => bool) public isWhiteListed;
     address[] public addressWhiteList;                             // record of currently deployed addresses;
     mapping(address => bool) public factoryAddressWhiteList;       // record of authorized factories
@@ -73,7 +74,7 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
     /// a decentralized smart contract of community members to vote
     /// @param contractAddress contract to removed from white list
     function addAddressToWhiteList(address contractAddress) external {
-        require(msg.sender == owner || factoryAddressWhiteList[msg.sender], "Can only be added by factor or owner");
+        require(msg.sender == owner || factoryAddressWhiteList[msg.sender], "Can only be added by factory or owner");
         require(!isWhiteListed[contractAddress]);
         isWhiteListed[contractAddress] = true;
         addressWhiteList.push(contractAddress);

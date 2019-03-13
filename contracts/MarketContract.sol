@@ -16,7 +16,8 @@
 
 pragma solidity ^0.4.24;
 
-import "./Creatable.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+
 import "./libraries/MathLib.sol";
 import "./tokens/PositionToken.sol";
 
@@ -25,7 +26,7 @@ import "./tokens/PositionToken.sol";
 /// @notice this is the abstract base contract that all contracts should inherit from to
 /// implement different oracle solutions.
 /// @author Phil Elsasser <phil@marketprotocol.io>
-contract MarketContract is Creatable {
+contract MarketContract is Ownable {
 
     string public CONTRACT_NAME;
     address public COLLATERAL_TOKEN_ADDRESS;
@@ -36,12 +37,14 @@ contract MarketContract is Creatable {
     uint public QTY_MULTIPLIER;         // multiplier corresponding to the value of 1 increment in price to token base units
     uint public COLLATERAL_PER_UNIT;    // required collateral amount for the full range of outcome tokens
     uint public EXPIRATION;
+    uint public SETTLEMENT_DELAY = 1 days;
     address public LONG_POSITION_TOKEN;
     address public SHORT_POSITION_TOKEN;
 
     // state variables
     uint public lastPrice;
     uint public settlementPrice;
+    uint public settlementTimeStamp;
     bool public isSettled = false;
 
     // events
@@ -76,7 +79,7 @@ contract MarketContract is Creatable {
         require(EXPIRATION > now);
 
         CONTRACT_NAME = contractName;
-        creator = baseAddresses[0];
+        owner = baseAddresses[0];
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         COLLATERAL_POOL_ADDRESS = baseAddresses[2];
         COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
@@ -86,6 +89,15 @@ contract MarketContract is Creatable {
         PositionToken shortPosToken = new PositionToken("Short Position Token", "SHRT", 1);
         LONG_POSITION_TOKEN = address(longPosToken);
         SHORT_POSITION_TOKEN = address(shortPosToken);
+    }
+
+    /*
+    // Public METHODS
+    */
+
+    /// @notice checks to see if a contract is settled, and that the settlement delay has passed
+    function isPostSettlementDelay() public view returns (bool) {
+        isSettled && now > (settlementTimeStamp + SETTLEMENT_DELAY);
     }
 
     /*
@@ -155,6 +167,7 @@ contract MarketContract is Creatable {
     /// @dev records our final settlement price and fires needed events.
     /// @param finalSettlementPrice final query price at time of settlement
     function settleContract(uint finalSettlementPrice) private {
+        settlementTimeStamp = now;
         settlementPrice = finalSettlementPrice;
         emit ContractSettled(finalSettlementPrice);
     }

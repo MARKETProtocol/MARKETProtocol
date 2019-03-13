@@ -121,7 +121,7 @@ contract MarketCollateralPool is Ownable {
         int qtyToRedeem
     ) external onlyWhiteListedAddress(marketContractAddress) {
         MarketContract marketContract = MarketContract(marketContractAddress);
-        require(marketContract.isSettled(), "Contract is not settled");
+        require(marketContract.isPostSettlementDelay(), "Contract is not past settlement delay");
 
         // burn tokens being redeemed.
         MarketSide marketSide;
@@ -164,7 +164,10 @@ contract MarketCollateralPool is Ownable {
     /// long and short token address.  If it didn't we could have spoofed contracts minting tokens with a
     /// collateral token that wasn't the same as the intended token.
     modifier onlyWhiteListedAddress(address marketContractAddress) {
-        require(MarketContractRegistryInterface(MARKET_CONTRACT_REGISTRY).isAddressWhiteListed(marketContractAddress), "Contract is not whitelisted");
+        require(
+            MarketContractRegistryInterface(MARKET_CONTRACT_REGISTRY).isAddressWhiteListed(marketContractAddress),
+            "Contract is not whitelisted"
+        );
         _;
     }
 }
