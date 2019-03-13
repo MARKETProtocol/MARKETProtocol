@@ -21,7 +21,6 @@ module.exports = function(deployer, network) {
                 return deployer
                   .deploy(MarketCollateralPool, MarketContractRegistry.address)
                   .then(function() {
-                    var gasLimit = web3.eth.getBlock('latest').gasLimit;
                     return MarketCollateralPool.deployed().then(function() {
                       return deployer
                         .deploy(CollateralToken, 'CollateralToken', 'CTK', 10000, 18, {
