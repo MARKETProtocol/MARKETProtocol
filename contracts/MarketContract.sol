@@ -36,6 +36,7 @@ contract MarketContract is Ownable {
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
     uint public QTY_MULTIPLIER;         // multiplier corresponding to the value of 1 increment in price to token base units
     uint public COLLATERAL_PER_UNIT;    // required collateral amount for the full range of outcome tokens
+    uint public FEE_PER_UNIT;
     uint public EXPIRATION;
     uint public SETTLEMENT_DELAY = 1 days;
     address public LONG_POSITION_TOKEN;
@@ -62,11 +63,12 @@ contract MarketContract is Ownable {
     ///     priceDecimalPlaces  number of decimal places to convert our queried price from a floating point to
     ///                         an integer
     ///     qtyMultiplier       multiply traded qty by this value from base units of collateral token.
+    ///     feeInBasisPoints    fee amount in basis points for minting.
     ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
     constructor(
         string memory contractName,
         address[3] memory baseAddresses,
-        uint[5] memory contractSpecs
+        uint[6] memory contractSpecs
     ) public
     {
         PRICE_FLOOR = contractSpecs[0];
@@ -82,6 +84,7 @@ contract MarketContract is Ownable {
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         COLLATERAL_POOL_ADDRESS = baseAddresses[2];
         COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
+        FEE_PER_UNIT = MathLib.calculateFeePerUnit(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER, contractSpecs[5]);
 
         // create long and short tokens  // TODO: fix names!
         PositionToken longPosToken = new PositionToken("Long Position Token", "LONG", 0);

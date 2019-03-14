@@ -35,12 +35,22 @@ contract MarketCollateralPool is Ownable {
     using MathLib for int;
     using SafeERC20 for ERC20;
 
-    address public MARKET_CONTRACT_REGISTRY;
-    mapping(address => uint) public contractAddressToCollateralPoolBalance;                 // current balance of all collateral committed
     enum MarketSide { Long, Short, Both}
+    address public MARKET_CONTRACT_REGISTRY;
+
+    mapping(address => uint) public contractAddressToCollateralPoolBalance;                 // current balance of all collateral committed
+    mapping(address => uint) public feesCollectedByTokenAddress;
+    uint8 feeAmountInBasisPoints = 25;
+
 
     event TokensMinted(address indexed marketContract, address indexed user, uint qtyMinted, uint collateralLocked);
-    event TokensRedeemed(address indexed marketContract, address indexed user, uint qtyRedeemed, uint collateralUnlocked, uint8 marketSide);
+    event TokensRedeemed(
+        address indexed marketContract,
+        address indexed user,
+        uint qtyRedeemed,
+        uint collateralUnlocked,
+        uint8 marketSide
+    );
 
     constructor(address marketContractRegistry) public {
         MARKET_CONTRACT_REGISTRY = marketContractRegistry;
@@ -64,10 +74,17 @@ contract MarketCollateralPool is Ownable {
         require(!marketContract.isSettled(), "Contract is already settled");
 
         uint neededCollateral = MathLib.multiply(qtyToMint, marketContract.COLLATERAL_PER_UNIT());
+        uint feeAmount = MathLib.multiply(qtyToMint, marketContract.FEE_PER_UNIT());
+        uint totalTransferAmount = neededCollateral.add(feeAmount);
+        address collateralTokenAddress = marketContract.COLLATERAL_TOKEN_ADDRESS();
 
         // EXTERNAL CALL - transferring ERC20 tokens from sender to this contract.  User must have called
         // ERC20.approve in order for this call to succeed.
-        ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, address(this), neededCollateral);
+        ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, address(this), totalTransferAmount);
+
+        // update the fee's collected balance
+        feesCollectedByTokenAddress[collateralTokenAddress] =
+            feesCollectedByTokenAddress[collateralTokenAddress].add(feeAmount);
 
         // Update the collateral pool locked balance.
         contractAddressToCollateralPoolBalance[marketContractAddress] = contractAddressToCollateralPoolBalance[
@@ -158,6 +175,21 @@ contract MarketCollateralPool is Ownable {
             uint8(marketSide)
         );
     }
+
+    /// @dev allows the owner to remove the fees paid into this contract for minting
+    /// @param feeTokenAddress - address of the erc20 token fees have been paid in
+    function withdrawFees(address feeTokenAddress) public onlyOwner {
+        uint feesAvailableForWithdrawal = feesCollectedByTokenAddress[feeTokenAddress];
+        require(feesAvailableForWithdrawal != 0, 'No fees available for withdrawal');
+        feesCollectedByTokenAddress[feeTokenAddress] = 0;
+
+        // EXTERNAL CALL
+        ERC20(feeTokenAddress).transferTo(msg.sender, feesAvailableForWithdrawal);
+    }
+
+    /*
+    // MODIFIERS
+    */
 
     /// @notice only can be called with a market contract address that currently exists in our whitelist
     /// this ensure's it is a market contract that has been created by us and therefore has a uniquely created
