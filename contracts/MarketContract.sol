@@ -77,14 +77,14 @@ contract MarketContract is Ownable {
 
         PRICE_DECIMAL_PLACES = contractSpecs[2];
         QTY_MULTIPLIER = contractSpecs[3];
-        EXPIRATION = contractSpecs[4];
-        require(EXPIRATION > now);
+        EXPIRATION = contractSpecs[5];
+        require(EXPIRATION > now, 'expiration must be in the future');
 
         CONTRACT_NAME = contractName;
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         COLLATERAL_POOL_ADDRESS = baseAddresses[2];
         COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
-        FEE_PER_UNIT = MathLib.calculateFeePerUnit(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER, contractSpecs[5]);
+        FEE_PER_UNIT = MathLib.calculateFeePerUnit(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER, contractSpecs[4]);
 
         // create long and short tokens  // TODO: fix names!
         PositionToken longPosToken = new PositionToken("Long Position Token", "LONG", 0);

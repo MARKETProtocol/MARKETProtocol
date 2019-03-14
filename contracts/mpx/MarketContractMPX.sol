@@ -38,6 +38,7 @@ contract MarketContractMPX is MarketContract {
     ///     priceDecimalPlaces      number of decimal places to convert our queried price from a floating point to
     ///                             an integer
     ///     qtyMultiplier           multiply traded qty by this value from base units of collateral token.
+    ///     feeInBasisPoints        fee amount in basis points for minting.
     ///     expirationTimeStamp     seconds from epoch that this contract expires and enters settlement
     /// @param oracleURL url of data
     /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
@@ -45,7 +46,7 @@ contract MarketContractMPX is MarketContract {
         string memory contractName,
         address[3] memory baseAddresses,
         address oracleHubAddress,
-        uint[5] memory contractSpecs,
+        uint[6] memory contractSpecs,
         string memory oracleURL,
         string memory oracleStatistic
     ) MarketContract(

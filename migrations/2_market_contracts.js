@@ -55,6 +55,7 @@ module.exports = function(deployer, network) {
                                               20000000000000,
                                               60000000000000,
                                               10,
+                                              25,
                                               100000000,
                                               marketContractExpiration
                                             ],
@@ -70,6 +71,7 @@ module.exports = function(deployer, network) {
                                                 20000000000000,
                                                 60000000000000,
                                                 10,
+                                                25,
                                                 100000000,
                                                 marketContractExpiration
                                               ],

@@ -184,7 +184,7 @@ contract MarketCollateralPool is Ownable {
         feesCollectedByTokenAddress[feeTokenAddress] = 0;
 
         // EXTERNAL CALL
-        ERC20(feeTokenAddress).transferTo(msg.sender, feesAvailableForWithdrawal);
+        ERC20(feeTokenAddress).transfer(msg.sender, feesAvailableForWithdrawal);
     }
 
     /*
