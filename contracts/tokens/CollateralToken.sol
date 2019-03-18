@@ -40,6 +40,6 @@ contract CollateralToken is ERC20 {
         name = tokenName;
         symbol = tokenSymbol;
         decimals = tokenDecimals;
-        _mint(msg.sender, initialSupply);
+        _mint(msg.sender, initialSupply * 10**uint(decimals));
     }
 }

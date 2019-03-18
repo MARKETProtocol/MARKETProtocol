@@ -25,6 +25,7 @@ contract('PositionToken', function(accounts) {
   beforeEach(async function() {
     collateralPool = await MarketCollateralPool.deployed();
     collateralToken = await CollateralToken.deployed();
+
     marketContract = await utility.createMarketContract(
       collateralToken,
       collateralPool,
@@ -38,8 +39,26 @@ contract('PositionToken', function(accounts) {
     qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
     priceFloor = await marketContract.PRICE_FLOOR.call();
     priceCap = await marketContract.PRICE_CAP.call();
-    longPositionToken = PositionToken.at(await marketContract.LONG_POSITION_TOKEN());
-    shortPositionToken = PositionToken.at(await marketContract.SHORT_POSITION_TOKEN());
+    longPositionToken = await PositionToken.at(await marketContract.LONG_POSITION_TOKEN());
+    shortPositionToken = await PositionToken.at(await marketContract.SHORT_POSITION_TOKEN());
+  });
+
+  describe('Token symbols correctly created', function() {
+    it(`long position token symbol`, async function() {
+      assert.equal(
+        await longPositionToken.symbol(),
+        'LBTC',
+        'should set symbol of long position token correctly from constructor'
+      );
+    });
+
+    it(`short position token symbol`, async function() {
+      assert.equal(
+        await shortPositionToken.symbol(),
+        'SBTC',
+        'should set symbol of long position token correctly from constructor'
+      );
+    });
   });
 
   describe('onlyOwner can call mintAndSendToken and redeemToken', function() {
@@ -75,7 +94,7 @@ contract('PositionToken', function(accounts) {
   describe('total supply and balances of long and short position tokens', function() {
     it(`mintAndSendToken and redeemToken updates total supply and balances of minter/redeemer correctly`, async function() {
       // 1. approve collateral and mint tokens
-      const amountToApprove = 1e22;
+      const amountToApprove = '10000000000000000000000'; // 10e22 as a string to avoid issues with web3 bugs
       await collateralToken.approve(collateralPool.address, amountToApprove);
       const qtyToMint = 100;
       await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
@@ -117,38 +136,38 @@ contract('PositionToken', function(accounts) {
       });
 
       // 3. assert final tokens balance are as expected
-      const expectedFinalLongPosTokenBalance = initialLongPosTokenBalance.minus(qtyToRedeem);
-      const expectedFinalShortPosTokenBalance = initialShortPosTokenBalance.minus(qtyToRedeem);
+      const expectedFinalLongPosTokenBalance = initialLongPosTokenBalance - qtyToRedeem;
+      const expectedFinalShortPosTokenBalance = initialShortPosTokenBalance - qtyToRedeem;
 
       const finalLongPosTokenBalance = await longPositionToken.balanceOf(userAddress);
       const finalShortPosTokenBalance = await shortPositionToken.balanceOf(userAddress);
 
       assert.equal(
         finalLongPosTokenBalance.toNumber(),
-        expectedFinalLongPosTokenBalance.toNumber(),
+        expectedFinalLongPosTokenBalance,
         'incorrect long position token balance after redeeming'
       );
       assert.equal(
         finalShortPosTokenBalance.toNumber(),
-        expectedFinalShortPosTokenBalance.toNumber(),
+        expectedFinalShortPosTokenBalance,
         'incorrect short position token balance after redeeming'
       );
 
       // 4. assert final tokens total supply are as expected
-      const expectedFinalLongPosTokenSupply = initialLongPosTokenSupply.minus(qtyToRedeem);
-      const expectedFinalShortPosTokenSupply = initialShortPosTokenSupply.minus(qtyToRedeem);
+      const expectedFinalLongPosTokenSupply = initialLongPosTokenSupply - qtyToRedeem;
+      const expectedFinalShortPosTokenSupply = initialShortPosTokenSupply - qtyToRedeem;
 
       const finalLongPosTokenSupply = await longPositionToken.totalSupply();
       const finalShortPosTokenSupply = await shortPositionToken.totalSupply();
 
       assert.equal(
         finalLongPosTokenSupply.toNumber(),
-        expectedFinalLongPosTokenSupply.toNumber(),
+        expectedFinalLongPosTokenSupply,
         'incorrect long position token total supply after redeeming'
       );
       assert.equal(
         finalShortPosTokenSupply.toNumber(),
-        expectedFinalShortPosTokenSupply.toNumber(),
+        expectedFinalShortPosTokenSupply,
         'incorrect short position token total supply after redeeming'
       );
     });
