@@ -79,6 +79,8 @@ contract MarketContractMPX is MarketContract {
     /// if a dispute arises that we believe is best resolved by early settlement.
     /// @param price settlement price
     function arbitrateSettlement(uint256 price) public onlyOracleHub {
+        lastPrice = price;
+        emit UpdatedLastPrice(price);
         settleContract(price);
         isSettled = true;
     }
