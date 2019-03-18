@@ -74,6 +74,15 @@ contract MarketContractMPX is MarketContract {
         checkSettlement();  // Verify settlement at expiration or requested early settlement.
     }
 
+    /// @dev allows us to arbitrate a settlement price by updating the settlement value, and resetting the
+    /// delay for funds to be released. Could also be used to allow us to force a contract into early settlement
+    /// if a dispute arises that we believe is best resolved by early settlement.
+    /// @param price settlement price
+    function arbitrateSettlement(uint256 price) public onlyOracleHub {
+        settleContract(price);
+        isSettled = true;
+    }
+
     /// @dev allows calls only from the oracle hub.
     modifier onlyOracleHub() {
         require(msg.sender == ORACLE_HUB_ADDRESS);

@@ -177,7 +177,7 @@ contract MarketContract is Ownable {
 
     /// @dev records our final settlement price and fires needed events.
     /// @param finalSettlementPrice final query price at time of settlement
-    function settleContract(uint finalSettlementPrice) private {
+    function settleContract(uint finalSettlementPrice) internal {
         settlementTimeStamp = now;
         settlementPrice = finalSettlementPrice;
         emit ContractSettled(finalSettlementPrice);
