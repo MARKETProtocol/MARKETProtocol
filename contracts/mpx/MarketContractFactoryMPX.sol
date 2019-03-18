@@ -40,7 +40,7 @@ contract MarketContractFactoryMPX is Ownable {
     }
 
     /// @dev Deploys a new instance of a market contract and adds it to the whitelist.
-    /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
+    /// @param contractNames comma separated list of 3 names "contractName,longTokenSymbol,shortTokenSymbol"
     /// @param collateralTokenAddress address of the ERC20 token that will be used for collateral and pricing
     /// @param contractSpecs array of unsigned integers including:
     ///     floorPrice              minimum tradeable price of this contract, contract enters settlement if breached
@@ -53,7 +53,7 @@ contract MarketContractFactoryMPX is Ownable {
     /// @param oracleURL url of data
     /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
     function deployMarketContractMPX(
-        string calldata contractName,
+        string calldata contractNames,
         address collateralTokenAddress,
         uint[6] calldata contractSpecs,
         string calldata oracleURL,
@@ -61,7 +61,7 @@ contract MarketContractFactoryMPX is Ownable {
     ) external
     {
         MarketContractMPX mktContract = new MarketContractMPX(
-            contractName,
+            contractNames,
             [
             msg.sender,
             collateralTokenAddress,

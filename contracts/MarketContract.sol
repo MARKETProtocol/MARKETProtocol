@@ -19,6 +19,7 @@ pragma solidity ^0.5.0;
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import "./libraries/MathLib.sol";
+import "./libraries/StringLib.sol";
 import "./tokens/PositionToken.sol";
 
 
@@ -27,6 +28,7 @@ import "./tokens/PositionToken.sol";
 /// implement different oracle solutions.
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketContract is Ownable {
+    using StringLib for *;
 
     string public CONTRACT_NAME;
     address public COLLATERAL_TOKEN_ADDRESS;
@@ -52,7 +54,7 @@ contract MarketContract is Ownable {
     event UpdatedLastPrice(uint256 price);
     event ContractSettled(uint settlePrice);
 
-    /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
+    /// @param contractNames comma separated list of 3 names "contractName,longTokenSymbol,shortTokenSymbol"
     /// @param baseAddresses array of 2 addresses needed for our contract including:
     ///     creatorAddress                  address of the person creating the contract
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
@@ -66,7 +68,7 @@ contract MarketContract is Ownable {
     ///     feeInBasisPoints    fee amount in basis points for minting.
     ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
     constructor(
-        string memory contractName,
+        string memory contractNames,
         address[3] memory baseAddresses,
         uint[6] memory contractSpecs
     ) public
@@ -80,17 +82,23 @@ contract MarketContract is Ownable {
         EXPIRATION = contractSpecs[5];
         require(EXPIRATION > now, 'expiration must be in the future');
 
-        CONTRACT_NAME = contractName;
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         COLLATERAL_POOL_ADDRESS = baseAddresses[2];
         COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
         FEE_PER_UNIT = MathLib.calculateFeePerUnit(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER, contractSpecs[4]);
 
-        // create long and short tokens  // TODO: fix names!
-        PositionToken longPosToken = new PositionToken("Long Position Token", "LONG", 0);
-        PositionToken shortPosToken = new PositionToken("Short Position Token", "SHRT", 1);
+        // create long and short tokens
+        StringLib.slice memory pathSlice = contractNames.toSlice();
+        StringLib.slice memory delim = ",".toSlice();
+        require(pathSlice.count(delim) == 2, "ContractNames must contain 3 names");  //contractName,lTokenName,sTokenName
+        CONTRACT_NAME = pathSlice.split(delim).toString();
+
+        PositionToken longPosToken = new PositionToken("Long Position Token", pathSlice.split(delim).toString(), 0);
+        PositionToken shortPosToken = new PositionToken("Short Position Token", pathSlice.split(delim).toString(), 1);
+
         LONG_POSITION_TOKEN = address(longPosToken);
         SHORT_POSITION_TOKEN = address(shortPosToken);
+
         transferOwnership(baseAddresses[0]);
     }
 
