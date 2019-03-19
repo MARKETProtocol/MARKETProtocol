@@ -12,7 +12,7 @@ default:
 
 # install truffle
 install_truffle:
-	npm install -g truffle
+	npm install -g truffle@4.1.15
 
 # install required dependencies
 install_deps:

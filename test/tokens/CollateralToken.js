@@ -1,5 +1,4 @@
 const CollateralToken = artifacts.require('CollateralToken');
-const BN = require('bn.js');
 
 // basic tests to ensure collateral token works and is set up to allow trading
 contract('CollateralToken', function(accounts) {
@@ -21,7 +20,7 @@ contract('CollateralToken', function(accounts) {
   });
 
   it('Main account should be able to transfer balance', async function() {
-    const balanceToTransfer = initBalance.div(new BN('2'));
+    const balanceToTransfer = initBalance / 2;
     await collateralToken.transfer(accounts[1], balanceToTransfer, { from: accounts[0] });
     const secondAcctBalance = await collateralToken.balanceOf(accounts[1]);
     assert.isTrue(secondAcctBalance.eq(balanceToTransfer), "Transfer didn't register correctly");

@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.5.0;
+pragma solidity ^0.4.25;
 
 import "./MarketContractMPX.sol";
 import "../MarketContractRegistryInterface.sol";
@@ -53,11 +53,11 @@ contract MarketContractFactoryMPX is Ownable {
     /// @param oracleURL url of data
     /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
     function deployMarketContractMPX(
-        string calldata contractNames,
+        string contractNames,
         address collateralTokenAddress,
-        uint[6] calldata contractSpecs,
-        string calldata oracleURL,
-        string calldata oracleStatistic
+        uint[6] contractSpecs,
+        string oracleURL,
+        string oracleStatistic
     ) external
     {
         MarketContractMPX mktContract = new MarketContractMPX(
