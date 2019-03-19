@@ -1,8 +1,8 @@
-const MarketContractOraclize = artifacts.require('MarketContractOraclize');
+const MarketContractMPX = artifacts.require('MarketContractMPX');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const CollateralToken = artifacts.require('CollateralToken');
-const MarketContractFactory = artifacts.require('./chainlink/MarketContractFactoryChainLink.sol');
+const MarketContractFactory = artifacts.require('MarketContractFactoryMPX');
 
 contract('MarketContractRegistry', function(accounts) {
   let collateralPool;
@@ -13,7 +13,7 @@ contract('MarketContractRegistry', function(accounts) {
   beforeEach(async function() {
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
-    marketContract = await MarketContractOraclize.at(whiteList[1]);
+    marketContract = await MarketContractMPX.at(whiteList[1]);
     collateralPool = await MarketCollateralPool.deployed();
     collateralToken = await CollateralToken.deployed();
   });

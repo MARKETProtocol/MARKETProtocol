@@ -1,27 +1,27 @@
-const MarketContractChainLink = artifacts.require('MarketContractChainLink');
+const MarketContractMPX = artifacts.require('MarketContractMPX');
 const CollateralToken = artifacts.require('CollateralToken');
 const MathLib = artifacts.require('MathLib');
 
-contract('MarketContractChainLink', function(accounts) {
+contract('MarketContractMPX', function(accounts) {
   const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
-  const oracleQueryURL = 'https://api.kraken.com/0/public/Ticker?pair=ETHUSD';
-  const oracleQueryPath = 'result.XETHZUSD.c.0';
+  const oracleURL = 'api.coincap.io/v2/rates/bitcoin';
+  const oracleStatistic = 'rateUsd';
   let marketContract;
 
   before(async function() {
-    marketContract = await MarketContractChainLink.new(
-      'MyNewContract',
+    marketContract = await MarketContractMPX.new(
+      'NTC,LBTC,SBTC',
       [accounts[0], CollateralToken.address],
       accounts[0], // substitute our address for the oracleHubAddress so we can callback from queries.
-      [0, 150, 2, 2, expiration],
-      oracleQueryURL,
-      oracleQueryPath
+      [0, 150, 2, 2, 0, expiration],
+      oracleURL,
+      oracleStatistic
     );
   });
 
   it('Constructor sets needed variables correctly', async function() {
-    assert.equal(await marketContract.ORACLE_QUERY_URL(), oracleQueryURL);
-    assert.equal(await marketContract.ORACLE_QUERY_PATH(), oracleQueryPath);
+    assert.equal(await marketContract.ORACLE_URL(), oracleURL);
+    assert.equal(await marketContract.ORACLE_STATISTIC(), oracleStatistic);
     assert.equal(await marketContract.ORACLE_HUB_ADDRESS(), accounts[0]);
   });
 

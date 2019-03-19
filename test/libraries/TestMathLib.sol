@@ -68,8 +68,7 @@ contract TestMathLib {
     function testSubtract() public {
         Assert.equal(MathLib.subtract(uint(1), uint(1)), 0, "1 - 1 does not equal 0");
         bytes memory test_abi = abi.encodeWithSignature("failSubtractWhenALessThanB()");
-        (bool success, bytes memory data) = address(this).call(test_abi);
-        data;   // silence warnings
+        bool success = address(this).call(test_abi);
         Assert.isFalse(success, "Should assert");
     }
 
@@ -87,8 +86,7 @@ contract TestMathLib {
         Assert.equal(MathLib.add(int256(0), signedIntMin), signedIntMin, "add 0 to int256 min should equal int256 min");
 
         bytes memory test_abi = abi.encodeWithSignature("failSafeAddWhenGreaterThanIntMax()");
-        (bool success, bytes memory data) = address(this).call(test_abi);
-        data;   // silence warnings
+        bool success = address(this).call(test_abi);
         Assert.isFalse(success, "Should assert");
     }
 
@@ -103,8 +101,7 @@ contract TestMathLib {
         Assert.equal(MathLib.divideFractional(4, 6, 10), 2, "24 / 10 = 2");
 
         bytes memory test_abi = abi.encodeWithSignature("failDivideFractionalByZero()");
-        (bool success, bytes memory data) = address(this).call(test_abi);
-        data;   // silence warnings
+        bool success = address(this).call(test_abi);
         Assert.isFalse(success, "Should assert");
     }
 
@@ -189,8 +186,7 @@ contract TestMathLib {
 
     function testCalculateTotalCollateralWithAbnormalPrices() public {
         bytes memory test_abi = abi.encodeWithSignature("failCalculatingTotalCollateralWithAbnormalPrices()");
-        (bool success, bytes memory data) = address(this).call(test_abi);
-        data;   // silence warnings
+        bool success = address(this).call(test_abi);
         Assert.isFalse(success, "total collateral should fail for abnormal price margins");
     }
 

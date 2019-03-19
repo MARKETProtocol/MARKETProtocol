@@ -34,7 +34,7 @@ contract TestStringLib {
         StringLib.slice memory pathSlice = contractNames.toSlice();
         StringLib.slice memory delim = ",".toSlice();
         uint length = pathSlice.count(delim) + 1;
-        string[4] memory expectedResults = ["BTC", "LBTC", "SBTC"];
+        string[3] memory expectedResults = ["BTC", "LBTC", "SBTC"];
         for (uint i = 0; i < length; i++) {
             Assert.equal(expectedResults[i], pathSlice.split(delim).toString(), "String not split properly!");
         }

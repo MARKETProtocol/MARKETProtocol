@@ -15,19 +15,20 @@ contract('MarketContract', function(accounts) {
 
   describe('constructor', function() {
     it('should set needed variables correctly', async function() {
-      const name = 'MyNewContract';
+      const name = 'BTC';
       const priceFloor = 50;
       const priceCap = 100;
       const priceDecimalPlaces = 2;
       const qtyMultiplier = 10;
       const expiration = Math.floor(new Date().getTime() / 1000 + 60 * 50);
+      const fees = 0;
 
       marketContract = await utility.createMarketContract(
         collateralToken,
         collateralPool,
         accounts[0],
         null,
-        [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, expiration]
+        [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, fees, expiration]
       );
 
       assert.equal(await marketContract.PRICE_FLOOR(), priceFloor, 'price floor is not correct');
