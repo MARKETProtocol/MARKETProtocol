@@ -108,7 +108,7 @@ contract MarketContract is Ownable {
 
     /// @notice checks to see if a contract is settled, and that the settlement delay has passed
     function isPostSettlementDelay() public view returns (bool) {
-        isSettled && now > (settlementTimeStamp + SETTLEMENT_DELAY);
+        return isSettled && (now >= (settlementTimeStamp + SETTLEMENT_DELAY));
     }
 
     /*

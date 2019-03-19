@@ -102,6 +102,86 @@ module.exports = {
     );
   },
 
+  increase(duration) {
+    const id = Date.now();
+    return new Promise((resolve, reject) => {
+      web3.currentProvider.sendAsync(
+        {
+          jsonrpc: '2.0',
+          method: 'evm_increaseTime',
+          params: [duration],
+          id: id
+        },
+        err1 => {
+          if (err1) return reject(err1);
+
+          web3.currentProvider.sendAsync(
+            {
+              jsonrpc: '2.0',
+              method: 'evm_mine',
+              id: id + 1
+            },
+            (err2, res) => {
+              return err2 ? reject(err2) : resolve(res);
+            }
+          );
+        }
+      );
+    });
+  },
+
+  /**
+   * Creates an EVM Snapshot and returns a Promise that resolves to the id of the snapshot.
+   */
+  createEVMSnapshot() {
+    return new Promise((resolve, reject) => {
+      web3.currentProvider.sendAsync(
+        {
+          jsonrpc: '2.0',
+          method: 'evm_snapshot',
+          params: [],
+          id: new Date().getTime()
+        },
+        (err, response) => {
+          if (err) {
+            reject(err);
+          }
+
+          if (response) {
+            resolve(response.result);
+          }
+        }
+      );
+    });
+  },
+
+  /**
+   * Restores the EVM to the snapshot set in id
+   *
+   * @param {string} snapshotId
+   */
+  restoreEVMSnapshotsnapshotId(snapshotId) {
+    return new Promise((resolve, reject) => {
+      web3.currentProvider.sendAsync(
+        {
+          jsonrpc: '2.0',
+          method: 'evm_revert',
+          params: [snapshotId],
+          id: new Date().getTime()
+        },
+        (err, response) => {
+          if (err) {
+            reject(err);
+          }
+
+          if (response) {
+            resolve();
+          }
+        }
+      );
+    });
+  },
+
   /**
    * Settle MarketContract
    *
