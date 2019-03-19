@@ -30,7 +30,7 @@ contract TestUpgradeableToken {
     MarketToken public marketToken;
 
     function beforeEachCreateMarketToken() public {
-        marketToken = new MarketToken(0, 0);
+        marketToken = new MarketToken();
     }
 
     function beforeEachCreateUpgradeableTokenMock() public {
@@ -40,13 +40,13 @@ contract TestUpgradeableToken {
     function testUpgradeableToken() public {
 
         Assert.equal(
-            marketToken.balanceOf(this),
+            marketToken.balanceOf(address(this)),
             marketToken.INITIAL_SUPPLY(),
             "Unexpected initial supply allocation"
         );
 
         Assert.equal(
-            marketToken.balanceOf(this),
+            marketToken.balanceOf(address(this)),
             marketToken.totalSupply(),
             "Unexpected total supply allocation"
         );
@@ -65,7 +65,7 @@ contract TestUpgradeableToken {
             "Unable to set correct address for upgrade token target"
         );
 
-        marketToken.upgrade(marketToken.balanceOf(this));
+        marketToken.upgrade(marketToken.balanceOf(address(this)));
 
         Assert.equal(
             marketToken.INITIAL_SUPPLY(),
@@ -80,7 +80,7 @@ contract TestUpgradeableToken {
         );
 
         Assert.equal(
-            upgradedToken.balanceOf(this),
+            upgradedToken.balanceOf(address(this)),
             upgradedToken.totalSupply(),
             "Supply not allocated to user"
         );
