@@ -101,11 +101,11 @@ contract MarketCollateralPool is Ownable {
         if (isPayFeesInMKT) { // fees are able to be paid in MKT
             feeAmount = MathLib.multiply(qtyToMint, marketContract.MKT_TOKEN_FEE_PER_UNIT());
             totalCollateralTokenTransferAmount = neededCollateral;
+            feeToken = mktToken;
 
             // EXTERNAL CALL - transferring ERC20 tokens from sender to this contract.  User must have called
             // ERC20.approve in order for this call to succeed.
             ERC20(mktToken).safeTransferFrom(msg.sender, address(this), feeAmount);
-            feeToken = mktToken;
         } else { // fee are either zero, or being paid in the collateral token
             feeAmount = MathLib.multiply(qtyToMint, marketContract.COLLATERAL_TOKEN_FEE_PER_UNIT());
             totalCollateralTokenTransferAmount = neededCollateral.add(feeAmount);
