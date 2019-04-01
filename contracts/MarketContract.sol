@@ -93,8 +93,8 @@ contract MarketContract is Ownable {
         require(pathSlice.count(delim) == 2, "ContractNames must contain 3 names");  //contractName,lTokenName,sTokenName
         CONTRACT_NAME = pathSlice.split(delim).toString();
 
-        PositionToken longPosToken = new PositionToken("Long Position Token", pathSlice.split(delim).toString(), 0);
-        PositionToken shortPosToken = new PositionToken("Short Position Token", pathSlice.split(delim).toString(), 1);
+        PositionToken longPosToken = new PositionToken("MARKET Protocol Long Position Token", pathSlice.split(delim).toString(), 0);
+        PositionToken shortPosToken = new PositionToken("MARKET Protocol Short Position Token", pathSlice.split(delim).toString(), 1);
 
         LONG_POSITION_TOKEN = address(longPosToken);
         SHORT_POSITION_TOKEN = address(shortPosToken);
