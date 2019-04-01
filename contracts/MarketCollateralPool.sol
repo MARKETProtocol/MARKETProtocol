@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.25;
+pragma solidity 0.4.25;
 
 import "./libraries/MathLib.sol";
 import "./MarketContract.sol";
@@ -153,6 +153,7 @@ contract MarketCollateralPool is Ownable {
             marketContractAddress
         ].subtract(collateralToReturn);
 
+        // EXTERNAL CALL
         // transfer collateral back to user
         ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransfer(msg.sender, collateralToReturn);
 
@@ -216,12 +217,14 @@ contract MarketCollateralPool is Ownable {
 
     /// @dev allows the owner to remove the fees paid into this contract for minting
     /// @param feeTokenAddress - address of the erc20 token fees have been paid in
-    function withdrawFees(address feeTokenAddress) public onlyOwner {
+    /// @param feeRecipient - Recipient address of fees
+    function withdrawFees(address feeTokenAddress, address feeRecipient) public onlyOwner {
         uint feesAvailableForWithdrawal = feesCollectedByTokenAddress[feeTokenAddress];
         require(feesAvailableForWithdrawal != 0, "No fees available for withdrawal");
-        // EXTERNAL CALL
-        ERC20(feeTokenAddress).transfer(msg.sender, feesAvailableForWithdrawal);
+        require(feeRecipient != address(0), "Cannot send fees to null address");
         feesCollectedByTokenAddress[feeTokenAddress] = 0;
+        // EXTERNAL CALL
+        ERC20(feeTokenAddress).transfer(feeRecipient, feesAvailableForWithdrawal);
     }
 
     /// @dev allows the owner to update the mkt token address in use for fees

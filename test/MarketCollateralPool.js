@@ -68,7 +68,7 @@ contract('MarketCollateralPool', function(accounts) {
       // 3. minting tokens should fail
       let error = null;
       try {
-        await collateralPool.mintPositionTokens(unregisteredContract.address, 1, {
+        await collateralPool.mintPositionTokens(unregisteredContract.address, 1, false, {
           from: accounts[0]
         });
       } catch (err) {
@@ -88,7 +88,9 @@ contract('MarketCollateralPool', function(accounts) {
       // 2. should fail to mint when user has no collateral.
       let error = null;
       try {
-        await collateralPool.mintPositionTokens(marketContract.address, 1, { from: accounts[1] });
+        await collateralPool.mintPositionTokens(marketContract.address, 1, false, {
+          from: accounts[1]
+        });
       } catch (err) {
         error = err;
       }
@@ -113,7 +115,9 @@ contract('MarketCollateralPool', function(accounts) {
 
       error = null;
       try {
-        await collateralPool.mintPositionTokens(marketContract.address, 1, { from: accounts[0] });
+        await collateralPool.mintPositionTokens(marketContract.address, 1, false, {
+          from: accounts[0]
+        });
       } catch (err) {
         error = err;
       }
@@ -126,7 +130,7 @@ contract('MarketCollateralPool', function(accounts) {
       const amountToApprove = 1e22;
       await collateralToken.approve(collateralPool.address, amountToApprove);
       const qtyToMint = 100;
-      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
         from: accounts[0]
       });
       const longPosTokenBalance = await longPositionToken.balanceOf(accounts[0]);
@@ -152,7 +156,7 @@ contract('MarketCollateralPool', function(accounts) {
       const amountToApprove = 1e22;
       await collateralToken.approve(collateralPool.address, amountToApprove);
       const qtyToMint = 100;
-      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
         from: accounts[0]
       });
 
@@ -180,7 +184,7 @@ contract('MarketCollateralPool', function(accounts) {
 
       let error = null;
       try {
-        await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
+        await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
           from: accounts[0]
         });
       } catch (err) {
@@ -200,7 +204,7 @@ contract('MarketCollateralPool', function(accounts) {
       const qtyToMint = 100;
       const amountToBeLocked =
         qtyToMint * utility.calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier);
-      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
         from: accounts[0]
       });
 
@@ -259,7 +263,7 @@ contract('MarketCollateralPool', function(accounts) {
       const amountToApprove = 1e22;
       await collateralToken.approve(collateralPool.address, amountToApprove);
       const qtyToMint = 100;
-      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
         from: accounts[0]
       });
       const initialLongPosTokenBalance = await longPositionToken.balanceOf(accounts[0]);
@@ -309,7 +313,7 @@ contract('MarketCollateralPool', function(accounts) {
       const amountToApprove = 1e22;
       await collateralToken.approve(collateralPool.address, amountToApprove);
       const qtyToMint = 100;
-      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
         from: accounts[0]
       });
 
@@ -362,7 +366,7 @@ contract('MarketCollateralPool', function(accounts) {
       const amountToApprove = 1e22;
       await collateralToken.approve(collateralPool.address, amountToApprove);
       const qtyToMint = 1;
-      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
         from: accounts[0]
       });
       const shortTokenBalance = (await shortPositionToken.balanceOf.call(accounts[0])).toNumber();
@@ -414,7 +418,7 @@ contract('MarketCollateralPool', function(accounts) {
       const amountToApprove = 1e22;
       await collateralToken.approve(collateralPool.address, amountToApprove);
       const qtyToMint = 1;
-      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
         from: accounts[0]
       });
 
@@ -454,7 +458,7 @@ contract('MarketCollateralPool', function(accounts) {
       const amountToApprove = 1e22;
       await collateralToken.approve(collateralPool.address, amountToApprove);
       const qtyToMint = 1;
-      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
         from: accounts[0]
       });
 
@@ -601,7 +605,7 @@ contract('MarketCollateralPool', function(accounts) {
       const amountToApprove = 1e22;
       await collateralToken.approve(collateralPool.address, amountToApprove);
       const qtyToMint = 1;
-      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
         from: accounts[0]
       });
 

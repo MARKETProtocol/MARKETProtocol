@@ -97,7 +97,7 @@ contract('PositionToken', function(accounts) {
       const amountToApprove = '10000000000000000000000'; // 10e22 as a string to avoid issues with web3 bugs
       await collateralToken.approve(collateralPool.address, amountToApprove);
       const qtyToMint = 100;
-      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, {
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
         from: userAddress
       });
 
