@@ -13,7 +13,8 @@ contract('MarketContractFactoryMPX', function(accounts) {
   const priceFloor = 20155;
   const priceDecimalPlaces = 2;
   const qtyMultiplier = 10;
-  const fees = 20;
+  const feesInCollateralToken = 20;
+  const feesInMKTToken = 10;
 
   let marketContractFactory;
   let marketContractRegistry;
@@ -27,7 +28,15 @@ contract('MarketContractFactoryMPX', function(accounts) {
     await marketContractFactory.deployMarketContractMPX(
       contractName,
       CollateralToken.address,
-      [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, fees, expiration],
+      [
+        priceFloor,
+        priceCap,
+        priceDecimalPlaces,
+        qtyMultiplier,
+        feesInCollateralToken,
+        feesInMKTToken,
+        expiration
+      ],
       oracleURL,
       oracleStatistic
     );
@@ -56,7 +65,15 @@ contract('MarketContractFactoryMPX', function(accounts) {
     await marketContractFactory.deployMarketContractMPX(
       contractName,
       CollateralToken.address,
-      [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, fees, expiration],
+      [
+        priceFloor,
+        priceCap,
+        priceDecimalPlaces,
+        qtyMultiplier,
+        feesInCollateralToken,
+        feesInMKTToken,
+        expiration
+      ],
       oracleURL,
       oracleStatistic
     );
