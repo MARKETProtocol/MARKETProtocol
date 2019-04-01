@@ -86,7 +86,14 @@ contract MarketCollateralPool is Ownable {
 
         address collateralTokenAddress = marketContract.COLLATERAL_TOKEN_ADDRESS();
         uint neededCollateral = MathLib.multiply(qtyToMint, marketContract.COLLATERAL_PER_UNIT());
-        bool isPayFeesInMKT = isAttemptToPayInMKT && marketContract.MKT_TOKEN_FEE_PER_UNIT() != 0;
+        // the user has selected to pay fees in MKT and those fees are non zero (allowed) OR
+        // the user has selected not to pay fees in MKT, BUT the collateral token fees are disabled (0) AND the
+        // MKT fees are enabled (non zero).  (If both are zero, no fee exists)
+        bool isPayFeesInMKT = (isAttemptToPayInMKT &&
+            marketContract.MKT_TOKEN_FEE_PER_UNIT() != 0) ||
+            (!isAttemptToPayInMKT &&
+            marketContract.MKT_TOKEN_FEE_PER_UNIT() != 0 &&
+            marketContract.COLLATERAL_TOKEN_FEE_PER_UNIT() == 0);
 
         uint feeAmount;
         uint totalCollateralTokenTransferAmount;
