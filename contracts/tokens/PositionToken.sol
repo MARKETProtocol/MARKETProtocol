@@ -56,7 +56,8 @@ contract PositionToken is ERC20, Ownable {
     function mintAndSendToken(
         uint256 qtyToMint,
         address recipient
-    ) external onlyOwner {
+    ) external onlyOwner
+    {
         _mint(recipient, qtyToMint);
     }
 
@@ -68,7 +69,8 @@ contract PositionToken is ERC20, Ownable {
     function redeemToken(
         uint256 qtyToRedeem,
         address redeemer
-    ) external onlyOwner {
+    ) external onlyOwner
+    {
         _burn(redeemer, qtyToRedeem);
     }
 }

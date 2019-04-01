@@ -36,14 +36,21 @@ contract MarketCollateralPool is Ownable {
     using SafeERC20 for ERC20;
 
     enum MarketSide { Long, Short, Both}
-    address public MARKET_CONTRACT_REGISTRY;
+    address public marketContractRegistry;
+    address public mktToken;
 
     mapping(address => uint) public contractAddressToCollateralPoolBalance;                 // current balance of all collateral committed
     mapping(address => uint) public feesCollectedByTokenAddress;
-    uint8 feeAmountInBasisPoints = 25;
 
+    event TokensMinted(
+        address indexed marketContract,
+        address indexed user,
+        address indexed feeToken,
+        uint qtyMinted,
+        uint collateralLocked,
+        uint feesPaid
+    );
 
-    event TokensMinted(address indexed marketContract, address indexed user, uint qtyMinted, uint collateralLocked);
     event TokensRedeemed(
         address indexed marketContract,
         address indexed user,
@@ -52,8 +59,9 @@ contract MarketCollateralPool is Ownable {
         uint8 marketSide
     );
 
-    constructor(address marketContractRegistry) public {
-        MARKET_CONTRACT_REGISTRY = marketContractRegistry;
+    constructor(address marketContractRegistryAddress, address mktTokenAddress) public {
+        marketContractRegistry = marketContractRegistryAddress;
+        mktToken = mktTokenAddress;
     }
 
     /*
@@ -65,26 +73,47 @@ contract MarketCollateralPool is Ownable {
     /// and issue them the requested qty of long and short tokens
     /// @param marketContractAddress            address of the market contract to redeem tokens for
     /// @param qtyToMint                      quantity of long / short tokens to mint.
+    /// @param isAttemptToPayInMKT            if possible, attempt to pay fee's in MKT rather than collateral tokens
     function mintPositionTokens(
         address marketContractAddress,
-        uint qtyToMint
-    ) external onlyWhiteListedAddress(marketContractAddress) {
+        uint qtyToMint,
+        bool isAttemptToPayInMKT
+    ) external onlyWhiteListedAddress(marketContractAddress)
+    {
 
         MarketContract marketContract = MarketContract(marketContractAddress);
         require(!marketContract.isSettled(), "Contract is already settled");
 
-        uint neededCollateral = MathLib.multiply(qtyToMint, marketContract.COLLATERAL_PER_UNIT());
-        uint feeAmount = MathLib.multiply(qtyToMint, marketContract.FEE_PER_UNIT());
-        uint totalTransferAmount = neededCollateral.add(feeAmount);
         address collateralTokenAddress = marketContract.COLLATERAL_TOKEN_ADDRESS();
+        uint neededCollateral = MathLib.multiply(qtyToMint, marketContract.COLLATERAL_PER_UNIT());
+        bool isPayFeesInMKT = isAttemptToPayInMKT && marketContract.MKT_TOKEN_FEE_PER_UNIT() != 0;
+
+        uint feeAmount;
+        uint totalCollateralTokenTransferAmount;
+        address feeToken;
+        if (isPayFeesInMKT) { // fees are able to be paid in MKT
+            feeAmount = MathLib.multiply(qtyToMint, marketContract.MKT_TOKEN_FEE_PER_UNIT());
+            totalCollateralTokenTransferAmount = neededCollateral;
+
+            // EXTERNAL CALL - transferring ERC20 tokens from sender to this contract.  User must have called
+            // ERC20.approve in order for this call to succeed.
+            ERC20(mktToken).safeTransferFrom(msg.sender, address(this), feeAmount);
+            feeToken = mktToken;
+        } else { // fee are either zero, or being paid in the collateral token
+            feeAmount = MathLib.multiply(qtyToMint, marketContract.COLLATERAL_TOKEN_FEE_PER_UNIT());
+            totalCollateralTokenTransferAmount = neededCollateral.add(feeAmount);
+            feeToken = collateralTokenAddress;
+            // we will transfer collateral and fees all at once below.
+        }
 
         // EXTERNAL CALL - transferring ERC20 tokens from sender to this contract.  User must have called
         // ERC20.approve in order for this call to succeed.
-        ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, address(this), totalTransferAmount);
+        ERC20(marketContract.COLLATERAL_TOKEN_ADDRESS()).safeTransferFrom(msg.sender, address(this), totalCollateralTokenTransferAmount);
 
-        // update the fee's collected balance
-        feesCollectedByTokenAddress[collateralTokenAddress] =
-            feesCollectedByTokenAddress[collateralTokenAddress].add(feeAmount);
+        if (feeAmount != 0) {
+            // update the fee's collected balance
+            feesCollectedByTokenAddress[feeToken] = feesCollectedByTokenAddress[feeToken].add(feeAmount);
+        }
 
         // Update the collateral pool locked balance.
         contractAddressToCollateralPoolBalance[marketContractAddress] = contractAddressToCollateralPoolBalance[
@@ -94,7 +123,14 @@ contract MarketCollateralPool is Ownable {
         // mint and distribute short and long position tokens to our caller
         marketContract.mintPositionTokens(qtyToMint, msg.sender);
 
-        emit TokensMinted(marketContractAddress, msg.sender, qtyToMint, neededCollateral);
+        emit TokensMinted(
+            marketContractAddress,
+            msg.sender,
+            feeToken,
+            qtyToMint,
+            neededCollateral,
+            feeAmount
+        );
     }
 
     /// @notice Called by a user that currently holds both short and long position tokens and would like to redeem them
@@ -104,7 +140,8 @@ contract MarketCollateralPool is Ownable {
     function redeemPositionTokens(
         address marketContractAddress,
         uint qtyToRedeem
-    ) external onlyWhiteListedAddress(marketContractAddress) {
+    ) external onlyWhiteListedAddress(marketContractAddress)
+    {
         MarketContract marketContract = MarketContract(marketContractAddress);
 
         marketContract.redeemLongToken(qtyToRedeem, msg.sender);
@@ -136,7 +173,8 @@ contract MarketCollateralPool is Ownable {
     function settleAndClose(
         address marketContractAddress,
         int qtyToRedeem
-    ) external onlyWhiteListedAddress(marketContractAddress) {
+    ) external onlyWhiteListedAddress(marketContractAddress)
+    {
         MarketContract marketContract = MarketContract(marketContractAddress);
         require(marketContract.isPostSettlementDelay(), "Contract is not past settlement delay");
 
@@ -180,11 +218,24 @@ contract MarketCollateralPool is Ownable {
     /// @param feeTokenAddress - address of the erc20 token fees have been paid in
     function withdrawFees(address feeTokenAddress) public onlyOwner {
         uint feesAvailableForWithdrawal = feesCollectedByTokenAddress[feeTokenAddress];
-        require(feesAvailableForWithdrawal != 0, 'No fees available for withdrawal');
-        feesCollectedByTokenAddress[feeTokenAddress] = 0;
-
+        require(feesAvailableForWithdrawal != 0, "No fees available for withdrawal");
         // EXTERNAL CALL
         ERC20(feeTokenAddress).transfer(msg.sender, feesAvailableForWithdrawal);
+        feesCollectedByTokenAddress[feeTokenAddress] = 0;
+    }
+
+    /// @dev allows the owner to update the mkt token address in use for fees
+    /// @param mktTokenAddress address of new MKT token
+    function setMKTTokenAddress(address mktTokenAddress) public onlyOwner {
+        require(mktTokenAddress != address(0), "Cannot set MKT Token Address To Null");
+        mktToken = mktTokenAddress;
+    }
+
+    /// @dev allows the owner to update the mkt token address in use for fees
+    /// @param marketContractRegistryAddress address of new contract registry
+    function setMarketContractRegistryAddress(address marketContractRegistryAddress) public onlyOwner {
+        require(marketContractRegistryAddress != address(0), "Cannot set Market Contract Registry Address To Null");
+        marketContractRegistry = marketContractRegistryAddress;
     }
 
     /*
@@ -197,7 +248,7 @@ contract MarketCollateralPool is Ownable {
     /// collateral token that wasn't the same as the intended token.
     modifier onlyWhiteListedAddress(address marketContractAddress) {
         require(
-            MarketContractRegistryInterface(MARKET_CONTRACT_REGISTRY).isAddressWhiteListed(marketContractAddress),
+            MarketContractRegistryInterface(marketContractRegistry).isAddressWhiteListed(marketContractAddress),
             "Contract is not whitelisted"
         );
         _;

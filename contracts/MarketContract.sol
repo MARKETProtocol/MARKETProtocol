@@ -38,7 +38,8 @@ contract MarketContract is Ownable {
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
     uint public QTY_MULTIPLIER;         // multiplier corresponding to the value of 1 increment in price to token base units
     uint public COLLATERAL_PER_UNIT;    // required collateral amount for the full range of outcome tokens
-    uint public FEE_PER_UNIT;
+    uint public COLLATERAL_TOKEN_FEE_PER_UNIT;
+    uint public MKT_TOKEN_FEE_PER_UNIT;
     uint public EXPIRATION;
     uint public SETTLEMENT_DELAY = 1 days;
     address public LONG_POSITION_TOKEN;
@@ -65,12 +66,13 @@ contract MarketContract is Ownable {
     ///     priceDecimalPlaces  number of decimal places to convert our queried price from a floating point to
     ///                         an integer
     ///     qtyMultiplier       multiply traded qty by this value from base units of collateral token.
-    ///     feeInBasisPoints    fee amount in basis points for minting.
+    ///     feeInBasisPoints    fee amount in basis points (Collateral token denominated) for minting.
+    ///     mktFeeInBasisPoints fee amount in basis points (MKT denominated) for minting.
     ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
     constructor(
         string memory contractNames,
         address[3] memory baseAddresses,
-        uint[6] memory contractSpecs
+        uint[7] memory contractSpecs
     ) public
     {
         PRICE_FLOOR = contractSpecs[0];
@@ -79,13 +81,24 @@ contract MarketContract is Ownable {
 
         PRICE_DECIMAL_PLACES = contractSpecs[2];
         QTY_MULTIPLIER = contractSpecs[3];
-        EXPIRATION = contractSpecs[5];
-        require(EXPIRATION > now, 'expiration must be in the future');
+        EXPIRATION = contractSpecs[6];
+        require(EXPIRATION > now, "expiration must be in the future");
 
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         COLLATERAL_POOL_ADDRESS = baseAddresses[2];
         COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
-        FEE_PER_UNIT = MathLib.calculateFeePerUnit(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER, contractSpecs[4]);
+        COLLATERAL_TOKEN_FEE_PER_UNIT = MathLib.calculateFeePerUnit(
+            PRICE_FLOOR,
+            PRICE_CAP,
+            QTY_MULTIPLIER,
+            contractSpecs[4]
+        );
+        MKT_TOKEN_FEE_PER_UNIT = MathLib.calculateFeePerUnit(
+            PRICE_FLOOR,
+            PRICE_CAP,
+            QTY_MULTIPLIER,
+            contractSpecs[5]
+        );
 
         // create long and short tokens
         StringLib.slice memory pathSlice = contractNames.toSlice();
@@ -103,15 +116,6 @@ contract MarketContract is Ownable {
     }
 
     /*
-    // Public METHODS
-    */
-
-    /// @notice checks to see if a contract is settled, and that the settlement delay has passed
-    function isPostSettlementDelay() public view returns (bool) {
-        return isSettled && (now >= (settlementTimeStamp + SETTLEMENT_DELAY));
-    }
-
-    /*
     // EXTERNAL - onlyCollateralPool METHODS
     */
 
@@ -121,7 +125,8 @@ contract MarketContract is Ownable {
     function mintPositionTokens(
         uint256 qtyToMint,
         address minter
-    ) external onlyCollateralPool {
+    ) external onlyCollateralPool
+    {
         // mint and distribute short and long position tokens to our caller
         PositionToken(LONG_POSITION_TOKEN).mintAndSendToken(qtyToMint, minter);
         PositionToken(SHORT_POSITION_TOKEN).mintAndSendToken(qtyToMint, minter);
@@ -133,7 +138,8 @@ contract MarketContract is Ownable {
     function redeemLongToken(
         uint256 qtyToRedeem,
         address redeemer
-    ) external onlyCollateralPool {
+    ) external onlyCollateralPool
+    {
         // mint and distribute short and long position tokens to our caller
         PositionToken(LONG_POSITION_TOKEN).redeemToken(qtyToRedeem, redeemer);
     }
@@ -144,9 +150,19 @@ contract MarketContract is Ownable {
     function redeemShortToken(
         uint256 qtyToRedeem,
         address redeemer
-    ) external onlyCollateralPool {
+    ) external onlyCollateralPool
+    {
         // mint and distribute short and long position tokens to our caller
         PositionToken(SHORT_POSITION_TOKEN).redeemToken(qtyToRedeem, redeemer);
+    }
+
+    /*
+    // Public METHODS
+    */
+
+    /// @notice checks to see if a contract is settled, and that the settlement delay has passed
+    function isPostSettlementDelay() public view returns (bool) {
+        return isSettled && (now >= (settlementTimeStamp + SETTLEMENT_DELAY));
     }
 
     /*

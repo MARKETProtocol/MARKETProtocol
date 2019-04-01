@@ -21,7 +21,11 @@ module.exports = function(deployer, network) {
               .then(function() {
                 return deployer.link(StringLib, MarketContractMPX).then(function() {
                   return deployer
-                    .deploy(MarketCollateralPool, MarketContractRegistry.address)
+                    .deploy(
+                      MarketCollateralPool,
+                      MarketContractRegistry.address,
+                      MarketToken.address
+                    )
                     .then(function() {
                       return MarketCollateralPool.deployed().then(function() {
                         return deployer
@@ -57,8 +61,9 @@ module.exports = function(deployer, network) {
                                                 20000000000000,
                                                 60000000000000,
                                                 10,
-                                                25,
                                                 100000000,
+                                                25,
+                                                12,
                                                 marketContractExpiration
                                               ],
                                               'api.coincap.io/v2/rates/bitcoin',
@@ -74,6 +79,7 @@ module.exports = function(deployer, network) {
                                                   60000000000000,
                                                   10,
                                                   25,
+                                                  12,
                                                   100000000,
                                                   marketContractExpiration
                                                 ],

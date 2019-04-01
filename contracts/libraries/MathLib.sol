@@ -159,7 +159,7 @@ library MathLib {
         uint qtyMultiplier
     ) pure public returns (uint)
     {
-      return multiply(subtract(priceCap, priceFloor), qtyMultiplier);
+        return multiply(subtract(priceCap, priceFloor), qtyMultiplier);
     }
 
     /// @notice calculates the fee in terms of base units of the collateral token per unit pair minted.
