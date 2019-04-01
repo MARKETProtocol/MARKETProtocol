@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2018 Phillip A. Elsasser
+    Copyright 2017-2019 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,26 +14,25 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.25;
 
-import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 
 // dummy ERC20 token for testing purposes
-contract CollateralToken is StandardToken {
+contract CollateralToken is ERC20 {
 
     string public name;
     string public symbol;
     uint8 public decimals;
 
-    uint256 public INITIAL_SUPPLY;
 
     /**
      * @dev Constructor that gives msg.sender all of existing tokens.
      */
     constructor(
-        string tokenName,
-        string tokenSymbol,
+        string memory tokenName,
+        string memory tokenSymbol,
         uint256 initialSupply,
         uint8 tokenDecimals
     ) public
@@ -41,9 +40,6 @@ contract CollateralToken is StandardToken {
         name = tokenName;
         symbol = tokenSymbol;
         decimals = tokenDecimals;
-
-        INITIAL_SUPPLY = initialSupply * (10 ** uint256(decimals));
-        totalSupply_ = INITIAL_SUPPLY;
-        balances[msg.sender] = INITIAL_SUPPLY;
+        _mint(msg.sender, initialSupply * 10**uint(decimals));
     }
 }

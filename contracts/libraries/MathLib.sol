@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2018 Phillip A. Elsasser
+    Copyright 2017-2019 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.25;
 
 
 /// @title Math function library with overflow protection inspired by Open Zeppelin
@@ -23,8 +23,13 @@ library MathLib {
     int256 constant INT256_MAX = int256(~((uint256(1) << 255)));
 
     function multiply(uint256 a, uint256 b) pure internal returns (uint256) {
+        if (a == 0) {
+            return 0;
+        }
+
         uint256 c = a * b;
-        assert(a == 0 || c / a == b);
+        require(c / a == b);
+
         return c;
     }
 
@@ -38,13 +43,13 @@ library MathLib {
     }
 
     function subtract(uint256 a, uint256 b) pure internal returns (uint256) {
-        assert(b <= a);
+        require(b <= a);
         return a - b;
     }
 
     function add(uint256 a, uint256 b) pure internal returns (uint256) {
         uint256 c = a + b;
-        assert(c >= a);
+        require(c >= a);
         return c;
     }
 
@@ -155,5 +160,17 @@ library MathLib {
     ) pure public returns (uint)
     {
       return multiply(subtract(priceCap, priceFloor), qtyMultiplier);
+    }
+
+    /// @notice calculates the fee in terms of base units of the collateral token per unit pair minted.
+    function calculateFeePerUnit(
+        uint priceFloor,
+        uint priceCap,
+        uint qtyMultiplier,
+        uint feeInBasisPoints
+    ) pure public returns (uint)
+    {
+        uint midPrice = add(priceCap, priceFloor) / 2;
+        return multiply(multiply(midPrice, qtyMultiplier), feeInBasisPoints) / 10000;
     }
 }

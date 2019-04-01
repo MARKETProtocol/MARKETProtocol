@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2018 Phillip A. Elsasser
+    Copyright 2017-2019 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.25;
 
 import "./CollateralToken.sol";
 
@@ -30,8 +30,8 @@ contract InitialAllocationCollateralToken is CollateralToken {
 
     /// @dev creates a token that allows for all addresses to retrieve an initial token allocation.
     constructor (
-        string tokenName,
-        string tokenSymbol,
+        string memory tokenName,
+        string memory tokenSymbol,
         uint256 initialTokenAllocation,
         uint8 tokenDecimals
     ) public CollateralToken(
@@ -47,7 +47,7 @@ contract InitialAllocationCollateralToken is CollateralToken {
     function getInitialAllocation() external {
         require(!isInitialAllocationClaimed[msg.sender]);
         isInitialAllocationClaimed[msg.sender] = true;
-        balances[msg.sender] = balances[msg.sender].add(INITIAL_TOKEN_ALLOCATION);
+        _mint(msg.sender, INITIAL_TOKEN_ALLOCATION);
         totalTokenAllocationsRequested++;
         emit AllocationClaimed(msg.sender);
     }

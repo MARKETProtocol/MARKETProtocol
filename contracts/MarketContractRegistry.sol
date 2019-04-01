@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2018 Phillip A. Elsasser
+    Copyright 2017-2019 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.25;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./MarketContractRegistryInterface.sol";
@@ -24,6 +24,7 @@ import "./MarketContractRegistryInterface.sol";
 /// @author Phil Elsasser <phil@marketprotocol.io>
 contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
 
+    // whitelist accounting
     mapping(address => bool) public isWhiteListed;
     address[] public addressWhiteList;                             // record of currently deployed addresses;
     mapping(address => bool) public factoryAddressWhiteList;       // record of authorized factories
@@ -46,7 +47,7 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
 
     /// @notice all currently whitelisted addresses
     /// returns array of addresses
-    function getAddressWhiteList() external view returns (address[]) {
+    function getAddressWhiteList() external view returns (address[] memory) {
         return addressWhiteList;
     }
 
@@ -73,7 +74,7 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
     /// a decentralized smart contract of community members to vote
     /// @param contractAddress contract to removed from white list
     function addAddressToWhiteList(address contractAddress) external {
-        require(msg.sender == owner || factoryAddressWhiteList[msg.sender], "Can only be added by factor or owner");
+        require(isOwner() || factoryAddressWhiteList[msg.sender], "Can only be added by factory or owner");
         require(!isWhiteListed[contractAddress]);
         isWhiteListed[contractAddress] = true;
         addressWhiteList.push(contractAddress);

@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2018 Phillip A. Elsasser
+    Copyright 2017-2019 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,9 +14,9 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.25;
 
-import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
@@ -27,7 +27,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 /// NOTE: We eventually can move all of this logic into a library to avoid deploying all of the logic
 /// every time a new market contract is deployed.
 /// @author Phil Elsasser <phil@marketprotocol.io>
-contract PositionToken is StandardToken, Ownable {
+contract PositionToken is ERC20, Ownable {
 
     string public name;
     string public symbol;
@@ -36,8 +36,8 @@ contract PositionToken is StandardToken, Ownable {
     uint8 public MARKET_SIDE; // 0 = Long, 1 = Short
 
     constructor(
-        string tokenName,
-        string tokenSymbol,
+        string memory tokenName,
+        string memory tokenSymbol,
         uint8 marketSide
     ) public
     {
@@ -57,9 +57,7 @@ contract PositionToken is StandardToken, Ownable {
         uint256 qtyToMint,
         address recipient
     ) external onlyOwner {
-        totalSupply_ = totalSupply_.add(qtyToMint);                 // add to total supply
-        balances[recipient] = balances[recipient].add(qtyToMint);   // transfer to recipient balance
-        emit Transfer(address(0), recipient, qtyToMint);            // fire event to show balance.
+        _mint(recipient, qtyToMint);
     }
 
     /// @dev Called by our MarketContract (owner) when redemption occurs.  This means that either a single user is redeeming
@@ -71,9 +69,6 @@ contract PositionToken is StandardToken, Ownable {
         uint256 qtyToRedeem,
         address redeemer
     ) external onlyOwner {
-        // reduce the redeemer's balances.  This will throw if not enough balance to reduce!
-        balances[redeemer] = balances[redeemer].sub(qtyToRedeem);
-        totalSupply_ = totalSupply_.sub(qtyToRedeem);                    // reduce total supply
-        emit Transfer(redeemer, address(0), qtyToRedeem);           // fire event to update balances
+        _burn(redeemer, qtyToRedeem);
     }
 }

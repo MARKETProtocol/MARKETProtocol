@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2018 Phillip A. Elsasser
+    Copyright 2017-2019 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,10 +14,12 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.25;
 
-import "./Creatable.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+
 import "./libraries/MathLib.sol";
+import "./libraries/StringLib.sol";
 import "./tokens/PositionToken.sol";
 
 
@@ -25,7 +27,8 @@ import "./tokens/PositionToken.sol";
 /// @notice this is the abstract base contract that all contracts should inherit from to
 /// implement different oracle solutions.
 /// @author Phil Elsasser <phil@marketprotocol.io>
-contract MarketContract is Creatable {
+contract MarketContract is Ownable {
+    using StringLib for *;
 
     string public CONTRACT_NAME;
     address public COLLATERAL_TOKEN_ADDRESS;
@@ -35,20 +38,23 @@ contract MarketContract is Creatable {
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
     uint public QTY_MULTIPLIER;         // multiplier corresponding to the value of 1 increment in price to token base units
     uint public COLLATERAL_PER_UNIT;    // required collateral amount for the full range of outcome tokens
+    uint public FEE_PER_UNIT;
     uint public EXPIRATION;
+    uint public SETTLEMENT_DELAY = 1 days;
     address public LONG_POSITION_TOKEN;
     address public SHORT_POSITION_TOKEN;
 
     // state variables
     uint public lastPrice;
     uint public settlementPrice;
+    uint public settlementTimeStamp;
     bool public isSettled = false;
 
     // events
     event UpdatedLastPrice(uint256 price);
     event ContractSettled(uint settlePrice);
 
-    /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
+    /// @param contractNames comma separated list of 3 names "contractName,longTokenSymbol,shortTokenSymbol"
     /// @param baseAddresses array of 2 addresses needed for our contract including:
     ///     creatorAddress                  address of the person creating the contract
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
@@ -59,11 +65,12 @@ contract MarketContract is Creatable {
     ///     priceDecimalPlaces  number of decimal places to convert our queried price from a floating point to
     ///                         an integer
     ///     qtyMultiplier       multiply traded qty by this value from base units of collateral token.
+    ///     feeInBasisPoints    fee amount in basis points for minting.
     ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
     constructor(
-        string contractName,
-        address[3] baseAddresses,
-        uint[5] contractSpecs
+        string memory contractNames,
+        address[3] memory baseAddresses,
+        uint[6] memory contractSpecs
     ) public
     {
         PRICE_FLOOR = contractSpecs[0];
@@ -72,20 +79,36 @@ contract MarketContract is Creatable {
 
         PRICE_DECIMAL_PLACES = contractSpecs[2];
         QTY_MULTIPLIER = contractSpecs[3];
-        EXPIRATION = contractSpecs[4];
-        require(EXPIRATION > now);
+        EXPIRATION = contractSpecs[5];
+        require(EXPIRATION > now, 'expiration must be in the future');
 
-        CONTRACT_NAME = contractName;
-        creator = baseAddresses[0];
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         COLLATERAL_POOL_ADDRESS = baseAddresses[2];
         COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
+        FEE_PER_UNIT = MathLib.calculateFeePerUnit(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER, contractSpecs[4]);
 
-        // create long and short tokens  // TODO: fix names!
-        PositionToken longPosToken = new PositionToken("Long Position Token", "LONG", 0);
-        PositionToken shortPosToken = new PositionToken("Short Position Token", "SHRT", 1);
+        // create long and short tokens
+        StringLib.slice memory pathSlice = contractNames.toSlice();
+        StringLib.slice memory delim = ",".toSlice();
+        require(pathSlice.count(delim) == 2, "ContractNames must contain 3 names");  //contractName,lTokenName,sTokenName
+        CONTRACT_NAME = pathSlice.split(delim).toString();
+
+        PositionToken longPosToken = new PositionToken("MARKET Protocol Long Position Token", pathSlice.split(delim).toString(), 0);
+        PositionToken shortPosToken = new PositionToken("MARKET Protocol Short Position Token", pathSlice.split(delim).toString(), 1);
+
         LONG_POSITION_TOKEN = address(longPosToken);
         SHORT_POSITION_TOKEN = address(shortPosToken);
+
+        transferOwnership(baseAddresses[0]);
+    }
+
+    /*
+    // Public METHODS
+    */
+
+    /// @notice checks to see if a contract is settled, and that the settlement delay has passed
+    function isPostSettlementDelay() public view returns (bool) {
+        return isSettled && (now >= (settlementTimeStamp + SETTLEMENT_DELAY));
     }
 
     /*
@@ -154,7 +177,8 @@ contract MarketContract is Creatable {
 
     /// @dev records our final settlement price and fires needed events.
     /// @param finalSettlementPrice final query price at time of settlement
-    function settleContract(uint finalSettlementPrice) private {
+    function settleContract(uint finalSettlementPrice) internal {
+        settlementTimeStamp = now;
         settlementPrice = finalSettlementPrice;
         emit ContractSettled(finalSettlementPrice);
     }

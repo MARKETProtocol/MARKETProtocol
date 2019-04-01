@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2018 Phillip A. Elsasser
+    Copyright 2017-2019 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,20 +14,19 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.25;
 
 import "../MarketContract.sol";
 
-/// @title MarketContract first example of a MarketProtocol contract using Oraclize services
+/// @title MarketContractMPX - a MarketContract designed to be used with our internal oracle service
 /// @author Phil Elsasser <phil@marketprotocol.io>
-contract MarketContractOraclize is MarketContract {
+contract MarketContractMPX is MarketContract {
 
-    // constants
-    string public ORACLE_DATA_SOURCE;
-    string public ORACLE_QUERY;
     address public ORACLE_HUB_ADDRESS;
+    string public ORACLE_URL;
+    string public ORACLE_STATISTIC;
 
-    /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
+    /// @param contractNames comma separated list of 3 names "contractName,longTokenSymbol,shortTokenSymbol"
     /// @param baseAddresses array of 2 addresses needed for our contract including:
     ///     creatorAddress                  address of the person creating the contract
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
@@ -39,30 +38,26 @@ contract MarketContractOraclize is MarketContract {
     ///     priceDecimalPlaces      number of decimal places to convert our queried price from a floating point to
     ///                             an integer
     ///     qtyMultiplier           multiply traded qty by this value from base units of collateral token.
+    ///     feeInBasisPoints        fee amount in basis points for minting.
     ///     expirationTimeStamp     seconds from epoch that this contract expires and enters settlement
-    /// @param oracleDataSource a data-source such as "URL", "WolframAlpha", "IPFS"
-    /// see http://docs.oraclize.it/#ethereum-quick-start-simple-query
-    /// @param oracleQuery see http://docs.oraclize.it/#ethereum-quick-start-simple-query for examples
+    /// @param oracleURL url of data
+    /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
     constructor(
-        string contractName,
-        address[3] baseAddresses,
+        string memory contractNames,
+        address[3] memory baseAddresses,
         address oracleHubAddress,
-        uint[5] contractSpecs,
-        string oracleDataSource,
-        string oracleQuery
+        uint[6] memory contractSpecs,
+        string memory oracleURL,
+        string memory oracleStatistic
     ) MarketContract(
-        contractName,
+        contractNames,
         baseAddresses,
         contractSpecs
     )  public
     {
-        ORACLE_DATA_SOURCE = oracleDataSource;
-        ORACLE_QUERY = oracleQuery;
+        ORACLE_URL = oracleURL;
+        ORACLE_STATISTIC = oracleStatistic;
         ORACLE_HUB_ADDRESS = oracleHubAddress;
-
-        // Future timestamp must be within 60 days from now.
-        // https://docs.oraclize.it/#ethereum-quick-start-schedule-a-query-in-the-future
-        require(EXPIRATION - now <= 60 days);
     }
 
 
@@ -79,9 +74,27 @@ contract MarketContractOraclize is MarketContract {
         checkSettlement();  // Verify settlement at expiration or requested early settlement.
     }
 
+    /// @dev allows us to arbitrate a settlement price by updating the settlement value, and resetting the
+    /// delay for funds to be released. Could also be used to allow us to force a contract into early settlement
+    /// if a dispute arises that we believe is best resolved by early settlement.
+    /// @param price settlement price
+    function arbitrateSettlement(uint256 price) public onlyOracleHub {
+        lastPrice = price;
+        emit UpdatedLastPrice(price);
+        settleContract(price);
+        isSettled = true;
+    }
+
     /// @dev allows calls only from the oracle hub.
     modifier onlyOracleHub() {
         require(msg.sender == ORACLE_HUB_ADDRESS);
         _;
     }
+
+    /// @dev allows for the owner of the contract to change the oracle hub address if needed
+    function setOracleHubAddress(address oracleHubAddress) public onlyOwner {
+        require(oracleHubAddress != address(0));
+        ORACLE_HUB_ADDRESS = oracleHubAddress;
+    }
+
 }

@@ -15,6 +15,7 @@ contract('MarketCollateralPool', function(accounts) {
   let priceCap;
   let longPositionToken;
   let shortPositionToken;
+  let snapshotId;
 
   const MarketSides = {
     Long: 0,
@@ -27,6 +28,7 @@ contract('MarketCollateralPool', function(accounts) {
   });
 
   beforeEach(async function() {
+    snapshotId = await utility.createEVMSnapshot();
     collateralPool = await MarketCollateralPool.deployed();
     collateralToken = await CollateralToken.deployed();
     marketContract = await utility.createMarketContract(
@@ -44,6 +46,10 @@ contract('MarketCollateralPool', function(accounts) {
     priceCap = await marketContract.PRICE_CAP.call();
     longPositionToken = PositionToken.at(await marketContract.LONG_POSITION_TOKEN());
     shortPositionToken = PositionToken.at(await marketContract.SHORT_POSITION_TOKEN());
+  });
+
+  afterEach(async function() {
+    await utility.restoreEVMSnapshotsnapshotId(snapshotId);
   });
 
   describe('mintPositionTokens()', function() {
@@ -454,6 +460,7 @@ contract('MarketCollateralPool', function(accounts) {
 
       // 2. force contract to settlement
       const settlementPrice = await utility.settleContract(marketContract, priceCap, accounts[0]);
+      await utility.increase(87000); // extend time past delay for withdrawal of funds
 
       // 3. redeem all short position tokens after settlement should pass
       const shortTokenBalanceBeforeRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
@@ -603,6 +610,7 @@ contract('MarketCollateralPool', function(accounts) {
 
       // 3. force contract to settlement
       const settlementPrice = await utility.settleContract(marketContract, priceCap, accounts[0]);
+      await utility.increase(87000); // extend time past delay for withdrawal of funds
 
       // 4. redeem all shorts on settlement
       const collateralBalanceBeforeRedeem = await collateralToken.balanceOf.call(accounts[0]);

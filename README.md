@@ -20,7 +20,6 @@ Some pre-requisites are required in order to utilize the Makefile.
 
 ```
 $ git clone https://github.com/MARKETProtocol/MARKETProtocol.git  # clone this repository
-$ git clone https://github.com/MARKETProtocol/ethereum-bridge.git # and the needed oraclize.it bridge (for local test rpc)
 ```
 From here you will be able to use make commands assuming npm is already installed.
 
@@ -40,32 +39,19 @@ If you get an error on the `node-gyp rebuild` line during `make install_deps`, `
 The easiest solution? Use `make install_deps_python2.7` to use Python 2.7, see [stack overflow](https://stackoverflow.com/questions/20454199/how-to-use-a-different-version-of-python-during-npm-install) or the [npm node-gyp project](https://github.com/nodejs/node-gyp) for details.
 
 
-
 ## Tests
-To run the tests locally via truffle you must have oraclize's bridge
-running. Information on installation can be found [here](https://github.com/MARKETProtocol/ethereum-bridge)
 
 Start truffle and its development blockchain with
 ```
 $ make start_console
 ```
 
-and then start the ethereum bridge (in a separate console) to run connected
-to the development blockchain you just started. (in this example account 9 is used)
-
-```
-$ make start_bridge
-```
-
-Once the bridge has fully initialized, you should be able to run the example migrations as well
-as the accompanying tests inside the truffle console
+Run the example migrations as well as the accompanying tests inside the truffle console
 
 ```
 truffle(develop)> migrate --reset
 truffle(develop)> test
 ```
-
-If this fails due to a `revert` , please be sure the bridge is listening prior to attempting the migration.
 
 ### Running tests with coverage enabled
 

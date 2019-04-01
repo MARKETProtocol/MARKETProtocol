@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2018 Phillip A. Elsasser
+    Copyright 2017-2019 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,14 +14,16 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.25;
 
-import "./MarketContractChainLink.sol";
-import "./OracleHubChainLink.sol";
+import "./MarketContractMPX.sol";
 import "../MarketContractRegistryInterface.sol";
 
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-contract MarketContractFactoryChainLink is Ownable {
+/// @title MarketContractFactoryMPX
+/// @author Phil Elsasser <phil@marketprotocol.io>
+contract MarketContractFactoryMPX is Ownable {
 
     address public marketContractRegistry;
     address public oracleHubAddress;
@@ -29,7 +31,7 @@ contract MarketContractFactoryChainLink is Ownable {
 
     event MarketContractCreated(address indexed creator, address indexed contractAddress);
 
-    /// @dev deploys our factory and ties it the a supply registry address
+    /// @dev deploys our factory and ties it to the supplied registry address
     /// @param registryAddress - address of our MARKET registry
     /// @param collateralPoolAddress - address of our MARKET Collateral pool
     constructor(address registryAddress, address collateralPoolAddress) public {
@@ -37,52 +39,42 @@ contract MarketContractFactoryChainLink is Ownable {
         MARKET_COLLATERAL_POOL = collateralPoolAddress;
     }
 
-    /// @param contractName viewable name of this contract (BTC/ETH, LTC/ETH, etc)
+    /// @dev Deploys a new instance of a market contract and adds it to the whitelist.
+    /// @param contractNames comma separated list of 3 names "contractName,longTokenSymbol,shortTokenSymbol"
     /// @param collateralTokenAddress address of the ERC20 token that will be used for collateral and pricing
     /// @param contractSpecs array of unsigned integers including:
-    ///     floorPrice          minimum tradeable price of this contract, contract enters settlement if breached
-    ///     capPrice            maximum tradeable price of this contract, contract enters settlement if breached
-    ///     priceDecimalPlaces  number of decimal places to convert our queried price from a floating point to
-    ///                         an integer
-    ///     qtyMultiplier       multiply traded qty by this value from base units of collateral token.
-    ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
-    /// @param oracleQueryURL   URL of rest end point for data IE 'https://api.kraken.com/0/public/Ticker?pair=ETHUSD'
-    /// @param oracleQueryPath  path of data inside json object. IE 'result.XETHZUSD.c.0'
-    /// @param sleepJobId  ChainLink job id with their sleep adapter
-    /// @param onDemandJobId  ChainLink job id for on demand user queries
-    function deployMarketContractChainLink(
-        string contractName,
+    ///     floorPrice              minimum tradeable price of this contract, contract enters settlement if breached
+    ///     capPrice                maximum tradeable price of this contract, contract enters settlement if breached
+    ///     priceDecimalPlaces      number of decimal places to convert our queried price from a floating point to
+    ///                             an integer
+    ///     qtyMultiplier           multiply traded qty by this value from base units of collateral token.
+    ///     feeInBasisPoints        fee amount in basis points for minting.
+    ///     expirationTimeStamp     seconds from epoch that this contract expires and enters settlement
+    /// @param oracleURL url of data
+    /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
+    function deployMarketContractMPX(
+        string contractNames,
         address collateralTokenAddress,
-        uint[5] contractSpecs,
-        string oracleQueryURL,
-        string oracleQueryPath,
-        bytes32 sleepJobId,
-        bytes32 onDemandJobId
+        uint[6] contractSpecs,
+        string oracleURL,
+        string oracleStatistic
     ) external
     {
-        MarketContractChainLink mktContract = new MarketContractChainLink(
-            contractName,
+        MarketContractMPX mktContract = new MarketContractMPX(
+            contractNames,
             [
-                msg.sender,
-                collateralTokenAddress,
-                MARKET_COLLATERAL_POOL
+            msg.sender,
+            collateralTokenAddress,
+            MARKET_COLLATERAL_POOL
             ],
             oracleHubAddress,
             contractSpecs,
-            oracleQueryURL,
-            oracleQueryPath
+            oracleURL,
+            oracleStatistic
         );
 
-        OracleHubChainLink(oracleHubAddress).requestQuery(
-            mktContract,
-            oracleQueryURL,
-            oracleQueryPath,
-            sleepJobId,
-            onDemandJobId
-        );
-
-        MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(mktContract);
-        emit MarketContractCreated(msg.sender, mktContract);
+        MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(address(mktContract));
+        emit MarketContractCreated(msg.sender, address(mktContract));
     }
 
     /// @dev allows for the owner to set the desired registry for contract creation.
