@@ -15,27 +15,6 @@ services:
     tty: true
     stdin_open: true
 
-  eth-bridge:
-    image: philelsasser/ethereum-bridge:latest
-    entrypoint: >
-      /bin/bash -c "
-        while ! curl ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} &>/dev/null;
-        do
-          echo Waiting for Ethereum node...;
-          sleep 1;
-        done;
-        echo Ethereum node ready, connecting the Oraclize Bridge!;
-        sleep 1;
-        echo Wiping old configs...;
-        rm -rf /ethereum-bridge/config/instance/*;
-        node bridge -H ${TRUFFLE_DEVELOP_HOST}:${TRUFFLE_DEVELOP_PORT} -a 9 --dev;
-      "
-    restart: unless-stopped
-    depends_on:
-      - truffle
-    links:
-      - truffle
-
   truffle-coverage:
     build:
       context: .
@@ -50,25 +29,3 @@ services:
         target: /app
     tty: true
     stdin_open: true
-
-  eth-bridge-coverage:
-    image: philelsasser/ethereum-bridge:latest
-    entrypoint: >
-      /bin/bash -c "
-        while ! curl ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} &>/dev/null;
-        do
-          echo Waiting for Ethereum node...;
-          sleep 1;
-        done;
-        echo Ethereum node ready, connecting the Oraclize Bridge!;
-        sleep 1;
-        echo Wiping old configs...;
-        rm -rf /ethereum-bridge/config/instance/*;
-        node bridge -H ${TRUFFLE_COVERAGE_HOST}:${TRUFFLE_COVERAGE_PORT} -a 9 --dev;
-      "
-
-    restart: unless-stopped
-    depends_on:
-      - truffle-coverage
-    links:
-      - truffle-coverage

@@ -28,10 +28,6 @@ install:
 
 script:
   - docker-compose ps
-  - docker-compose exec eth-bridge scripts/wait_for_oraclize_connector.sh
-  - docker-compose exec eth-bridge-coverage scripts/wait_for_oraclize_connector.sh
-  - docker-compose logs eth-bridge
-  - docker-compose logs eth-bridge-coverage
   - docker-compose exec truffle-coverage env CONTINUOUS_INTEGRATION=true TRAVIS=true TRAVIS_JOB_ID="$TRAVIS_JOB_ID" TRAVIS_BRANCH="$TRAVIS_BRANCH" TRAVIS_PULL_REQUEST="$TRAVIS_PULL_REQUEST" scripts/coverage_run.sh
   - docker-compose exec truffle truffle migrate
   - docker-compose exec truffle truffle test
