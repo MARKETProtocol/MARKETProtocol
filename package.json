@@ -8,14 +8,14 @@
   },
   "dependencies": {
     "openzeppelin-solidity": "^2.0.1",
-    "truffle": "4.1.5"
+    "truffle": "4.1.15"
   },
   "devDependencies": {
     "coveralls": "^3.0.0",
     "eslint": "^4.19.1",
     "husky": "^1.2.0",
     "prettier-eslint-cli": "^4.7.1",
-    "solidity-coverage": "^0.5.2",
+    "solidity-coverage": "^0.5.11",
     "solium": "^1.0.5"
   },
   "scripts": {
