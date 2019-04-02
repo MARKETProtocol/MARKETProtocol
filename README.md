@@ -81,16 +81,24 @@ docker-compose up
 ```
 
 The first run will take a while since images will be pulled from Docker registry. After that images are cached and the start will be much faster.
-Please wait until Oraclize connector initializes and open a second console. Make sure that all four environment variables are available in the second shell.
-
-#### Install dependencies
+Make sure that all four environment variables are available in the second shell.
 
 ```
-docker-compose exec truffle-coverage npm install
-
+TRUFFLE_DEVELOP_HOST=truffle
+TRUFFLE_DEVELOP_PORT=9545
+TRUFFLE_COVERAGE_HOST=truffle-coverage
+TRUFFLE_COVERAGE_PORT=8555
 ```
+
 
 #### Start tests
+
+To run tests:
+```
+docker-compose exec truffle truffle test
+```
+
+If you want to run test with coverage:
 
 ```
 docker-compose exec truffle-coverage env CONTINUOUS_INTEGRATION=true scripts/coverage_run.sh
