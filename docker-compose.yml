@@ -3,29 +3,12 @@ services:
   truffle:
     build:
       context: .
-    image: market-protocol:1.0.1
+    image: marketprotocol/marketprotocol:2.0.1-alpha
     command: truffle develop
-    tmpfs: 
-      - /app/build
-      - /app/node_modules:exec,mode=777
-    volumes:
-      - type: bind
-        source: ./
-        target: /app
     tty: true
     stdin_open: true
 
   truffle-coverage:
-    build:
-      context: .
-    image: market-protocol:1.0.1
+    #    uses built and tagged image above
+    image: marketprotocol/marketprotocol:2.0.1-alpha
     command: scripts/coverage_setup.sh
-    tmpfs: 
-      - /app/build
-      - /app/node_modules:exec,mode=777
-    volumes:
-      - type: bind
-        source: ./
-        target: /app
-    tty: true
-    stdin_open: true
