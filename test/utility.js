@@ -88,7 +88,7 @@ module.exports = {
     }
 
     if (!contractSpecs) {
-      contractSpecs = [0, 150, 2, 2, 100, expiration];
+      contractSpecs = [0, 150, 2, 2, 100, 50, expiration];
     }
     const contractNames = 'BTC,LBTC,SBTC';
 

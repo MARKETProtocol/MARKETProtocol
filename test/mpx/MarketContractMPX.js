@@ -13,7 +13,7 @@ contract('MarketContractMPX', function(accounts) {
       'NTC,LBTC,SBTC',
       [accounts[0], CollateralToken.address],
       accounts[0], // substitute our address for the oracleHubAddress so we can callback from queries.
-      [0, 150, 2, 2, 0, expiration],
+      [0, 150, 2, 2, 0, 0, expiration],
       oracleURL,
       oracleStatistic
     );

@@ -28,7 +28,7 @@ contract('MarketContract', function(accounts) {
         collateralPool,
         accounts[0],
         null,
-        [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, fees, expiration]
+        [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, fees, fees, expiration]
       );
 
       assert.equal(await marketContract.PRICE_FLOOR(), priceFloor, 'price floor is not correct');

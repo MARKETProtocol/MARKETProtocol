@@ -35,7 +35,8 @@
  *      corresponding to the left and right parts of the string.
  */
 
-pragma solidity ^0.4.25;
+pragma solidity 0.4.25;
+
 
 library StringLib {
 
@@ -46,7 +47,7 @@ library StringLib {
 
     function memcpy(uint dest, uint src, uint len) private pure {
         // Copy word-length chunks while possible
-        for(; len >= 32; len -= 32) {
+        for (; len >= 32; len -= 32) {
             assembly {
                 mstore(dest, mload(src))
             }
@@ -92,7 +93,13 @@ library StringLib {
 
     // Returns the memory address of the first byte of the first occurrence of
     // `needle` in `self`, or the first byte after `self` if not found.
-    function findPtr(uint selflen, uint selfptr, uint needlelen, uint needleptr) private pure returns (uint) {
+    function findPtr(
+        uint selflen,
+        uint selfptr,
+        uint needlelen,
+        uint needleptr
+    ) private pure returns (uint)
+    {
         uint ptr = selfptr;
         uint idx;
 
@@ -142,7 +149,12 @@ library StringLib {
      * @return `token`.
      */
     function split(slice memory self, slice memory needle, slice memory token) internal pure returns (slice memory) {
-        uint ptr = findPtr(self._len, self._ptr, needle._len, needle._ptr);
+        uint ptr = findPtr(
+            self._len,
+            self._ptr,
+            needle._len,
+            needle._ptr
+        );
         token._ptr = self._ptr;
         token._len = ptr - self._ptr;
         if (ptr == self._ptr + self._len) {
@@ -175,10 +187,20 @@ library StringLib {
      * @return The number of occurrences of `needle` found in `self`.
      */
     function count(slice memory self, slice memory needle) internal pure returns (uint cnt) {
-        uint ptr = findPtr(self._len, self._ptr, needle._len, needle._ptr) + needle._len;
+        uint ptr = findPtr(
+            self._len,
+            self._ptr,
+            needle._len,
+            needle._ptr
+        ) + needle._len;
         while (ptr <= self._ptr + self._len) {
             cnt++;
-            ptr = findPtr(self._len - (ptr - self._ptr), ptr, needle._len, needle._ptr) + needle._len;
+            ptr = findPtr(
+                self._len - (ptr - self._ptr),
+                ptr,
+                needle._len,
+                needle._ptr
+            ) + needle._len;
         }
     }
 }

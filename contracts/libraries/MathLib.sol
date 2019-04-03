@@ -13,7 +13,7 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
-pragma solidity ^0.4.25;
+pragma solidity 0.4.25;
 
 
 /// @title Math function library with overflow protection inspired by Open Zeppelin
@@ -159,7 +159,7 @@ library MathLib {
         uint qtyMultiplier
     ) pure public returns (uint)
     {
-      return multiply(subtract(priceCap, priceFloor), qtyMultiplier);
+        return multiply(subtract(priceCap, priceFloor), qtyMultiplier);
     }
 
     /// @notice calculates the fee in terms of base units of the collateral token per unit pair minted.

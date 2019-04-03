@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.25;
+pragma solidity 0.4.25;
 
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
@@ -56,7 +56,8 @@ contract PositionToken is ERC20, Ownable {
     function mintAndSendToken(
         uint256 qtyToMint,
         address recipient
-    ) external onlyOwner {
+    ) external onlyOwner
+    {
         _mint(recipient, qtyToMint);
     }
 
@@ -68,7 +69,8 @@ contract PositionToken is ERC20, Ownable {
     function redeemToken(
         uint256 qtyToRedeem,
         address redeemer
-    ) external onlyOwner {
+    ) external onlyOwner
+    {
         _burn(redeemer, qtyToRedeem);
     }
 }
