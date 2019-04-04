@@ -401,7 +401,7 @@ contract('MarketCollateralPool', function(accounts) {
     it('should fail if called before settlement', async () => {
       let settleAndCloseError = null;
       try {
-        await collateralPool.settleAndClose(marketContract.address, { from: accounts[0] });
+        await collateralPool.settleAndClose(marketContract.address, 1, { from: accounts[0] });
       } catch (err) {
         settleAndCloseError = err;
       }
@@ -449,6 +449,30 @@ contract('MarketCollateralPool', function(accounts) {
         error = err;
       }
       assert.instanceOf(error, Error, 'should not be able to redeem insufficient short tokens');
+    });
+
+    it('should fail if time not pass settlement delay', async function() {
+      let error = null;
+
+      // 1. force contract to settlement
+      await utility.settleContract(marketContract, priceCap, accounts[0]);
+
+      // 2. move time a little ahead but less than postSettlement < 1 day
+      await utility.increase(7000);
+
+      // 3. attempting to redeem token should fail
+
+      await utility.shouldFail(
+        async () => {
+          const shortTokenQtyToRedeem = -1;
+          await collateralPool.settleAndClose(marketContract.address, shortTokenQtyToRedeem, {
+            from: accounts[0]
+          });
+        },
+        'should be able to settle and close',
+        'Contract is not past settlement delay',
+        'should have for contract not past settlement delay'
+      );
     });
 
     it('should redeem short and long tokens after settlement', async function() {

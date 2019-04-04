@@ -195,7 +195,7 @@ module.exports = {
     return await marketContract.settlementPrice.call({ from: userAddress });
   },
 
-  async shouldFail(block, message) {
+  async shouldFail(block, message, errorContainsMessage, containsMessage) {
     let error = null;
     try {
       await block();
@@ -204,5 +204,8 @@ module.exports = {
     }
 
     assert.instanceOf(error, Error, message);
+    if (errorContainsMessage) {
+      assert.ok(error.message.includes(errorContainsMessage), containsMessage);
+    }
   }
 };
