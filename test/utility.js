@@ -130,6 +130,11 @@ module.exports = {
     });
   },
 
+  expirationInDays(days) {
+    const daysInSeconds = 60 * 60 * 24 * days;
+    return Math.round(new Date().getTime() / 1000 + daysInSeconds);
+  },
+
   /**
    * Creates an EVM Snapshot and returns a Promise that resolves to the id of the snapshot.
    */
@@ -195,7 +200,7 @@ module.exports = {
     return await marketContract.settlementPrice.call({ from: userAddress });
   },
 
-  async shouldFail(block, message) {
+  async shouldFail(block, message, errorContainsMessage, containsMessage) {
     let error = null;
     try {
       await block();
@@ -204,5 +209,8 @@ module.exports = {
     }
 
     assert.instanceOf(error, Error, message);
+    if (errorContainsMessage) {
+      assert.ok(error.message.includes(errorContainsMessage), containsMessage);
+    }
   }
 };

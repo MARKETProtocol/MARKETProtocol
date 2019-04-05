@@ -2,6 +2,7 @@ const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const CollateralToken = artifacts.require('CollateralToken');
 const PositionToken = artifacts.require('PositionToken');
+const MarketToken = artifacts.require('MarketToken');
 const utility = require('./utility.js');
 
 // basic tests to ensure MarketCollateralPool works and is set up to allow trading
@@ -9,13 +10,21 @@ contract('MarketCollateralPool', function(accounts) {
   let collateralToken;
   let collateralPool;
   let marketContract;
+  let feeMarketContract;
   let marketContractRegistry;
+  let mktToken;
   let qtyMultiplier;
   let priceFloor;
   let priceCap;
   let longPositionToken;
   let shortPositionToken;
   let snapshotId;
+  let initialCollateralBalance;
+  let initialMktBalance;
+  let mktFeePerUnit;
+  let collateralFeePerUnit;
+  let collateralFee = 1000;
+  let mktFee = 500;
 
   const MarketSides = {
     Long: 0,
@@ -31,13 +40,27 @@ contract('MarketCollateralPool', function(accounts) {
     snapshotId = await utility.createEVMSnapshot();
     collateralPool = await MarketCollateralPool.deployed();
     collateralToken = await CollateralToken.deployed();
+    mktToken = await MarketToken.deployed(); // .at(await collateralPool.mktToken());
     marketContract = await utility.createMarketContract(
       collateralToken,
       collateralPool,
-      accounts[0]
+      accounts[0],
+      accounts[0],
+      [0, 150, 2, 1, 0, 0, utility.expirationInDays(1)]
+    );
+
+    feeMarketContract = await utility.createMarketContract(
+      collateralToken,
+      collateralPool,
+      accounts[0],
+      accounts[0],
+      [0, 150, 2, 2, collateralFee, mktFee, utility.expirationInDays(1)]
     );
 
     await marketContractRegistry.addAddressToWhiteList(marketContract.address, {
+      from: accounts[0]
+    });
+    await marketContractRegistry.addAddressToWhiteList(feeMarketContract.address, {
       from: accounts[0]
     });
 
@@ -46,6 +69,9 @@ contract('MarketCollateralPool', function(accounts) {
     priceCap = await marketContract.PRICE_CAP.call();
     longPositionToken = PositionToken.at(await marketContract.LONG_POSITION_TOKEN());
     shortPositionToken = PositionToken.at(await marketContract.SHORT_POSITION_TOKEN());
+
+    initialMktBalance = await mktToken.balanceOf.call(accounts[0]);
+    initialCollateralBalance = await collateralToken.balanceOf.call(accounts[0]);
   });
 
   afterEach(async function() {
@@ -80,99 +106,6 @@ contract('MarketCollateralPool', function(accounts) {
       );
     });
 
-    it('should mint position tokens', async function() {
-      // 1. Start with fresh account
-      const initialBalance = await collateralToken.balanceOf.call(accounts[1]);
-      assert.equal(initialBalance.toNumber(), 0, 'Account 1 already has a balance');
-
-      // 2. should fail to mint when user has no collateral.
-      let error = null;
-      try {
-        await collateralPool.mintPositionTokens(marketContract.address, 1, false, {
-          from: accounts[1]
-        });
-      } catch (err) {
-        error = err;
-      }
-      assert.ok(
-        error instanceof Error,
-        'should not be able to mint with no collateral token balance'
-      );
-
-      // 3. should fail to mint when user has not approved transfer of collateral (erc20 approve)
-      const accountBalance = await collateralToken.balanceOf.call(accounts[0]);
-      assert.isTrue(
-        accountBalance.toNumber() !== 0,
-        'Account 0 does not have a balance of collateral'
-      );
-
-      await collateralToken.approve(collateralPool.address, 0); // set zero approval
-      const initialApproval = await collateralToken.allowance.call(
-        accounts[0],
-        collateralPool.address
-      );
-      assert.equal(initialApproval.toNumber(), 0, 'Account 0 already has an approval');
-
-      error = null;
-      try {
-        await collateralPool.mintPositionTokens(marketContract.address, 1, false, {
-          from: accounts[0]
-        });
-      } catch (err) {
-        error = err;
-      }
-      assert.ok(
-        error instanceof Error,
-        'should not be able to mint with no collateral approval balance'
-      );
-
-      // 4. should allow to mint when user has collateral tokens and has approved them
-      const amountToApprove = 1e22;
-      await collateralToken.approve(collateralPool.address, amountToApprove);
-      const qtyToMint = 100;
-      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
-        from: accounts[0]
-      });
-      const longPosTokenBalance = await longPositionToken.balanceOf(accounts[0]);
-      const shortPosTokenBalance = await shortPositionToken.balanceOf(accounts[0]);
-
-      assert.equal(
-        longPosTokenBalance.toNumber(),
-        qtyToMint,
-        'incorrect amount of long tokens minted'
-      );
-      assert.equal(
-        shortPosTokenBalance.toNumber(),
-        qtyToMint,
-        'incorrect amount of short tokens minted'
-      );
-    });
-
-    it('should lock the correct amount of collateral', async function() {
-      // 1. Get initial token balance balance
-      const initialCollateralBalance = await collateralToken.balanceOf.call(accounts[0]);
-
-      // 2. approve collateral and mint tokens
-      const amountToApprove = 1e22;
-      await collateralToken.approve(collateralPool.address, amountToApprove);
-      const qtyToMint = 100;
-      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
-        from: accounts[0]
-      });
-
-      // 3. balance after should be equal to expected balance
-      const amountToBeLocked =
-        qtyToMint * utility.calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier);
-      const expectedBalanceAfterMint = initialCollateralBalance.minus(amountToBeLocked);
-      const actualBalanceAfterMint = await collateralToken.balanceOf.call(accounts[0]);
-
-      assert.equal(
-        actualBalanceAfterMint.toNumber(),
-        expectedBalanceAfterMint.toNumber(),
-        'incorrect collateral amount locked for minting'
-      );
-    });
-
     it('should fail if contract is settled', async function() {
       // 1. force contract to settlement
       await utility.settleContract(marketContract, priceCap, accounts[0]);
@@ -180,21 +113,13 @@ contract('MarketCollateralPool', function(accounts) {
       // 2. approve collateral and mint tokens should fail
       const amountToApprove = 1e22;
       await collateralToken.approve(collateralPool.address, amountToApprove);
-      const qtyToMint = 1;
 
-      let error = null;
-      try {
+      await utility.shouldFail(async () => {
+        const qtyToMint = 1;
         await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
           from: accounts[0]
         });
-      } catch (err) {
-        error = err;
-      }
-
-      assert.ok(
-        error instanceof Error,
-        'should not be able to mint position tokens after settlement'
-      );
+      }, 'should not be able to mint position tokens after settlement');
     });
 
     it('should emit TokensMinted', async function() {
@@ -229,6 +154,397 @@ contract('MarketCollateralPool', function(accounts) {
         amountToBeLocked,
         'incorrect collateralLocked arg for TokensMinted'
       );
+    });
+
+    it('should lock the correct amount of collateral', async function() {
+      // 1. approve collateral and mint tokens
+      const amountToApprove = 1e22;
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = 100;
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
+        from: accounts[0]
+      });
+
+      // 2. balance after should be equal to expected balance
+      const amountToBeLocked =
+        qtyToMint * utility.calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier);
+      const expectedBalanceAfterMint = initialCollateralBalance.minus(amountToBeLocked);
+      const actualBalanceAfterMint = await collateralToken.balanceOf.call(accounts[0]);
+
+      assert.equal(
+        actualBalanceAfterMint.toNumber(),
+        expectedBalanceAfterMint.toNumber(),
+        'incorrect collateral amount locked for minting'
+      );
+    });
+
+    it('should mint with zero MKT fee', async function() {
+      // 1. approve collateral and mint tokens
+      const amountToApprove = 1e22;
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      await mktToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = 100;
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
+        from: accounts[0]
+      });
+
+      // 2. balance after should be equal to expected balance
+      const expectedMktFees = 0;
+      const finalMktBalance = await mktToken.balanceOf.call(accounts[0]);
+      const actualMktFees = finalMktBalance.minus(initialMktBalance).toNumber();
+
+      assert.equal(actualMktFees, expectedMktFees, 'non-zero mkt fees charged');
+    });
+
+    describe('when marketContract has both MKT and Collateral fees', async function() {
+      let qtyToMint = 5;
+      let collateralFeePerUnit;
+      let mktFeePerUnit;
+
+      beforeEach(async function() {
+        collateralFeePerUnit = await feeMarketContract.COLLATERAL_TOKEN_FEE_PER_UNIT.call();
+        mktFeePerUnit = await feeMarketContract.MKT_TOKEN_FEE_PER_UNIT.call();
+
+        // approve tokens
+        await collateralToken.approve(collateralPool.address, 1e22, { from: accounts[0] });
+        await mktToken.approve(collateralPool.address, 1e22);
+
+        longPositionToken = PositionToken.at(await feeMarketContract.LONG_POSITION_TOKEN());
+        shortPositionToken = PositionToken.at(await feeMarketContract.SHORT_POSITION_TOKEN());
+      });
+
+      it('should mint position tokens', async function() {
+        // 1. Start with fresh account
+        const initialBalance = await collateralToken.balanceOf.call(accounts[1]);
+        assert.equal(initialBalance.toNumber(), 0, 'Account 1 already has a balance');
+
+        // 2. should fail to mint when user has no collateral.
+        let error = null;
+        try {
+          await collateralPool.mintPositionTokens(marketContract.address, 1, false, {
+            from: accounts[1]
+          });
+        } catch (err) {
+          error = err;
+        }
+        assert.ok(
+          error instanceof Error,
+          'should not be able to mint with no collateral token balance'
+        );
+
+        // 3. should fail to mint when user has not approved transfer of collateral (erc20 approve)
+        const accountBalance = await collateralToken.balanceOf.call(accounts[0]);
+        assert.isTrue(
+          accountBalance.toNumber() !== 0,
+          'Account 0 does not have a balance of collateral'
+        );
+
+        await collateralToken.approve(collateralPool.address, 0); // set zero approval
+        const initialApproval = await collateralToken.allowance.call(
+          accounts[0],
+          collateralPool.address
+        );
+        assert.equal(initialApproval.toNumber(), 0, 'Account 0 already has an approval');
+
+        error = null;
+        try {
+          await collateralPool.mintPositionTokens(feeMarketContract.address, 1, false, {
+            from: accounts[0]
+          });
+        } catch (err) {
+          error = err;
+        }
+        assert.ok(
+          error instanceof Error,
+          'should not be able to mint with no collateral approval balance'
+        );
+
+        // 4. should allow to mint when user has collateral tokens and has approved them
+        const amountToApprove = 1e22;
+        await collateralToken.approve(collateralPool.address, amountToApprove);
+        const qtyToMint = 100;
+        await collateralPool.mintPositionTokens(feeMarketContract.address, qtyToMint, false, {
+          from: accounts[0]
+        });
+        const longPosTokenBalance = await longPositionToken.balanceOf(accounts[0]);
+        const shortPosTokenBalance = await shortPositionToken.balanceOf(accounts[0]);
+
+        assert.equal(
+          longPosTokenBalance.toNumber(),
+          qtyToMint,
+          'incorrect amount of long tokens minted'
+        );
+        assert.equal(
+          shortPosTokenBalance.toNumber(),
+          qtyToMint,
+          'incorrect amount of short tokens minted'
+        );
+      });
+
+      describe('when isAttemptToPayInMKT is true', function() {
+        beforeEach(async function() {
+          // mint
+          await collateralPool.mintPositionTokens(feeMarketContract.address, qtyToMint, true, {
+            from: accounts[0]
+          });
+        });
+
+        it('should charge correct mktFees', async function() {
+          const expectedMktFee = mktFeePerUnit.toNumber() * qtyToMint;
+
+          const finalMktBalance = await mktToken.balanceOf.call(accounts[0]);
+          const actualMktFee = initialMktBalance.minus(finalMktBalance).toNumber();
+
+          assert.equal(actualMktFee, expectedMktFee, 'wrong mkt fee charged for minting');
+        });
+
+        it('should not charge collateral fees', async function() {
+          const expectedCollateralTransfer =
+            (await feeMarketContract.COLLATERAL_PER_UNIT()).toNumber() * qtyToMint;
+
+          const finalCollateralBalance = await collateralToken.balanceOf.call(accounts[0]);
+          const actualCollateralTransfer = initialCollateralBalance
+            .minus(finalCollateralBalance)
+            .toNumber();
+
+          assert.equal(
+            actualCollateralTransfer,
+            expectedCollateralTransfer,
+            'collateral token also charged for fees'
+          );
+        });
+      });
+
+      describe('when isAttemptToPayInMKT is false', function() {
+        beforeEach(async function() {
+          // mint with isAttemptToPayInMKT == false
+          await collateralPool.mintPositionTokens(feeMarketContract.address, qtyToMint, false, {
+            from: accounts[0]
+          });
+        });
+
+        it('should charge correct collateralFees', async function() {
+          const expectedCollateralFee = collateralFeePerUnit.toNumber() * qtyToMint;
+          const expectedCollateralTransfer =
+            (await feeMarketContract.COLLATERAL_PER_UNIT()).toNumber() * qtyToMint;
+
+          const finalCollateralBalance = await collateralToken.balanceOf.call(accounts[0]);
+          const actualCollateralFee = initialCollateralBalance
+            .minus(finalCollateralBalance)
+            .minus(expectedCollateralTransfer)
+            .toNumber();
+
+          assert.equal(
+            actualCollateralFee,
+            expectedCollateralFee,
+            'wrong collateral fee charged for minting'
+          );
+        });
+
+        it('should not charge mkt fees', async function() {
+          const finalMktBalance = await mktToken.balanceOf.call(accounts[0]);
+
+          assert.equal(
+            initialMktBalance.toNumber(),
+            finalMktBalance.toNumber(),
+            'mkt token also charged for fees'
+          );
+        });
+      });
+    });
+
+    describe('when marketContract has only MKT fees', async function() {
+      let qtyToMint = 5;
+      let mktFeeMarketContract;
+
+      beforeEach(async function() {
+        mktFeeMarketContract = await utility.createMarketContract(
+          collateralToken,
+          collateralPool,
+          accounts[0],
+          accounts[0],
+          [0, 150, 2, 1, 0, mktFee, utility.expirationInDays(1)]
+        );
+        mktFeePerUnit = await mktFeeMarketContract.MKT_TOKEN_FEE_PER_UNIT.call();
+
+        await marketContractRegistry.addAddressToWhiteList(mktFeeMarketContract.address, {
+          from: accounts[0]
+        });
+      });
+
+      describe('when isAttemptToPayInMKT is true', function() {
+        beforeEach(async function() {
+          await mktToken.approve(collateralPool.address, 1e22, {
+            from: accounts[0]
+          });
+
+          await collateralToken.approve(collateralPool.address, 1e22);
+
+          // mint
+          await collateralPool.mintPositionTokens(mktFeeMarketContract.address, qtyToMint, true, {
+            from: accounts[0]
+          });
+        });
+
+        it('should charge correct mktFees', async function() {
+          const expectedMktFee = mktFeePerUnit.toNumber() * qtyToMint;
+
+          const finalMktBalance = await mktToken.balanceOf.call(accounts[0]);
+          const actualMktFee = initialMktBalance.minus(finalMktBalance).toNumber();
+
+          assert.equal(actualMktFee, expectedMktFee, 'wrong mkt fee charged for minting');
+        });
+
+        it('should not charge collateral fees', async function() {
+          const expectedCollateralTransfer =
+            (await mktFeeMarketContract.COLLATERAL_PER_UNIT()).toNumber() * qtyToMint;
+
+          const finalCollateralBalance = await collateralToken.balanceOf.call(accounts[0]);
+          const actualCollateralTransfer = initialCollateralBalance
+            .minus(finalCollateralBalance)
+            .toNumber();
+
+          assert.equal(
+            actualCollateralTransfer,
+            expectedCollateralTransfer,
+            'collateral token also charged for fees'
+          );
+        });
+      });
+
+      describe('when isAttemptToPayInMKT is false', function() {
+        it('should still charge in mktFees', async function() {
+          const qtyToMint = 5;
+
+          const expectedMktFee = mktFeePerUnit.toNumber() * qtyToMint;
+          await mktToken.approve(collateralPool.address, expectedMktFee, {
+            from: accounts[0]
+          });
+
+          await collateralToken.approve(collateralPool.address, 1e22);
+
+          // mint with isAttemptToPayInMKT == false
+          await collateralPool.mintPositionTokens(mktFeeMarketContract.address, qtyToMint, false, {
+            from: accounts[0]
+          });
+
+          const finalMktBalance = await mktToken.balanceOf.call(accounts[0]);
+          const actualMktFee = initialMktBalance.minus(finalMktBalance).toNumber();
+          assert.equal(actualMktFee, expectedMktFee, 'mkt fees have been bypassed');
+        });
+      });
+    });
+
+    describe('when marketContract has only Collateral fees', async function() {
+      let qtyToMint = 5;
+      let collateralFeeMarketContract;
+
+      beforeEach(async function() {
+        collateralFeeMarketContract = await utility.createMarketContract(
+          collateralToken,
+          collateralPool,
+          accounts[0],
+          accounts[0],
+          [0, 150, 2, 1, collateralFee, 0, utility.expirationInDays(1)]
+        );
+        collateralFeePerUnit = await collateralFeeMarketContract.COLLATERAL_TOKEN_FEE_PER_UNIT.call();
+
+        await marketContractRegistry.addAddressToWhiteList(collateralFeeMarketContract.address, {
+          from: accounts[0]
+        });
+      });
+
+      describe('when isAttemptToPayInMKT is true', function() {
+        beforeEach(async function() {
+          // approve tokens
+          await collateralToken.approve(collateralPool.address, 1e22, { from: accounts[0] });
+          await mktToken.approve(collateralPool.address, 1e22);
+
+          // mint with isAttemptToPayInMKT == true
+          await collateralPool.mintPositionTokens(
+            collateralFeeMarketContract.address,
+            qtyToMint,
+            true,
+            {
+              from: accounts[0]
+            }
+          );
+        });
+
+        it('should still charge correct collateralFees', async function() {
+          const expectedCollateralFee = collateralFeePerUnit.toNumber() * qtyToMint;
+          const expectedCollateralTransfer =
+            (await collateralFeeMarketContract.COLLATERAL_PER_UNIT()).toNumber() * qtyToMint;
+
+          const finalCollateralBalance = await collateralToken.balanceOf.call(accounts[0]);
+          const actualCollateralFee = initialCollateralBalance
+            .minus(finalCollateralBalance)
+            .minus(expectedCollateralTransfer)
+            .toNumber();
+
+          assert.equal(
+            actualCollateralFee,
+            expectedCollateralFee,
+            'wrong collateral fee charged for minting'
+          );
+        });
+
+        it('should not charge mkt fees', async function() {
+          const finalMktBalance = await mktToken.balanceOf.call(accounts[0]);
+
+          assert.equal(
+            initialMktBalance.toNumber(),
+            finalMktBalance.toNumber(),
+            'mkt token also charged for fees'
+          );
+        });
+      });
+
+      describe('when isAttemptToPayInMKT is false', function() {
+        beforeEach(async function() {
+          // approve tokens
+          await collateralToken.approve(collateralPool.address, 1e22, { from: accounts[0] });
+          await mktToken.approve(collateralPool.address, 1e22);
+
+          // mint with isAttemptToPayInMKT == false
+          await collateralPool.mintPositionTokens(
+            collateralFeeMarketContract.address,
+            qtyToMint,
+            false,
+            {
+              from: accounts[0]
+            }
+          );
+        });
+
+        it('should still charge correct collateralFees', async function() {
+          const expectedCollateralFee = collateralFeePerUnit.toNumber() * qtyToMint;
+          const expectedCollateralTransfer =
+            (await collateralFeeMarketContract.COLLATERAL_PER_UNIT()).toNumber() * qtyToMint;
+
+          const finalCollateralBalance = await collateralToken.balanceOf.call(accounts[0]);
+          const actualCollateralFee = initialCollateralBalance
+            .minus(finalCollateralBalance)
+            .minus(expectedCollateralTransfer)
+            .toNumber();
+
+          assert.equal(
+            actualCollateralFee,
+            expectedCollateralFee,
+            'wrong collateral fee charged for minting'
+          );
+        });
+
+        it('should not charge mkt fees', async function() {
+          const finalMktBalance = await mktToken.balanceOf.call(accounts[0]);
+
+          assert.equal(
+            initialMktBalance.toNumber(),
+            finalMktBalance.toNumber(),
+            'mkt token also charged for fees'
+          );
+        });
+      });
     });
   });
 
@@ -401,7 +717,7 @@ contract('MarketCollateralPool', function(accounts) {
     it('should fail if called before settlement', async () => {
       let settleAndCloseError = null;
       try {
-        await collateralPool.settleAndClose(marketContract.address, { from: accounts[0] });
+        await collateralPool.settleAndClose(marketContract.address, 1, { from: accounts[0] });
       } catch (err) {
         settleAndCloseError = err;
       }
@@ -449,6 +765,30 @@ contract('MarketCollateralPool', function(accounts) {
         error = err;
       }
       assert.instanceOf(error, Error, 'should not be able to redeem insufficient short tokens');
+    });
+
+    it('should fail if time not pass settlement delay', async function() {
+      let error = null;
+
+      // 1. force contract to settlement
+      await utility.settleContract(marketContract, priceCap, accounts[0]);
+
+      // 2. move time a little ahead but less than postSettlement < 1 day
+      await utility.increase(7000);
+
+      // 3. attempting to redeem token should fail
+
+      await utility.shouldFail(
+        async () => {
+          const shortTokenQtyToRedeem = -1;
+          await collateralPool.settleAndClose(marketContract.address, shortTokenQtyToRedeem, {
+            from: accounts[0]
+          });
+        },
+        'should be able to settle and close',
+        'Contract is not past settlement delay',
+        'should have for contract not past settlement delay'
+      );
     });
 
     it('should redeem short and long tokens after settlement', async function() {
@@ -640,6 +980,84 @@ contract('MarketCollateralPool', function(accounts) {
         expectedCollateralBalanceAfterRedeem.toNumber(),
         'short position tokens balance was not reduced'
       );
+    });
+  });
+
+  describe('withdrawFees()', function() {
+    beforeEach(async function() {
+      // approve tokens
+      await collateralToken.approve(collateralPool.address, 1e22, { from: accounts[0] });
+      await mktToken.approve(collateralPool.address, 1e22);
+    });
+
+    it('should fail if no fees available for token address', async function() {
+      await utility.shouldFail(
+        async function() {
+          await collateralPool.withdrawFees(collateralToken.address, accounts[1], {
+            from: accounts[0]
+          });
+        },
+        'did not fail on withdrawal of zero fees',
+        'No fees available for withdrawal',
+        'did not fail for no fees available'
+      );
+    });
+
+    it('should fail if sender is not owner of collateralPool', async function() {
+      await utility.shouldFail(async function() {
+        const notOwner = accounts[1];
+        await collateralPool.withdrawFees(collateralToken.address, accounts[1], {
+          from: notOwner
+        });
+      }, 'did not fail for sender !== owner');
+    });
+
+    it('should be able to withdraw collateral token fees', async function() {
+      const qtyToMint = 5;
+      collateralFeePerUnit = await feeMarketContract.COLLATERAL_TOKEN_FEE_PER_UNIT.call();
+      const expectedFeesWithdrawn = collateralFeePerUnit.toNumber() * qtyToMint;
+
+      // mint tokens with collateral fees
+      await collateralPool.mintPositionTokens(feeMarketContract.address, qtyToMint, false, {
+        from: accounts[0]
+      });
+
+      // withdraw collateral tokens to account[1]
+      const initialReceipientBalance = await collateralToken.balanceOf(accounts[1]);
+      await collateralPool.withdrawFees(collateralToken.address, accounts[1], {
+        from: accounts[0]
+      });
+
+      const finalReceipientBalance = await collateralToken.balanceOf(accounts[1]);
+      const actualFeesWithdrawn = finalReceipientBalance.minus(initialReceipientBalance).toNumber();
+
+      assert.equal(
+        actualFeesWithdrawn,
+        expectedFeesWithdrawn,
+        'incorrect collateral fees withdrawn'
+      );
+    });
+
+    it('should be able to withdraw mkt token fees', async function() {
+      const qtyToMint = 5;
+      mktFeePerUnit = await feeMarketContract.MKT_TOKEN_FEE_PER_UNIT.call();
+      const expectedFeesWithdrawn = mktFeePerUnit.toNumber() * qtyToMint;
+
+      // mint tokens with mkt fees
+      await collateralPool.mintPositionTokens(feeMarketContract.address, qtyToMint, true, {
+        from: accounts[0]
+      });
+
+      // withdraw fees to account[1]
+      const initialReceipientBalance = await mktToken.balanceOf(accounts[1]);
+      await collateralPool.withdrawFees(mktToken.address, accounts[1], {
+        from: accounts[0]
+      });
+
+      const finalReceipientBalance = await mktToken.balanceOf(accounts[1]);
+      const actualFeesWithdrawn = finalReceipientBalance.minus(initialReceipientBalance).toNumber();
+
+      assert.equal(actualFeesWithdrawn, expectedFeesWithdrawn, 'incorrect mkt fees withdrawn');
     });
   });
 });
