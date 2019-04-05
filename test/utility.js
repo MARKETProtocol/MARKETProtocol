@@ -130,6 +130,11 @@ module.exports = {
     });
   },
 
+  expirationInDays(days) {
+    const daysInSeconds = 60 * 60 * 24 * days;
+    return Math.round(new Date().getTime() / 1000 + daysInSeconds);
+  },
+
   /**
    * Creates an EVM Snapshot and returns a Promise that resolves to the id of the snapshot.
    */
