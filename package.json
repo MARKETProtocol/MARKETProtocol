@@ -20,6 +20,7 @@
   },
   "scripts": {
     "test": "truffle test",
+    "coverage": "./node_modules/.bin/solidity-coverage",
     "lint": "prettier-eslint --write './**/*.js' --ignore './node_modules/**' --ignore './coverage/**'"
   },
   "husky": {
