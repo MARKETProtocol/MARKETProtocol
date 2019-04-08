@@ -1102,4 +1102,49 @@ contract('MarketCollateralPool', function(accounts) {
       );
     });
   });
+
+  describe('setMarketContractRegistryAddress()', function() {
+    it('should fail if attempting to set registry address to null', async function() {
+      await utility.shouldFail(
+        async function() {
+          await collateralPool.setMarketContractRegistryAddress(
+            '0x0000000000000000000000000000000000000000',
+            {
+              from: accounts[0]
+            }
+          );
+        },
+        'did not fail on attempt to set registry address to null',
+        'Cannot set Market Contract Registry Address To Null',
+        'did not fail with null address'
+      );
+    });
+
+    it('should fail if attempting to set registry address from non owner address', async function() {
+      await utility.shouldFail(
+        async function() {
+          await collateralPool.setMarketContractRegistryAddress(collateralToken.address, {
+            from: accounts[3]
+          });
+        },
+        'did not fail on attempt to set registry Address from non owner address',
+        '',
+        'did not fail from non owner address'
+      );
+    });
+
+    it('should work attempting to set registry address from owner address', async function() {
+      await collateralPool.setMarketContractRegistryAddress(collateralToken.address, {
+        from: accounts[0]
+      });
+
+      const newlySetAddress = await collateralPool.marketContractRegistry.call();
+
+      assert.equal(
+        newlySetAddress,
+        collateralToken.address,
+        'unable to set new MKT Token Address from owner account'
+      );
+    });
+  });
 });
