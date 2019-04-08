@@ -65,7 +65,7 @@ contract MarketContractFactoryMPX is Ownable {
         MarketContractMPX mktContract = new MarketContractMPX(
             contractNames,
             [
-            msg.sender,
+            owner(),
             collateralTokenAddress,
             MARKET_COLLATERAL_POOL
             ],

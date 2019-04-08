@@ -57,7 +57,7 @@ contract MarketContract is Ownable {
 
     /// @param contractNames comma separated list of 3 names "contractName,longTokenSymbol,shortTokenSymbol"
     /// @param baseAddresses array of 2 addresses needed for our contract including:
-    ///     creatorAddress                  address of the person creating the contract
+    ///     ownerAddress                    address of the owner of these contracts.
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
     ///     collateralPoolAddress           address of our collateral pool contract
     /// @param contractSpecs array of unsigned integers including:
