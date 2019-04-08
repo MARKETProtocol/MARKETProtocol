@@ -28,7 +28,7 @@ contract MarketContractMPX is MarketContract {
 
     /// @param contractNames comma separated list of 3 names "contractName,longTokenSymbol,shortTokenSymbol"
     /// @param baseAddresses array of 2 addresses needed for our contract including:
-    ///     creatorAddress                  address of the person creating the contract
+    ///     ownerAddress                    address of the owner of these contracts.
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
     ///     collateralPoolAddress           address of our collateral pool contract
     /// @param oracleHubAddress     address of our oracle hub providing the callbacks
@@ -79,7 +79,7 @@ contract MarketContractMPX is MarketContract {
     /// delay for funds to be released. Could also be used to allow us to force a contract into early settlement
     /// if a dispute arises that we believe is best resolved by early settlement.
     /// @param price settlement price
-    function arbitrateSettlement(uint256 price) public onlyOracleHub {
+    function arbitrateSettlement(uint256 price) public onlyOwner {
         lastPrice = price;
         emit UpdatedLastPrice(price);
         settleContract(price);
