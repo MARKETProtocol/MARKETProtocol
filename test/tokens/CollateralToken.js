@@ -12,7 +12,7 @@ contract('CollateralToken', function(accounts) {
   });
 
   it('Main account should have entire balance', async function() {
-    const mainAcctBalance = await collateralToken.balanceOf(accounts[0]);
+    const mainAcctBalance = await collateralToken.balanceOf.call(accounts[0]);
     assert.isTrue(
       mainAcctBalance.eq(initBalance),
       'Entire coin balance should be in primary account'
@@ -22,7 +22,7 @@ contract('CollateralToken', function(accounts) {
   it('Main account should be able to transfer balance', async function() {
     const balanceToTransfer = initBalance / 2;
     await collateralToken.transfer(accounts[1], balanceToTransfer, { from: accounts[0] });
-    const secondAcctBalance = await collateralToken.balanceOf(accounts[1]);
+    const secondAcctBalance = await collateralToken.balanceOf.call(accounts[1]);
     assert.isTrue(secondAcctBalance.eq(balanceToTransfer), "Transfer didn't register correctly");
   });
 });
