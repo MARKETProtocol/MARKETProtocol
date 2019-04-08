@@ -1028,8 +1028,8 @@ contract('MarketCollateralPool', function(accounts) {
         from: accounts[0]
       });
 
-      const finalReceipientBalance = await collateralToken.balanceOf(accounts[1]);
-      const actualFeesWithdrawn = finalReceipientBalance.minus(initialReceipientBalance).toNumber();
+      const finalRecipientBalance = await collateralToken.balanceOf(accounts[1]);
+      const actualFeesWithdrawn = finalRecipientBalance.minus(initialReceipientBalance).toNumber();
 
       assert.equal(
         actualFeesWithdrawn,
@@ -1058,6 +1058,48 @@ contract('MarketCollateralPool', function(accounts) {
       const actualFeesWithdrawn = finalReceipientBalance.minus(initialReceipientBalance).toNumber();
 
       assert.equal(actualFeesWithdrawn, expectedFeesWithdrawn, 'incorrect mkt fees withdrawn');
+    });
+  });
+
+  describe('setMKTTokenAddress()', function() {
+    it('should fail if attempting to set MKT address to null', async function() {
+      await utility.shouldFail(
+        async function() {
+          await collateralPool.setMKTTokenAddress('0x0000000000000000000000000000000000000000', {
+            from: accounts[0]
+          });
+        },
+        'did not fail on attempt to set MKT Token Address to null',
+        'Cannot set MKT Token Address To Null',
+        'did not fail with null MKT Token address'
+      );
+    });
+
+    it('should fail if attempting to set MKT address from non owner address', async function() {
+      await utility.shouldFail(
+        async function() {
+          await collateralPool.setMKTTokenAddress(collateralToken.address, {
+            from: accounts[3]
+          });
+        },
+        'did not fail on attempt to set MKT Token Address from non owner address',
+        '',
+        'did not fail from non owner address'
+      );
+    });
+
+    it('should work attempting to set MKT address from owner address', async function() {
+      await collateralPool.setMKTTokenAddress(collateralToken.address, {
+        from: accounts[0]
+      });
+
+      const newlySetAddress = await collateralPool.mktToken.call();
+
+      assert.equal(
+        newlySetAddress,
+        collateralToken.address,
+        'unable to set new MKT Token Address from owner account'
+      );
     });
   });
 });
