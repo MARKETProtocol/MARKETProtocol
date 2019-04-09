@@ -6,7 +6,7 @@ module.exports = {
       network_id: '*' // Match any network id
     },
     coverage: {
-      host: 'truffle-coverage',
+      host: 'localhost',
       network_id: '*', // eslint-disable-line camelcase
       port: 8555,
       gas: 0xfffffffffff,
