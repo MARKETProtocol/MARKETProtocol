@@ -3,10 +3,6 @@ language: node_js
 node_js:
   - "8"
 
-cache:
-  directories:
-    - node_modules
-
 install:
   - npm install -g truffle@4.1.15
   - npm install -g ganache-cli@6.4.2
@@ -17,7 +13,7 @@ script:
 before_script:
   - ./scripts/start_truffle.sh > /dev/null &
   - ./scripts/coverage_setup.sh > /dev/null &
-  - sleep 30
+  - sleep 5
 after_script:
   - npm run coverage && cat coverage/lcov.info | coveralls
 
