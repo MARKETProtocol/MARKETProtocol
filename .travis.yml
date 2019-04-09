@@ -9,7 +9,7 @@ cache:
 
 install:
   - npm install -g truffle@4.1.15
-  - npm install -g ganache-cli@6.4.2
+  - npm install -g ethereumjs-testrpc-sc@6.4.1
   - npm install
 script:
   - npm test
