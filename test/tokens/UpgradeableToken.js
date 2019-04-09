@@ -84,8 +84,8 @@ contract('UpgradeableToken', function(accounts) {
       'user account should have correct balance after burn'
     );
 
-    const initialSupply = await marketToken.INITIAL_SUPPLY();
-    let currentSupply = await marketToken.totalSupply();
+    const initialSupply = await marketToken.INITIAL_SUPPLY.call();
+    let currentSupply = await marketToken.totalSupply.call();
 
     assert.equal(
       initialSupply - amountToBurn,
