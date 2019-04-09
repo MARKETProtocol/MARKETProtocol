@@ -19,7 +19,7 @@
     "solium": "^1.0.5"
   },
   "scripts": {
-    "test": "truffle test",
+    "test": "truffle test --network development",
     "coverage": "./node_modules/.bin/solidity-coverage",
     "lint": "prettier-eslint --write './**/*.js' --ignore './node_modules/**' --ignore './coverage/**'"
   },
