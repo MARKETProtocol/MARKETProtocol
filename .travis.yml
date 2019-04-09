@@ -14,7 +14,7 @@ install:
 script:
   - npm test
 before_script:
-  - truffle develop
+  - truffle develop > /dev/null &
   - ./scripts/coverage_setup.sh > /dev/null &
   - sleep 5
 after_script:
