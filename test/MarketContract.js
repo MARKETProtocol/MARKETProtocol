@@ -121,12 +121,12 @@ contract('MarketContract', function(accounts) {
       await marketContract.mintPositionTokens(qtyToMint, accounts[1], { from: accounts[0] });
 
       assert.equal(
-        (await longPositionTokens.balanceOf(accounts[1])).toNumber(),
+        (await longPositionTokens.balanceOf.call(accounts[1])).toNumber(),
         qtyToMint,
         'long position tokens not minted'
       );
       assert.equal(
-        (await shortPositionTokens.balanceOf(accounts[1])).toNumber(),
+        (await shortPositionTokens.balanceOf.call(accounts[1])).toNumber(),
         qtyToMint,
         'short position tokens not minted'
       );

@@ -15,7 +15,7 @@ contract('InitialAllocationCollateralToken', function(accounts) {
   });
 
   it('account should not have balance', async function() {
-    const subAcctBalance = await collateralToken.balanceOf(accounts[1]);
+    const subAcctBalance = await collateralToken.balanceOf.call(accounts[1]);
     assert.equal(
       subAcctBalance.toNumber(),
       0,
@@ -25,7 +25,7 @@ contract('InitialAllocationCollateralToken', function(accounts) {
 
   it('account should be able to unlock balance only once', async function() {
     await collateralToken.getInitialAllocation({ from: accounts[1] });
-    const subAcctBalance = await collateralToken.balanceOf(accounts[1]);
+    const subAcctBalance = await collateralToken.balanceOf.call(accounts[1]);
     const initialAllocation = await collateralToken.INITIAL_TOKEN_ALLOCATION();
     assert.isTrue(
       subAcctBalance.eq(initialAllocation),
