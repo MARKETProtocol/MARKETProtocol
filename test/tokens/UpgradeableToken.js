@@ -20,7 +20,7 @@ contract('UpgradeableToken', function(accounts) {
   });
 
   it('Main account should have entire balance', async function() {
-    const mainAcctBalance = await marketToken.balanceOf(accountOwner);
+    const mainAcctBalance = await marketToken.balanceOf.call(accountOwner);
     assert.isTrue(
       mainAcctBalance.eq(initBalance),
       'Entire token balance should be in primary account'
@@ -62,7 +62,7 @@ contract('UpgradeableToken', function(accounts) {
     const initialBalance = 50000000;
 
     await marketToken.transfer(accountUser, initialBalance, { from: accounts[0] });
-    let currentBalance = await marketToken.balanceOf(accountUser);
+    let currentBalance = await marketToken.balanceOf.call(accountUser);
 
     assert.equal(initialBalance, currentBalance, 'user account should have correct balance');
 
@@ -77,15 +77,15 @@ contract('UpgradeableToken', function(accounts) {
     const amountToBurn = initialBalance / 2;
     await marketToken.burn(amountToBurn, { from: accountUser });
 
-    currentBalance = await marketToken.balanceOf(accountUser);
+    currentBalance = await marketToken.balanceOf.call(accountUser);
     assert.equal(
       initialBalance - amountToBurn,
       currentBalance,
       'user account should have correct balance after burn'
     );
 
-    const initialSupply = await marketToken.INITIAL_SUPPLY();
-    let currentSupply = await marketToken.totalSupply();
+    const initialSupply = await marketToken.INITIAL_SUPPLY.call();
+    let currentSupply = await marketToken.totalSupply.call();
 
     assert.equal(
       initialSupply - amountToBurn,
@@ -95,7 +95,7 @@ contract('UpgradeableToken', function(accounts) {
   });
 
   it('Can only upgrade owned tokens', async function() {
-    const initialBalance = await marketToken.balanceOf(accountUser);
+    const initialBalance = await marketToken.balanceOf.call(accountUser);
     await marketToken.setUpgradeableTarget(upgradeableToken.address, { from: accountOwner });
 
     const upgradeableTarget = await marketToken.upgradeableTarget();
@@ -125,14 +125,14 @@ contract('UpgradeableToken', function(accounts) {
       'Upgrade target should point at new token'
     );
 
-    const balanceAfterUpgrade = await marketToken.balanceOf(accountUser);
+    const balanceAfterUpgrade = await marketToken.balanceOf.call(accountUser);
     assert.equal(
       initialBalance - amountToUpgrade,
       balanceAfterUpgrade,
       'user account should have correct balance after upgrade'
     );
 
-    const totalUpgradeTokenBalance = await upgradeableToken.balanceOf(accountUser);
+    const totalUpgradeTokenBalance = await upgradeableToken.balanceOf.call(accountUser);
     assert.equal(
       amountToUpgrade,
       totalUpgradeTokenBalance,

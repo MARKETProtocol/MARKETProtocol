@@ -266,8 +266,8 @@ contract('MarketCollateralPool', function(accounts) {
         await collateralPool.mintPositionTokens(feeMarketContract.address, qtyToMint, false, {
           from: accounts[0]
         });
-        const longPosTokenBalance = await longPositionToken.balanceOf(accounts[0]);
-        const shortPosTokenBalance = await shortPositionToken.balanceOf(accounts[0]);
+        const longPosTokenBalance = await longPositionToken.balanceOf.call(accounts[0]);
+        const shortPosTokenBalance = await shortPositionToken.balanceOf.call(accounts[0]);
 
         assert.equal(
           longPosTokenBalance.toNumber(),
@@ -582,8 +582,8 @@ contract('MarketCollateralPool', function(accounts) {
       await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
         from: accounts[0]
       });
-      const initialLongPosTokenBalance = await longPositionToken.balanceOf(accounts[0]);
-      const initialShortPosTokenBalance = await shortPositionToken.balanceOf(accounts[0]);
+      const initialLongPosTokenBalance = await longPositionToken.balanceOf.call(accounts[0]);
+      const initialShortPosTokenBalance = await shortPositionToken.balanceOf.call(accounts[0]);
 
       // 2. redeem tokens
       const qtyToRedeem = 50;
@@ -595,8 +595,8 @@ contract('MarketCollateralPool', function(accounts) {
       // 3. assert final tokens balance are as expected
       const expectedFinalLongPosTokenBalance = initialLongPosTokenBalance.minus(qtyToRedeem);
       const expectedFinalShortPosTokenBalance = initialShortPosTokenBalance.minus(qtyToRedeem);
-      const finalLongPosTokenBalance = await longPositionToken.balanceOf(accounts[0]);
-      const finalShortPosTokenBalance = await shortPositionToken.balanceOf(accounts[0]);
+      const finalLongPosTokenBalance = await longPositionToken.balanceOf.call(accounts[0]);
+      const finalShortPosTokenBalance = await shortPositionToken.balanceOf.call(accounts[0]);
 
       assert.equal(
         finalLongPosTokenBalance.toNumber(),
@@ -1023,12 +1023,12 @@ contract('MarketCollateralPool', function(accounts) {
       });
 
       // withdraw collateral tokens to account[1]
-      const initialReceipientBalance = await collateralToken.balanceOf(accounts[1]);
+      const initialReceipientBalance = await collateralToken.balanceOf.call(accounts[1]);
       await collateralPool.withdrawFees(collateralToken.address, accounts[1], {
         from: accounts[0]
       });
 
-      const finalRecipientBalance = await collateralToken.balanceOf(accounts[1]);
+      const finalRecipientBalance = await collateralToken.balanceOf.call(accounts[1]);
       const actualFeesWithdrawn = finalRecipientBalance.minus(initialReceipientBalance).toNumber();
 
       assert.equal(
@@ -1049,12 +1049,12 @@ contract('MarketCollateralPool', function(accounts) {
       });
 
       // withdraw fees to account[1]
-      const initialReceipientBalance = await mktToken.balanceOf(accounts[1]);
+      const initialReceipientBalance = await mktToken.balanceOf.call(accounts[1]);
       await collateralPool.withdrawFees(mktToken.address, accounts[1], {
         from: accounts[0]
       });
 
-      const finalReceipientBalance = await mktToken.balanceOf(accounts[1]);
+      const finalReceipientBalance = await mktToken.balanceOf.call(accounts[1]);
       const actualFeesWithdrawn = finalReceipientBalance.minus(initialReceipientBalance).toNumber();
 
       assert.equal(actualFeesWithdrawn, expectedFeesWithdrawn, 'incorrect mkt fees withdrawn');

@@ -101,8 +101,8 @@ contract('PositionToken', function(accounts) {
         from: userAddress
       });
 
-      const initialLongPosTokenBalance = await longPositionToken.balanceOf(userAddress);
-      const initialShortPosTokenBalance = await shortPositionToken.balanceOf(userAddress);
+      const initialLongPosTokenBalance = await longPositionToken.balanceOf.call(userAddress);
+      const initialShortPosTokenBalance = await shortPositionToken.balanceOf.call(userAddress);
 
       assert.equal(
         initialLongPosTokenBalance.toNumber(),
@@ -139,8 +139,8 @@ contract('PositionToken', function(accounts) {
       const expectedFinalLongPosTokenBalance = initialLongPosTokenBalance - qtyToRedeem;
       const expectedFinalShortPosTokenBalance = initialShortPosTokenBalance - qtyToRedeem;
 
-      const finalLongPosTokenBalance = await longPositionToken.balanceOf(userAddress);
-      const finalShortPosTokenBalance = await shortPositionToken.balanceOf(userAddress);
+      const finalLongPosTokenBalance = await longPositionToken.balanceOf.call(userAddress);
+      const finalShortPosTokenBalance = await shortPositionToken.balanceOf.call(userAddress);
 
       assert.equal(
         finalLongPosTokenBalance.toNumber(),
