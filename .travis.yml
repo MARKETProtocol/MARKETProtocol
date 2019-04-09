@@ -17,7 +17,7 @@ script:
 before_script:
   - ./scripts/start_truffle.sh > /dev/null &
   - ./scripts/coverage_setup.sh > /dev/null &
-  - sleep 5
+  - sleep 30
 after_script:
   - npm run coverage && cat coverage/lcov.info | coveralls
 
