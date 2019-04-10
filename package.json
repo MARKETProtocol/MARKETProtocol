@@ -1,13 +1,13 @@
 {
   "name": "@marketprotocol/marketprotocol",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "Decentralized Derivatives Trading Protocol For The Ethereum Blockchain",
   "main": "truffle-config.js",
   "directories": {
     "test": "test"
   },
   "dependencies": {
-    "openzeppelin-solidity": "^2.0.1",
+    "openzeppelin-solidity": "2.0.1",
     "truffle": "4.1.15"
   },
   "devDependencies": {
