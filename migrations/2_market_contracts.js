@@ -1,46 +1,103 @@
 const MathLib = artifacts.require('./libraries/MathLib.sol');
-const OrderLib = artifacts.require('./libraries/OrderLib.sol');
-const OrderLibMock = artifacts.require('./mocks/OrderLibMock.sol');
+const StringLib = artifacts.require('./libraries/StringLib.sol');
 const CollateralToken = artifacts.require('./tokens/CollateralToken.sol');
-const MarketContractOraclize = artifacts.require('./oraclize/TestableMarketContractOraclize.sol');
+const MarketToken = artifacts.require('./tokens/MarketToken.sol');
+const MarketContractMPX = artifacts.require('./mpx/MarketContractMPX.sol');
+const MarketContractFactory = artifacts.require('./mpx/MarketContractFactoryMPX.sol');
 const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
-const MarketTradingHub = artifacts.require('./MarketTradingHub.sol');
-const MarketToken = artifacts.require('./tokens/MarketToken.sol');
 
-module.exports = function (deployer, network) {
+module.exports = function(deployer, network) {
   if (network !== 'live') {
-    deployer.deploy([MathLib, OrderLib, MarketContractRegistry]).then(function () {
+    const marketContractExpiration = Math.floor(Date.now() / 1000) + 60 * 15; // expires in 15 minutes.
+    var gasLimit = web3.eth.getBlock('latest').gasLimit;
 
-      deployer.link(MathLib,
-        [MarketContractOraclize, MarketCollateralPool, OrderLibMock]
-      );
-      deployer.link(OrderLib, [OrderLibMock, MarketTradingHub]);
-
-      return deployer.deploy([OrderLibMock, MarketCollateralPool]).then(function () {
-        const marketTokenToLockForTrading = 0; // for testing purposes, require no loc
-        const marketTokenAmountForContractCreation = 0; //for testing purposes require no balance
-        var gasLimit = web3.eth.getBlock('latest').gasLimit;
-
-        return MarketCollateralPool.deployed().then(function (marketCollateralPool) {
-          return deployer
-            .deploy(MarketToken, marketTokenToLockForTrading, marketTokenAmountForContractCreation)
-            .then(function () {
-              return deployer
-                .deploy(CollateralToken, 'CollateralToken', 'CTK', 10000, 18, {
-                  gas: gasLimit,
-                  from: web3.eth.accounts[0]
-                }).then(function () {
-                  return deployer.deploy(
-                    MarketTradingHub,
-                    MarketToken.address,
-                    MarketCollateralPool.address,
-                    { gas: gasLimit }
-                  ).then(function (marketTradingHub) {
-                    return marketCollateralPool.setMarketTradingHubAddress(marketTradingHub.address);
-                  });
+    return deployer.deploy(MarketToken).then(function() {
+      return deployer.deploy(StringLib).then(function() {
+        return deployer.deploy(MathLib).then(function() {
+          return deployer.deploy(MarketContractRegistry).then(function() {
+            return deployer
+              .link(MathLib, [MarketContractMPX, MarketCollateralPool, MarketContractFactory])
+              .then(function() {
+                return deployer.link(StringLib, MarketContractMPX).then(function() {
+                  return deployer
+                    .deploy(
+                      MarketCollateralPool,
+                      MarketContractRegistry.address,
+                      MarketToken.address
+                    )
+                    .then(function() {
+                      return MarketCollateralPool.deployed().then(function() {
+                        return deployer
+                          .deploy(CollateralToken, 'CollateralToken', 'CTK', 10000, 18, {
+                            gas: gasLimit
+                          })
+                          .then(function() {
+                            return deployer
+                              .deploy(
+                                MarketContractFactory,
+                                MarketContractRegistry.address,
+                                MarketCollateralPool.address,
+                                {
+                                  gas: gasLimit
+                                }
+                              )
+                              .then(function(factory) {
+                                return MarketContractRegistry.deployed().then(function(
+                                  registryInstance
+                                ) {
+                                  return registryInstance
+                                    .addFactoryAddress(factory.address)
+                                    .then(function() {
+                                      // white list the factory
+                                      return factory
+                                        .setOracleHubAddress(web3.eth.accounts[8])
+                                        .then(function() {
+                                          return factory
+                                            .deployMarketContractMPX(
+                                              'BTC,LBTC,SBTC',
+                                              CollateralToken.address,
+                                              [
+                                                20000000000000,
+                                                60000000000000,
+                                                10,
+                                                100000000,
+                                                25,
+                                                12,
+                                                marketContractExpiration
+                                              ],
+                                              'api.coincap.io/v2/rates/bitcoin',
+                                              'rateUsd',
+                                              { gas: gasLimit }
+                                            )
+                                            .then(function() {
+                                              return factory.deployMarketContractMPX(
+                                                'BTC-2,LBTC,SBTC',
+                                                CollateralToken.address,
+                                                [
+                                                  20000000000000,
+                                                  60000000000000,
+                                                  10,
+                                                  25,
+                                                  12,
+                                                  100000000,
+                                                  marketContractExpiration
+                                                ],
+                                                'api.coincap.io/v2/rates/bitcoin',
+                                                'rateUsd',
+                                                { gas: gasLimit }
+                                              );
+                                            });
+                                        });
+                                    });
+                                });
+                              });
+                          });
+                      });
+                    });
                 });
-            });
+              });
+          });
         });
       });
     });

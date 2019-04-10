@@ -1,4 +1,4 @@
-<img src="https://github.com/MARKETProtocol/dApp/blob/master/src/img/MARKETProtocol-Light.png?raw=true" align="middle">
+![MARKET Protocol](assets/MARKETProtocol-Dark.png?raw=true)
 
 
 [![Build Status](https://travis-ci.org/MARKETProtocol/MARKETProtocol.svg?branch=master)](https://travis-ci.org/MARKETProtocol/MARKETProtocol) [![Coverage Status](https://coveralls.io/repos/github/MARKETProtocol/MARKETProtocol/badge.svg?branch=master&service=github)](https://coveralls.io/github/MARKETProtocol/MARKETProtocol?branch=master) [![npm version](https://badge.fury.io/js/%40marketprotocol%2Fmarketprotocol.svg)](https://badge.fury.io/js/%40marketprotocol%2Fmarketprotocol)
@@ -6,6 +6,11 @@
 MARKET Protocol has been created to provide a secure, flexible, open source foundation for decentralized trading on the Ethereum blockchain. We provide the pieces necessary to create a decentralized exchange, including the requisite clearing and collateral pool infrastructure, enabling third parties to build applications for trading. Take a look at our [FAQ](https://docs.marketprotocol.io/#faq-general) or [docs](https://docs.marketprotocol.io) for a little more explanation.
 
 Join our [Discord Community](https://marketprotocol.io/discord) to interact with members of our dev staff and other contributors.
+
+## Dependencies
+This project uses Node.js version 8.10.0 - 8.11.3.
+
+If you are running multiple versions of Node.js, consider using [Node Version Manager](https://github.com/creationix/nvm) (nvm). nvm is an easy way to configure and manage different Node.js versions to work with your projects.
 
 ## Getting Started
 
@@ -15,7 +20,6 @@ Some pre-requisites are required in order to utilize the Makefile.
 
 ```
 $ git clone https://github.com/MARKETProtocol/MARKETProtocol.git  # clone this repository
-$ git clone https://github.com/MARKETProtocol/ethereum-bridge.git # and the needed oraclize.it bridge (for local test rpc)
 ```
 From here you will be able to use make commands assuming npm is already installed.
 
@@ -35,32 +39,19 @@ If you get an error on the `node-gyp rebuild` line during `make install_deps`, `
 The easiest solution? Use `make install_deps_python2.7` to use Python 2.7, see [stack overflow](https://stackoverflow.com/questions/20454199/how-to-use-a-different-version-of-python-during-npm-install) or the [npm node-gyp project](https://github.com/nodejs/node-gyp) for details.
 
 
-
 ## Tests
-To run the tests locally via truffle you must have oraclize's bridge
-running. Information on installation can be found [here](https://github.com/MARKETProtocol/ethereum-bridge)
 
 Start truffle and its development blockchain with
 ```
 $ make start_console
 ```
 
-and then start the ethereum bridge (in a separate console) to run connected
-to the development blockchain you just started. (in this example account 9 is used)
-
-```
-$ make start_bridge
-```
-
-Once the bridge has fully initialized, you should be able to run the example migrations as well
-as the accompanying tests inside the truffle console
+Run the example migrations as well as the accompanying tests inside the truffle console
 
 ```
 truffle(develop)> migrate --reset
 truffle(develop)> test
 ```
-
-If this fails due to a `revert` , please be sure the bridge is listening prior to attempting the migration.
 
 ### Running tests with coverage enabled
 
@@ -90,16 +81,24 @@ docker-compose up
 ```
 
 The first run will take a while since images will be pulled from Docker registry. After that images are cached and the start will be much faster.
-Please wait until Oraclize connector initializes and open a second console. Make sure that all four environment variables are available in the second shell.
-
-#### Install dependencies
+Make sure that all four environment variables are available in the second shell.
 
 ```
-docker-compose exec truffle-coverage npm install
-
+TRUFFLE_DEVELOP_HOST=truffle
+TRUFFLE_DEVELOP_PORT=9545
+TRUFFLE_COVERAGE_HOST=truffle-coverage
+TRUFFLE_COVERAGE_PORT=8555
 ```
+
 
 #### Start tests
+
+To run tests:
+```
+docker-compose exec truffle truffle test
+```
+
+If you want to run test with coverage:
 
 ```
 docker-compose exec truffle-coverage env CONTINUOUS_INTEGRATION=true scripts/coverage_run.sh

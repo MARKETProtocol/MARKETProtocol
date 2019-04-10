@@ -1,22 +1,19 @@
-const MarketContractOraclize = artifacts.require('TestableMarketContractOraclize');
+const MarketContractMPX = artifacts.require('MarketContractMPX');
 const MarketCollateralPool = artifacts.require('MarketCollateralPool');
-const MarketToken = artifacts.require('MarketToken');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const CollateralToken = artifacts.require('CollateralToken');
-const MarketContractFactory = artifacts.require('./chainlink/MarketContractFactoryChainLink.sol');
+const MarketContractFactory = artifacts.require('MarketContractFactoryMPX');
 
 contract('MarketContractRegistry', function(accounts) {
   let collateralPool;
-  let marketToken;
   let marketContract;
   let collateralToken;
   let marketContractRegistry;
 
   beforeEach(async function() {
-    marketToken = await MarketToken.deployed();
     marketContractRegistry = await MarketContractRegistry.deployed();
     var whiteList = await marketContractRegistry.getAddressWhiteList.call();
-    marketContract = await MarketContractOraclize.at(whiteList[1]);
+    marketContract = await MarketContractMPX.at(whiteList[1]);
     collateralPool = await MarketCollateralPool.deployed();
     collateralToken = await CollateralToken.deployed();
   });
@@ -194,6 +191,30 @@ contract('MarketContractRegistry', function(accounts) {
     );
   });
 
+  it('Cannot re-add white listed contract', async function() {
+    const ownerAddress = await marketContractRegistry.owner.call();
+    assert.equal(accounts[0], ownerAddress, "owner isn't our first account");
+
+    var isAddressWhiteListed = await marketContractRegistry.isAddressWhiteListed.call(
+      marketContract.address
+    );
+    assert.isTrue(isAddressWhiteListed, 'Deployed Market Contract is not White Listed');
+
+    // attempt to add the contract to the whitelist a second time should fail!
+    let error = null;
+    try {
+      await marketContractRegistry.addAddressToWhiteList(marketContract.address, {
+        from: ownerAddress
+      });
+    } catch (err) {
+      error = err;
+    }
+    assert.ok(
+      error instanceof Error,
+      "Adding contract to whitelist when its already there didn't fail"
+    );
+  });
+
   it('Only owner is able to remove factory address', async function() {
     const ownerAddress = await marketContractRegistry.owner.call();
     assert.equal(accounts[0], ownerAddress, "owner isn't our first account");
@@ -203,36 +224,24 @@ contract('MarketContractRegistry', function(accounts) {
 
     let error = null;
     try {
-      await marketContractRegistry.removeFactoryAddress(
-        fakeFactoryAddress,
-        { from: accounts[0] }
-      );
+      await marketContractRegistry.removeFactoryAddress(fakeFactoryAddress, { from: accounts[0] });
     } catch (err) {
       error = err;
     }
-    assert.ok(
-      error instanceof Error,
-      "removing non factory address should fail!"
-    );
+    assert.ok(error instanceof Error, 'removing non factory address should fail!');
 
-    await marketContractRegistry.removeFactoryAddress(
-      factoryAddress,
-      { from: accounts[0] }
-    );
+    await marketContractRegistry.removeFactoryAddress(factoryAddress, { from: accounts[0] });
 
     assert.isTrue(
       !(await marketContractRegistry.factoryAddressWhiteList(factoryAddress)),
-      "Removed factory address not removed from mapping"
+      'Removed factory address not removed from mapping'
     );
 
-    await marketContractRegistry.addFactoryAddress(
-      factoryAddress,
-      { from: accounts[0] }
-    );
+    await marketContractRegistry.addFactoryAddress(factoryAddress, { from: accounts[0] });
 
     assert.isTrue(
       await marketContractRegistry.factoryAddressWhiteList(factoryAddress),
-      "Factory address added back"
+      'Factory address added back'
     );
   });
 });

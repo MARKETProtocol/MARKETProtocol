@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2018 Phillip A. Elsasser
+    Copyright 2017-2019 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.25;
 
 import "truffle/Assert.sol";
 import "../../contracts/libraries/StringLib.sol";
@@ -30,11 +30,11 @@ contract TestStringLib {
     }
 
     function testDelimAndSplit() public {
-        string memory oracleQueryPath = 'result.XETHZUSD.c.0';
-        StringLib.slice memory pathSlice = oracleQueryPath.toSlice();
-        StringLib.slice memory delim = ".".toSlice();
+        string memory contractNames = "BTC,LBTC,SBTC";
+        StringLib.slice memory pathSlice = contractNames.toSlice();
+        StringLib.slice memory delim = ",".toSlice();
         uint length = pathSlice.count(delim) + 1;
-        string[4] memory expectedResults = ['result', 'XETHZUSD', 'c', '0'];
+        string[3] memory expectedResults = ["BTC", "LBTC", "SBTC"];
         for (uint i = 0; i < length; i++) {
             Assert.equal(expectedResults[i], pathSlice.split(delim).toString(), "String not split properly!");
         }

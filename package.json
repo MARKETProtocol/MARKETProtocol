@@ -1,26 +1,31 @@
 {
   "name": "@marketprotocol/marketprotocol",
-  "version": "1.4.0",
+  "version": "2.2.0",
   "description": "Decentralized Derivatives Trading Protocol For The Ethereum Blockchain",
   "main": "truffle-config.js",
   "directories": {
     "test": "test"
   },
   "dependencies": {
-    "openzeppelin-solidity": "1.9.0",
-    "chainlink": "github:smartcontractkit/chainlink#b395d572aa34374461e99327e048405c56a575c3",
-    "truffle": "4.1.13"
+    "openzeppelin-solidity": "^2.0.1",
+    "truffle": "4.1.15"
   },
   "devDependencies": {
     "coveralls": "^3.0.0",
     "eslint": "^4.19.1",
+    "husky": "^1.2.0",
     "prettier-eslint-cli": "^4.7.1",
-    "solidity-coverage": "^0.5.2",
+    "solidity-coverage": "^0.5.11",
     "solium": "^1.0.5"
   },
   "scripts": {
     "test": "truffle test",
     "lint": "prettier-eslint --write './**/*.js' --ignore './node_modules/**' --ignore './coverage/**'"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint && git add ."
+    }
   },
   "repository": {
     "type": "git",

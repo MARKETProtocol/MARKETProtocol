@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2018 Phillip A. Elsasser
+    Copyright 2017-2019 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.25;
 
 import "truffle/Assert.sol";
 import "../../contracts/libraries/MathLib.sol";
@@ -67,8 +67,9 @@ contract TestMathLib {
 
     function testSubtract() public {
         Assert.equal(MathLib.subtract(uint(1), uint(1)), 0, "1 - 1 does not equal 0");
-        bytes4 test_abi = bytes4(keccak256("failSubtractWhenALessThanB()"));
-        Assert.isFalse(address(this).call(test_abi), "Should assert");
+        bytes memory test_abi = abi.encodeWithSignature("failSubtractWhenALessThanB()");
+        bool success = address(this).call(test_abi);
+        Assert.isFalse(success, "Should assert");
     }
 
     function failSafeAddWhenGreaterThanIntMax() public pure returns(int256) {
@@ -84,9 +85,10 @@ contract TestMathLib {
         Assert.equal(MathLib.add(int256(0), signedIntMax), signedIntMax, "add 0 to int256 max should equal int256 max");
         Assert.equal(MathLib.add(int256(0), signedIntMin), signedIntMin, "add 0 to int256 min should equal int256 min");
 
-        bytes4 test_abi = bytes4(keccak256("failSafeAddWhenGreaterThanIntMax()"));
-        Assert.isFalse(address(this).call(test_abi), "Should assert");
-        }
+        bytes memory test_abi = abi.encodeWithSignature("failSafeAddWhenGreaterThanIntMax()");
+        bool success = address(this).call(test_abi);
+        Assert.isFalse(success, "Should assert");
+    }
 
     function failDivideFractionalByZero() public pure returns(uint256) {
         return MathLib.divideFractional(2, 6, 0);
@@ -98,8 +100,9 @@ contract TestMathLib {
         Assert.equal(MathLib.divideFractional(3, 6, 10), 1, "18 / 10 = 1");
         Assert.equal(MathLib.divideFractional(4, 6, 10), 2, "24 / 10 = 2");
 
-        bytes4 test_abi = bytes4(keccak256("failDivideFractionalByZero()"));
-        Assert.isFalse(address(this).call(test_abi), "Should assert");
+        bytes memory test_abi = abi.encodeWithSignature("failDivideFractionalByZero()");
+        bool success = address(this).call(test_abi);
+        Assert.isFalse(success, "Should assert");
     }
 
     function testCalculateNeededCollateralLong() public {
@@ -155,4 +158,46 @@ contract TestMathLib {
         Assert.equal(MathLib.calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, shortQty, priceCap+1),
                      0, "collateral for a short position and price greater than priceCap should be 0");
     }
+
+    function testCalculateTotalCollateralSingleUnit() public {
+        uint priceFloor = 10;
+        uint priceCap = 20;
+        uint multiplier = 1;
+        uint expectedTotalCollateral = 10;
+        uint actualTotalCollateral = MathLib.calculateTotalCollateral(priceFloor, priceCap, multiplier);
+        Assert.equal(actualTotalCollateral, expectedTotalCollateral, "total collateral of floor 10 and cap 20 with 1 multiplier should be 10");
+    }
+
+    function testCalculateTotalCollateralMultipleUnit() public {
+        uint priceFloor = 10;
+        uint priceCap = 20;
+        uint multiplier = 2;
+        uint expectedTotalCollateral = 20;
+        uint actualTotalCollateral = MathLib.calculateTotalCollateral(priceFloor, priceCap, multiplier);
+        Assert.equal(actualTotalCollateral, expectedTotalCollateral, "total collateral of floor 10 and cap 20 with 2 multiplier should be 20");
+    }
+
+    function failCalculatingTotalCollateralWithAbnormalPrices() public pure returns (uint256) {
+        uint higherPriceFloor = 20;
+        uint priceCap = 10;
+        uint multiplier = 1;
+        return MathLib.calculateTotalCollateral(higherPriceFloor, priceCap, multiplier);
+    }
+
+    function testCalculateTotalCollateralWithAbnormalPrices() public {
+        bytes memory test_abi = abi.encodeWithSignature("failCalculatingTotalCollateralWithAbnormalPrices()");
+        bool success = address(this).call(test_abi);
+        Assert.isFalse(success, "total collateral should fail for abnormal price margins");
+    }
+
+    function testCalculateFeePerUnit() public {
+        uint priceFloor = 1000;
+        uint priceCap = 2000;
+        uint multiplier = 1000;
+        uint feeAmountInBasis = 100; // 1 percent fee.
+        uint fee = MathLib.calculateFeePerUnit(priceFloor, priceCap, multiplier, feeAmountInBasis);
+        uint expectedFeeAmount = 15000; // midpoint * multiplier * 1% (100 basis points)
+        Assert.equal(fee, expectedFeeAmount, "Fee amount should be equal to midpoint * multiplier * percent");
+    }
 }
+

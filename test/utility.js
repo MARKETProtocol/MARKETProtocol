@@ -1,21 +1,6 @@
-module.exports = {
-  /**
-   * Signs a message.
-   *
-   * @param web3
-   * @param address
-   * @param message
-   * @return {[*,*,*]}
-   */
-  signMessage(web3, address, message) {
-    const signature = web3.eth.sign(address, message);
-    const r = signature.slice(0, 66);
-    const s = `0x${signature.slice(66, 130)}`;
-    let v = web3.toDecimal(`0x${signature.slice(130, 132)}`);
-    if (v !== 27 && v !== 28) v += 27;
-    return [v, r, s];
-  },
+const MarketContractMPX = artifacts.require('MarketContractMPX');
 
+module.exports = {
   /**
    * Returns a promise that resolves to the next set of events of eventName publish by the contract
    *
@@ -63,5 +48,169 @@ module.exports = {
       }
     }
     return maxLoss * Math.abs(qty) * qtyMultiplier;
+  },
+
+  /**
+   * Calculate total collateral required for a price range
+   *
+   * @param {number} priceFloor
+   * @param {number} priceCap
+   * @param {number} qtyMultiplier
+   * @return {number}
+   */
+  calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier) {
+    return (priceCap - priceFloor) * qtyMultiplier;
+  },
+
+  /**
+   * Create MarketContract
+   *
+   * @param {CollateralToken} collateralToken
+   * @param {MarketCollateralPool} collateralPool
+   * @param {string} userAddress
+   * @param {string | null} oracleHubAddress
+   * @param {number[] | null} contractSpecs
+   * @return {MarketContractMPX}
+   */
+  createMarketContract(
+    collateralToken,
+    collateralPool,
+    userAddress,
+    oracleHubAddress,
+    contractSpecs
+  ) {
+    const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50); // order expires 50 minutes from now.
+    const oracleURL = 'api.coincap.io/v2/rates/bitcoin';
+    const oracleStatistic = 'rateUSD';
+
+    if (!oracleHubAddress) {
+      oracleHubAddress = userAddress;
+    }
+
+    if (!contractSpecs) {
+      contractSpecs = [0, 150, 2, 2, 100, 50, expiration];
+    }
+    const contractNames = 'BTC,LBTC,SBTC';
+
+    return MarketContractMPX.new(
+      contractNames,
+      [userAddress, collateralToken.address, collateralPool.address],
+      oracleHubAddress,
+      contractSpecs,
+      oracleURL,
+      oracleStatistic
+    );
+  },
+
+  increase(duration) {
+    const id = Date.now();
+    return new Promise((resolve, reject) => {
+      web3.currentProvider.sendAsync(
+        {
+          jsonrpc: '2.0',
+          method: 'evm_increaseTime',
+          params: [duration],
+          id: id
+        },
+        err1 => {
+          if (err1) return reject(err1);
+
+          web3.currentProvider.sendAsync(
+            {
+              jsonrpc: '2.0',
+              method: 'evm_mine',
+              id: id + 1
+            },
+            (err2, res) => {
+              return err2 ? reject(err2) : resolve(res);
+            }
+          );
+        }
+      );
+    });
+  },
+
+  expirationInDays(days) {
+    const daysInSeconds = 60 * 60 * 24 * days;
+    return Math.round(new Date().getTime() / 1000 + daysInSeconds);
+  },
+
+  /**
+   * Creates an EVM Snapshot and returns a Promise that resolves to the id of the snapshot.
+   */
+  createEVMSnapshot() {
+    return new Promise((resolve, reject) => {
+      web3.currentProvider.sendAsync(
+        {
+          jsonrpc: '2.0',
+          method: 'evm_snapshot',
+          params: [],
+          id: new Date().getTime()
+        },
+        (err, response) => {
+          if (err) {
+            reject(err);
+          }
+
+          if (response) {
+            resolve(response.result);
+          }
+        }
+      );
+    });
+  },
+
+  /**
+   * Restores the EVM to the snapshot set in id
+   *
+   * @param {string} snapshotId
+   */
+  restoreEVMSnapshotsnapshotId(snapshotId) {
+    return new Promise((resolve, reject) => {
+      web3.currentProvider.sendAsync(
+        {
+          jsonrpc: '2.0',
+          method: 'evm_revert',
+          params: [snapshotId],
+          id: new Date().getTime()
+        },
+        (err, response) => {
+          if (err) {
+            reject(err);
+          }
+
+          if (response) {
+            resolve();
+          }
+        }
+      );
+    });
+  },
+
+  /**
+   * Settle MarketContract
+   *
+   * @param {MarketContractMPX} marketContract
+   * @param {number} priceCap
+   * @param {string} userAddress
+   * @return {MarketContractMPX}
+   */
+  async settleContract(marketContract, priceCap, userAddress) {
+    await marketContract.oracleCallBack(priceCap.plus(10), { from: userAddress }); // price above cap!
+    return await marketContract.settlementPrice.call({ from: userAddress });
+  },
+
+  async shouldFail(block, message, errorContainsMessage, containsMessage) {
+    let error = null;
+    try {
+      await block();
+    } catch (err) {
+      error = err;
+    }
+
+    assert.instanceOf(error, Error, message);
+    if (errorContainsMessage) {
+      assert.ok(error.message.includes(errorContainsMessage), containsMessage);
+    }
   }
 };

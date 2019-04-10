@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2018 Phillip A. Elsasser
+    Copyright 2017-2019 Phillip A. Elsasser
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -14,19 +14,18 @@
     limitations under the License.
 */
 
-pragma solidity ^0.4.24;
+pragma solidity 0.4.25;
 
 import "./UpgradeableTarget.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/BurnableToken.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
 
 
 /// @title Upgradeable Token
 /// @notice allows for us to update some of the needed functionality in our tokens post deployment. Inspiration taken
 /// from Golems migrate functionality.
 /// @author Phil Elsasser <phil@marketprotocol.io>
-contract UpgradeableToken is Ownable, BurnableToken, StandardToken {
+contract UpgradeableToken is Ownable, ERC20Burnable {
 
     address public upgradeableTarget;       // contract address handling upgrade
     uint256 public totalUpgraded;           // total token amount already upgraded
