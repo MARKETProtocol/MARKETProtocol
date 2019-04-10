@@ -136,7 +136,7 @@ contract('MarketContractFactoryMPX', function(accounts) {
   });
 
   it('Allows the oracle hub address to be changed only by the owner', async function() {
-    const originalHubAddress = await marketContractFactory.oracleHubAddress();
+    const originalHubAddress = await marketContractFactory.oracleHub();
     let error = null;
     try {
       await marketContractFactory.setOracleHubAddress(accounts[1], { from: accounts[1] });
@@ -151,7 +151,7 @@ contract('MarketContractFactoryMPX', function(accounts) {
     await marketContractFactory.setOracleHubAddress(accounts[1], { from: accounts[0] });
 
     assert.equal(
-      await marketContractFactory.oracleHubAddress(),
+      await marketContractFactory.oracleHub(),
       accounts[1],
       'did not correctly set the hub address'
     );

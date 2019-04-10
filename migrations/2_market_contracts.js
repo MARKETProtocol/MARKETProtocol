@@ -38,6 +38,7 @@ module.exports = function(deployer, network) {
                                 MarketContractFactory,
                                 MarketContractRegistry.address,
                                 MarketCollateralPool.address,
+                                web3.eth.accounts[8],
                                 {
                                   gas: gasLimit
                                 }
@@ -50,44 +51,41 @@ module.exports = function(deployer, network) {
                                     .addFactoryAddress(factory.address)
                                     .then(function() {
                                       // white list the factory
+
                                       return factory
-                                        .setOracleHubAddress(web3.eth.accounts[8])
+                                        .deployMarketContractMPX(
+                                          'BTC,LBTC,SBTC',
+                                          CollateralToken.address,
+                                          [
+                                            20000000000000,
+                                            60000000000000,
+                                            10,
+                                            100000000,
+                                            25,
+                                            12,
+                                            marketContractExpiration
+                                          ],
+                                          'api.coincap.io/v2/rates/bitcoin',
+                                          'rateUsd',
+                                          { gas: gasLimit }
+                                        )
                                         .then(function() {
-                                          return factory
-                                            .deployMarketContractMPX(
-                                              'BTC,LBTC,SBTC',
-                                              CollateralToken.address,
-                                              [
-                                                20000000000000,
-                                                60000000000000,
-                                                10,
-                                                100000000,
-                                                25,
-                                                12,
-                                                marketContractExpiration
-                                              ],
-                                              'api.coincap.io/v2/rates/bitcoin',
-                                              'rateUsd',
-                                              { gas: gasLimit }
-                                            )
-                                            .then(function() {
-                                              return factory.deployMarketContractMPX(
-                                                'BTC-2,LBTC,SBTC',
-                                                CollateralToken.address,
-                                                [
-                                                  20000000000000,
-                                                  60000000000000,
-                                                  10,
-                                                  25,
-                                                  12,
-                                                  100000000,
-                                                  marketContractExpiration
-                                                ],
-                                                'api.coincap.io/v2/rates/bitcoin',
-                                                'rateUsd',
-                                                { gas: gasLimit }
-                                              );
-                                            });
+                                          return factory.deployMarketContractMPX(
+                                            'BTC-2,LBTC,SBTC',
+                                            CollateralToken.address,
+                                            [
+                                              20000000000000,
+                                              60000000000000,
+                                              10,
+                                              25,
+                                              12,
+                                              100000000,
+                                              marketContractExpiration
+                                            ],
+                                            'api.coincap.io/v2/rates/bitcoin',
+                                            'rateUsd',
+                                            { gas: gasLimit }
+                                          );
                                         });
                                     });
                                 });
