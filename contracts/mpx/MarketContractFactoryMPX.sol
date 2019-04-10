@@ -27,7 +27,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 contract MarketContractFactoryMPX is Ownable {
 
     address public marketContractRegistry;
-    address public oracleHubAddress;
+    address public oracleHub;
     address public MARKET_COLLATERAL_POOL;
 
     event MarketContractCreated(address indexed creator, address indexed contractAddress);
@@ -35,9 +35,15 @@ contract MarketContractFactoryMPX is Ownable {
     /// @dev deploys our factory and ties it to the supplied registry address
     /// @param registryAddress - address of our MARKET registry
     /// @param collateralPoolAddress - address of our MARKET Collateral pool
-    constructor(address registryAddress, address collateralPoolAddress) public {
+    /// @param oracleHubAddress - address of the MPX oracle
+    constructor(
+        address registryAddress,
+        address collateralPoolAddress,
+        address oracleHubAddress
+    ) public {
         marketContractRegistry = registryAddress;
         MARKET_COLLATERAL_POOL = collateralPoolAddress;
+        oracleHub = oracleHubAddress;
     }
 
     /// @dev Deploys a new instance of a market contract and adds it to the whitelist.
@@ -69,7 +75,7 @@ contract MarketContractFactoryMPX is Ownable {
             collateralTokenAddress,
             MARKET_COLLATERAL_POOL
             ],
-            oracleHubAddress,
+            oracleHub,
             contractSpecs,
             oracleURL,
             oracleStatistic
@@ -88,9 +94,9 @@ contract MarketContractFactoryMPX is Ownable {
 
     /// @dev allows for the owner to set a new oracle hub address which is responsible for providing data to our
     /// contracts
-    /// @param hubAddress   address of the oracle hub, cannot be null address
-    function setOracleHubAddress(address hubAddress) external onlyOwner {
-        require(hubAddress != address(0));
-        oracleHubAddress = hubAddress;
+    /// @param oracleHubAddress   address of the oracle hub, cannot be null address
+    function setOracleHubAddress(address oracleHubAddress) external onlyOwner {
+        require(oracleHubAddress != address(0));
+        oracleHub = oracleHubAddress;
     }
 }
