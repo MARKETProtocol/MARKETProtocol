@@ -231,7 +231,7 @@ contract MarketCollateralPool is Ownable {
         require(feeRecipient != address(0), "Cannot send fees to null address");
         feesCollectedByTokenAddress[feeTokenAddress] = 0;
         // EXTERNAL CALL
-        ERC20(feeTokenAddress).transfer(feeRecipient, feesAvailableForWithdrawal);
+        ERC20(feeTokenAddress).safeTransfer(feeRecipient, feesAvailableForWithdrawal);
     }
 
     /// @dev allows the owner to update the mkt token address in use for fees
