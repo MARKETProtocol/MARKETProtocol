@@ -83,6 +83,7 @@ contract MarketContract is Ownable {
         QTY_MULTIPLIER = contractSpecs[3];
         EXPIRATION = contractSpecs[6];
         require(EXPIRATION > now, "expiration must be in the future");
+        require(QTY_MULTIPLIER != 0,"QTY_MULTIPLIER cannot be 0");
 
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         COLLATERAL_POOL_ADDRESS = baseAddresses[2];
