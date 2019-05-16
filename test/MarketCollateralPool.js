@@ -930,47 +930,47 @@ contract('MarketCollateralPool', function(accounts) {
       );
     });
 
-    // it('should return correct amount of collateral when redeemed after settlement', async function() {
-    //   // 1. approve collateral and mint tokens
-    //   const amountToApprove = 1e22;
-    //   await collateralToken.approve(collateralPool.address, amountToApprove);
-    //   const qtyToMint = 1;
-    //   await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
-    //     from: accounts[0]
-    //   });
-    //
-    //   // 2. transfer part of the long token
-    //   await longPositionToken.transfer(accounts[1], 1, { from: accounts[0] });
-    //
-    //   // 3. force contract to settlement
-    //   const settlementPrice = await utility.settleContract(marketContract, priceCap, accounts[0]);
-    //   await utility.increase(87000); // extend time past delay for withdrawal of funds
-    //
-    //   // 4. redeem all longs on settlement
-    //   const collateralBalanceBeforeRedeem = await collateralToken.balanceOf.call(accounts[0]);
-    //   const qtyToRedeem = (await shortPositionToken.balanceOf.call(accounts[0])).toNumber();
-    //   await collateralPool.settleAndClose(marketContract.address, qtyToRedeem, 0, {
-    //     from: accounts[0]
-    //   });
-    //
-    //   // 5. should return appropriate collateral
-    //   const collateralToReturn = utility.calculateCollateralToReturn(
-    //     priceFloor,
-    //     priceCap,
-    //     qtyMultiplier,
-    //     qtyToRedeem,
-    //     settlementPrice
-    //   );
-    //   const expectedCollateralBalanceAfterRedeem = collateralBalanceBeforeRedeem.plus(
-    //     collateralToReturn
-    //   );
-    //   const actualCollateralBalanceAfterRedeem = await collateralToken.balanceOf.call(accounts[0]);
-    //   assert.equal(
-    //     actualCollateralBalanceAfterRedeem.toNumber(),
-    //     expectedCollateralBalanceAfterRedeem.toNumber(),
-    //     'short position tokens balance was not reduced'
-    //   );
-    // });
+    it('should return correct amount of collateral when redeemed after settlement', async function() {
+      // 1. approve collateral and mint tokens
+      const amountToApprove = 1e22;
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = 1;
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
+        from: accounts[0]
+      });
+
+      // 2. transfer part of the long token
+      await longPositionToken.transfer(accounts[1], 1, { from: accounts[0] });
+
+      // 3. force contract to settlement
+      const settlementPrice = await utility.settleContract(marketContract, priceCap, accounts[0]);
+      await utility.increase(87000); // extend time past delay for withdrawal of funds
+
+      // 4. redeem all shorts on settlement
+      const collateralBalanceBeforeRedeem = await collateralToken.balanceOf.call(accounts[0]);
+      const qtyToRedeem = (await shortPositionToken.balanceOf.call(accounts[0])).toNumber();
+      await collateralPool.settleAndClose(marketContract.address, 0, qtyToRedeem, {
+        from: accounts[0]
+      });
+
+      // 5. should return appropriate collateral
+      const collateralToReturn = utility.calculateCollateralToReturn(
+        priceFloor,
+        priceCap,
+        qtyMultiplier,
+        qtyToRedeem * -1,
+        settlementPrice
+      );
+      const expectedCollateralBalanceAfterRedeem = collateralBalanceBeforeRedeem.plus(
+        collateralToReturn
+      );
+      const actualCollateralBalanceAfterRedeem = await collateralToken.balanceOf.call(accounts[0]);
+      assert.equal(
+        actualCollateralBalanceAfterRedeem.toNumber(),
+        expectedCollateralBalanceAfterRedeem.toNumber(),
+        'short position tokens balance was not reduced'
+      );
+    });
   });
 
   describe('withdrawFees()', function() {
