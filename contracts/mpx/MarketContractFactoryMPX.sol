@@ -41,6 +41,10 @@ contract MarketContractFactoryMPX is Ownable {
         address collateralPoolAddress,
         address oracleHubAddress
     ) public {
+        require(registryAddress != address(0));
+        require(collateralPoolAddress != address(0));
+        require(oracleHubAddress != address(0));
+        
         marketContractRegistry = registryAddress;
         MARKET_COLLATERAL_POOL = collateralPoolAddress;
         oracleHub = oracleHubAddress;
