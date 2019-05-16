@@ -35,7 +35,7 @@ contract UpgradeableTokenMock is UpgradeableToken, UpgradeableTarget {
     // EXTERNAL METHODS - TOKEN UPGRADE SUPPORT
     */
     function upgradeFrom(address from, uint256 value) external {
-        require(msg.sender == PREVIOUS_TOKEN_ADDRESS);    // this can only be called from the  previous token!
+        require(msg.sender == PREVIOUS_TOKEN_ADDRESS, "Can only be called by PREVIOUS_TOKEN_ADDRESS");    // this can only be called from the  previous token!
         _mint(from, value);
     }
 }

@@ -28,7 +28,7 @@ library MathLib {
         }
 
         uint256 c = a * b;
-        require(c / a == b);
+        require(c / a == b,  "MathLib: multiplication overflow");
 
         return c;
     }
@@ -43,82 +43,14 @@ library MathLib {
     }
 
     function subtract(uint256 a, uint256 b) pure internal returns (uint256) {
-        require(b <= a);
+        require(b <= a, "MathLib: subtraction overflow");
         return a - b;
     }
 
     function add(uint256 a, uint256 b) pure internal returns (uint256) {
         uint256 c = a + b;
-        require(c >= a);
+        require(c >= a, "MathLib: addition overflow");
         return c;
-    }
-
-    /// @notice safely adds two signed integers ensuring that no wrap occurs
-    /// @param a value to add b to
-    /// @param b value to add to a
-    function add(int256 a, int256 b) pure internal returns (int256) {
-        int256 c = a + b;
-        if (!isSameSign(a, b)) { // result will always be smaller than current value, no wrap possible
-            return c;
-        }
-
-        if (a >= 0) { // a is positive, b must be less than MAX - a to prevent wrap
-            assert(b <= INT256_MAX - a);
-        } else { // a is negative, b must be greater than MIN - a to prevent wrap
-            assert(b >= INT256_MIN - a);
-        }
-        return c;
-    }
-
-    /// @notice safely subtracts two signed integers ensuring that no wrap occurs
-    /// @param a value to subtract b from
-    /// @param b value to subtract from a
-    function subtract(int256 a, int256 b) pure internal returns (int256) {
-        return add(a, -b); // use inverse add
-    }
-
-    /// @param a integer to determine sign of
-    /// @return int8 sign of original value, either +1,0,-1
-    function sign(int a) pure internal returns (int8) {
-        if (a > 0) {
-            return 1;
-        } else if (a < 0) {
-            return -1;
-        }
-        return 0;
-    }
-
-    /// @param a integer to compare to b
-    /// @param b integer to compare to a
-    /// @return bool true if a and b are the same sign (+/-)
-    function isSameSign(int a, int b) pure internal returns (bool) {
-        return ( a == b || a * b > 0);
-    }
-
-    /// @param a integer to determine absolute value of
-    /// @return uint non signed representation of a
-    function abs(int256 a) pure internal returns (uint256) {
-        if (a < 0) {
-            return uint(-a);
-        } else {
-            return uint(a);
-        }
-    }
-
-    /// @notice finds the value closer to zero regardless of sign
-    /// @param a integer to compare to b
-    /// @param b integer to compare to a
-    /// @return a if a is closer to zero than b - does not return abs value!
-    function absMin(int256 a, int256 b) pure internal returns (int256) {
-        return abs(a) < abs(b) ?  a : b;
-    }
-
-    /// @notice finds the value further from zero regardless of sign
-    /// @param a integer to compare to b
-    /// @param b integer to compare to a
-    /// @return a if a is further to zero than b - does not return abs value!
-    function absMax(int256 a, int256 b) pure internal returns (int256) {
-        return abs(a) >= abs(b) ?  a : b;
     }
 
     /// @notice determines the amount of needed collateral for a given position (qty and price)

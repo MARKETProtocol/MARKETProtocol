@@ -77,12 +77,12 @@ contract MarketContract is Ownable {
     {
         PRICE_FLOOR = contractSpecs[0];
         PRICE_CAP = contractSpecs[1];
-        require(PRICE_CAP > PRICE_FLOOR);
+        require(PRICE_CAP > PRICE_FLOOR, "PRICE_CAP must be greater than PRICE_FLOOR");
 
         PRICE_DECIMAL_PLACES = contractSpecs[2];
         QTY_MULTIPLIER = contractSpecs[3];
         EXPIRATION = contractSpecs[6];
-        require(EXPIRATION > now, "expiration must be in the future");
+        require(EXPIRATION > now, "EXPIRATION must be in the future");
         require(QTY_MULTIPLIER != 0,"QTY_MULTIPLIER cannot be 0");
 
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
@@ -173,7 +173,7 @@ contract MarketContract is Ownable {
     /// @dev checks our last query price to see if our contract should enter settlement due to it being past our
     //  expiration date or outside of our tradeable ranges.
     function checkSettlement() internal {
-        require(!isSettled); // already settled.
+        require(!isSettled, "Contract is already settled"); // already settled.
 
         uint newSettlementPrice;
         if (now > EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
@@ -203,7 +203,7 @@ contract MarketContract is Ownable {
     /// @notice only able to be called directly by our collateral pool which controls the position tokens
     /// for this contract!
     modifier onlyCollateralPool {
-        require(msg.sender == COLLATERAL_POOL_ADDRESS);
+        require(msg.sender == COLLATERAL_POOL_ADDRESS, "Only callable from the collateral pool");
         _;
     }
 

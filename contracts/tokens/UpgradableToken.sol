@@ -39,7 +39,7 @@ contract UpgradeableToken is Ownable, ERC20Burnable {
     /// @notice Update token to the new upgraded token
     /// @param value The amount of token to be migrated to upgraded token
     function upgrade(uint256 value) external {
-        require(upgradeableTarget != address(0));
+        require(upgradeableTarget != address(0), "cannot upgrade with no target");
 
         burn(value);                    // burn tokens as we migrate them.
         totalUpgraded = totalUpgraded.add(value);
