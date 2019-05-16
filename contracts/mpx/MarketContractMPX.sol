@@ -80,6 +80,7 @@ contract MarketContractMPX is MarketContract {
     /// if a dispute arises that we believe is best resolved by early settlement.
     /// @param price settlement price
     function arbitrateSettlement(uint256 price) public onlyOwner {
+        require(price >= PRICE_FLOOR && price <= PRICE_CAP, 'arbitration price must be within contract bounds');
         lastPrice = price;
         emit UpdatedLastPrice(price);
         settleContract(price);
