@@ -58,7 +58,7 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
     function removeContractFromWhiteList(
         address contractAddress,
         uint whiteListIndex
-    ) external onlyOwner returns (bool)
+    ) external onlyOwner
     {
         require(isWhiteListed[contractAddress]);
         require(addressWhiteList[whiteListIndex] == contractAddress);
