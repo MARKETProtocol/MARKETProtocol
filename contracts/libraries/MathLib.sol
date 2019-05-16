@@ -127,7 +127,7 @@ library MathLib {
     /// @param qtyMultiplier multiplier for qty from base units
     /// @param qty signed integer corresponding to the traded quantity
     /// @param price of the trade
-    function calculateNeededCollateral(
+    function calculateCollateralToReturn(
         uint priceFloor,
         uint priceCap,
         uint qtyMultiplier,

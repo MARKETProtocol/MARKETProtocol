@@ -31,7 +31,7 @@ module.exports = {
    * @param price
    * @return {number}
    */
-  calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, qty, price) {
+  calculateCollateralToReturn(priceFloor, priceCap, qtyMultiplier, qty, price) {
     const zero = 0;
     let maxLoss;
     if (qty > zero) {

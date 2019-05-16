@@ -832,7 +832,7 @@ contract('MarketCollateralPool', function(accounts) {
       );
 
       // 5. ensure correct events are emitted for short settlement
-      const shortCollateralAmountReleased = utility.calculateNeededCollateral(
+      const shortCollateralAmountReleased = utility.calculateCollateralToReturn(
         priceFloor,
         priceCap,
         qtyMultiplier,
@@ -898,7 +898,7 @@ contract('MarketCollateralPool', function(accounts) {
       );
 
       // 8. ensure correct events are emitted for long settlement
-      const longCollateralAmountReleased = utility.calculateNeededCollateral(
+      const longCollateralAmountReleased = utility.calculateCollateralToReturn(
         priceFloor,
         priceCap,
         qtyMultiplier,
@@ -964,7 +964,7 @@ contract('MarketCollateralPool', function(accounts) {
       });
 
       // 5. should return appropriate collateral
-      const collateralToReturn = utility.calculateNeededCollateral(
+      const collateralToReturn = utility.calculateCollateralToReturn(
         priceFloor,
         priceCap,
         qtyMultiplier,
