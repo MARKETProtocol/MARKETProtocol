@@ -125,31 +125,38 @@ library MathLib {
     /// @param priceFloor lowest price the contract is allowed to trade before expiration
     /// @param priceCap highest price the contract is allowed to trade before expiration
     /// @param qtyMultiplier multiplier for qty from base units
-    /// @param qty signed integer corresponding to the traded quantity
+    /// @param longQty qty to redeem
+    /// @param shortQty qty to redeem
     /// @param price of the trade
     function calculateCollateralToReturn(
         uint priceFloor,
         uint priceCap,
         uint qtyMultiplier,
-        int qty,
+        uint longQty,
+        uint shortQty,
         uint price
-    ) pure internal returns (uint neededCollateral)
+    ) pure internal returns (uint)
     {
+        uint neededCollateral = 0;
         uint maxLoss;
-        if (qty > 0) {   // this qty is long, calculate max loss from entry price to floor
+        if (longQty > 0) {   // calculate max loss from entry price to floor
             if (price <= priceFloor) {
                 maxLoss = 0;
             } else {
                 maxLoss = subtract(price, priceFloor);
             }
-        } else { // this qty is short, calculate max loss from entry price to ceiling;
+            neededCollateral = multiply(multiply(maxLoss, longQty),  qtyMultiplier);
+        }
+
+        if (shortQty > 0) {  // calculate max loss from entry price to ceiling;
             if (price >= priceCap) {
                 maxLoss = 0;
             } else {
                 maxLoss = subtract(priceCap, price);
             }
+            neededCollateral = add(neededCollateral, multiply(multiply(maxLoss, shortQty),  qtyMultiplier));
         }
-        neededCollateral = multiply(multiply(maxLoss, abs(qty)),  qtyMultiplier);
+        return neededCollateral;
     }
 
     /// @notice determines the amount of needed collateral for minting a long and short position token
