@@ -33,7 +33,8 @@ contract PositionToken is ERC20, Ownable {
     string public symbol;
     uint8 public decimals;
 
-    uint8 public MARKET_SIDE; // 0 = Long, 1 = Short
+    MarketSide public MARKET_SIDE; // 0 = Long, 1 = Short
+    enum MarketSide { Long, Short}
 
     constructor(
         string memory tokenName,
@@ -44,7 +45,7 @@ contract PositionToken is ERC20, Ownable {
         name = tokenName;
         symbol = tokenSymbol;
         decimals = 5;
-        MARKET_SIDE = marketSide;
+        MARKET_SIDE = MarketSide(marketSide);
     }
 
     /// @dev Called by our MarketContract (owner) to create a long or short position token. These tokens are minted,
