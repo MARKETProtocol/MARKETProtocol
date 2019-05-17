@@ -16,7 +16,8 @@
     "husky": "^1.2.0",
     "prettier-eslint-cli": "^4.7.1",
     "solidity-coverage": "^0.5.11",
-    "solium": "^1.0.5"
+    "solium": "^1.0.5",
+    "truffle-assertions": "^0.9.0"
   },
   "scripts": {
     "test": "truffle test",

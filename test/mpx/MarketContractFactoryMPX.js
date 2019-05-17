@@ -3,6 +3,7 @@ const MarketContractFactoryMPX = artifacts.require('MarketContractFactoryMPX');
 const CollateralToken = artifacts.require('CollateralToken');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
 const utility = require('../utility.js');
+const truffleAssert = require('truffle-assertions');
 
 contract('MarketContractFactoryMPX', function(accounts) {
   const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50); //expires 50 minutes from now.
@@ -25,7 +26,7 @@ contract('MarketContractFactoryMPX', function(accounts) {
   });
 
   it('Deploys a new MarketContract with the correct variables', async function() {
-    await marketContractFactory.deployMarketContractMPX(
+    let result = await marketContractFactory.deployMarketContractMPX(
       contractName,
       CollateralToken.address,
       [
@@ -42,14 +43,13 @@ contract('MarketContractFactoryMPX', function(accounts) {
     );
 
     // Should fire the MarketContractCreated event!
-    const events = await utility.getEvent(marketContractFactory, 'MarketContractCreated');
-    assert.equal(
-      'MarketContractCreated',
-      events[0].event,
-      'Event called is not MarketContractCreated'
-    );
+    let marketContractAddress;
+    await truffleAssert.eventEmitted(result, 'MarketContractCreated', createdEvent => {
+      marketContractAddress = createdEvent.contractAddress;
+      return true;
+    });
 
-    const marketContract = await MarketContractMPX.at(events[0].args.contractAddress);
+    const marketContract = await MarketContractMPX.at(marketContractAddress);
     assert.equal(await marketContract.ORACLE_URL(), oracleURL);
     assert.equal(await marketContract.ORACLE_STATISTIC(), oracleStatistic);
     assert.equal((await marketContract.EXPIRATION()).toNumber(), expiration);
@@ -62,7 +62,7 @@ contract('MarketContractFactoryMPX', function(accounts) {
   });
 
   it('Adds a new MarketContract to the white list', async function() {
-    await marketContractFactory.deployMarketContractMPX(
+    const result = await marketContractFactory.deployMarketContractMPX(
       contractName,
       CollateralToken.address,
       [
@@ -79,31 +79,15 @@ contract('MarketContractFactoryMPX', function(accounts) {
     );
 
     // Should fire the MarketContractCreated event!
-    const events = await utility.getEvent(marketContractFactory, 'MarketContractCreated');
-    const eventsRegistry = await utility.getEvent(
-      marketContractRegistry,
-      'AddressAddedToWhitelist'
-    );
+    let marketContractAddress;
+    await truffleAssert.eventEmitted(result, 'MarketContractCreated', async createdEvent => {
+      marketContractAddress = createdEvent.contractAddress;
 
-    const marketContract = await MarketContractMPX.at(events[0].args.contractAddress);
-    assert.equal(
-      'MarketContractCreated',
-      events[0].event,
-      'Event called is not MarketContractCreated'
-    );
-
-    // Should fire the add event after creating the MarketContract
-    assert.equal(
-      'AddressAddedToWhitelist',
-      eventsRegistry[0].event,
-      'Event called is not AddressAddedToWhitelist'
-    );
-
-    assert.equal(
-      marketContract.address,
-      eventsRegistry[0].args.contractAddress,
-      'Address in event does not match'
-    );
+      await truffleAssert.eventEmitted(result, 'AddressAddedToWhitelist', whitelistEvent => {
+        return marketContract.address === whitelistEvent.contractAddress;
+      });
+      return true;
+    });
   });
 
   it('Allows the registry address to be changed only by the owner', async function() {

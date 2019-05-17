@@ -85,8 +85,8 @@ contract MarketContractFactoryMPX is Ownable {
             oracleStatistic
         );
 
-//        MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(address(mktContract));
-//        emit MarketContractCreated(msg.sender, address(mktContract));
+        MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(address(mktContract));
+        emit MarketContractCreated(msg.sender, address(mktContract));
     }
 
     /// @dev allows for the owner to set the desired registry for contract creation.
