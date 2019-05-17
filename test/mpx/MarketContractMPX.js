@@ -85,7 +85,7 @@ contract('MarketContractMPX', function(accounts) {
     );
 
     assert.isTrue(!(await marketContract.isSettled()), 'marketContract is already settled');
-    await marketContract.arbitrateSettlement(5, { from: accounts[0] }); // price below floor
+    await marketContract.arbitrateSettlement(25, { from: accounts[0] }); // price at floor
     assert.isTrue(await marketContract.isSettled(), 'marketContract is not settled');
   });
 });

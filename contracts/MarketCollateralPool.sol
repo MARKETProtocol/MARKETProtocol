@@ -35,7 +35,6 @@ contract MarketCollateralPool is Ownable {
     using MathLib for int;
     using SafeERC20 for ERC20;
 
-    enum MarketSide { Long, Short, Both}
     address public marketContractRegistry;
     address public mktToken;
 
@@ -51,12 +50,12 @@ contract MarketCollateralPool is Ownable {
         uint feesPaid
     );
 
-    event TokensRedeemed(
+    event TokensRedeemed (
         address indexed marketContract,
         address indexed user,
-        uint qtyRedeemed,
-        uint collateralUnlocked,
-        uint8 marketSide
+        uint longQtyRedeemed,
+        uint shortQtyRedeemed,
+        uint collateralUnlocked
     );
 
     constructor(address marketContractRegistryAddress, address mktTokenAddress) public {
@@ -168,8 +167,8 @@ contract MarketCollateralPool is Ownable {
             marketContractAddress,
             msg.sender,
             qtyToRedeem,
-            collateralToReturn,
-            uint8(MarketSide.Both)
+            qtyToRedeem,
+            collateralToReturn
         );
     }
 
@@ -177,32 +176,34 @@ contract MarketCollateralPool is Ownable {
     // outstanding positions and return all remaining collateral to the caller. This should only be called after
     // settlement has occurred.
     /// @param marketContractAddress address of the MARKET Contract being traded.
-    /// @param qtyToRedeem signed qtyToRedeem, positive (+) for long tokens, negative(-) for short tokens
+    /// @param longQtyToRedeem qty to redeem of long tokens
+    /// @param shortQtyToRedeem qty to redeem of short tokens
     function settleAndClose(
         address marketContractAddress,
-        int qtyToRedeem
+        uint longQtyToRedeem,
+        uint shortQtyToRedeem
     ) external onlyWhiteListedAddress(marketContractAddress)
     {
         MarketContract marketContract = MarketContract(marketContractAddress);
         require(marketContract.isPostSettlementDelay(), "Contract is not past settlement delay");
 
         // burn tokens being redeemed.
-        MarketSide marketSide;
-        uint absQtyToRedeem = qtyToRedeem.abs(); // convert to a uint for non signed functions
-        if (qtyToRedeem > 0) {
-            marketSide = MarketSide.Long;
-            marketContract.redeemLongToken(absQtyToRedeem, msg.sender);
-        } else {
-            marketSide = MarketSide.Short;
-            marketContract.redeemShortToken(absQtyToRedeem, msg.sender);
+        if (longQtyToRedeem > 0) {
+            marketContract.redeemLongToken(longQtyToRedeem, msg.sender);
         }
 
+        if (shortQtyToRedeem > 0) {
+            marketContract.redeemShortToken(shortQtyToRedeem, msg.sender);
+        }
+
+
         // calculate amount of collateral to return and update pool balances
-        uint collateralToReturn = MathLib.calculateNeededCollateral(
+        uint collateralToReturn = MathLib.calculateCollateralToReturn(
             marketContract.PRICE_FLOOR(),
             marketContract.PRICE_CAP(),
             marketContract.QTY_MULTIPLIER(),
-            qtyToRedeem,
+            longQtyToRedeem,
+            shortQtyToRedeem,
             marketContract.settlementPrice()
         );
 
@@ -216,9 +217,9 @@ contract MarketCollateralPool is Ownable {
         emit TokensRedeemed(
             marketContractAddress,
             msg.sender,
-            absQtyToRedeem,
-            collateralToReturn,
-            uint8(marketSide)
+            longQtyToRedeem,
+            shortQtyToRedeem,
+            collateralToReturn
         );
     }
 
@@ -231,7 +232,7 @@ contract MarketCollateralPool is Ownable {
         require(feeRecipient != address(0), "Cannot send fees to null address");
         feesCollectedByTokenAddress[feeTokenAddress] = 0;
         // EXTERNAL CALL
-        ERC20(feeTokenAddress).transfer(feeRecipient, feesAvailableForWithdrawal);
+        ERC20(feeTokenAddress).safeTransfer(feeRecipient, feesAvailableForWithdrawal);
     }
 
     /// @dev allows the owner to update the mkt token address in use for fees

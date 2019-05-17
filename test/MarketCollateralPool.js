@@ -661,7 +661,12 @@ contract('MarketCollateralPool', function(accounts) {
         'incorrect user arg for TokensRedeemed'
       );
       assert.equal(
-        tokensRedeemedEvent.args.qtyRedeemed.toNumber(),
+        tokensRedeemedEvent.args.longQtyRedeemed.toNumber(),
+        qtyToRedeem,
+        'incorrect qtyRedeemed arg for TokensRedeemed'
+      );
+      assert.equal(
+        tokensRedeemedEvent.args.shortQtyRedeemed.toNumber(),
         qtyToRedeem,
         'incorrect qtyRedeemed arg for TokensRedeemed'
       );
@@ -669,11 +674,6 @@ contract('MarketCollateralPool', function(accounts) {
         tokensRedeemedEvent.args.collateralUnlocked.toNumber(),
         collateralAmountToBeReleased,
         'incorrect collateralUnlocked arg for TokensRedeemed'
-      );
-      assert.equal(
-        tokensRedeemedEvent.args.marketSide.toNumber(),
-        MarketSides.Both,
-        'incorrect marketSide arg for TokensRedeemed'
       );
     });
 
@@ -717,7 +717,7 @@ contract('MarketCollateralPool', function(accounts) {
     it('should fail if called before settlement', async () => {
       let settleAndCloseError = null;
       try {
-        await collateralPool.settleAndClose(marketContract.address, 1, { from: accounts[0] });
+        await collateralPool.settleAndClose(marketContract.address, 1, 0, { from: accounts[0] });
       } catch (err) {
         settleAndCloseError = err;
       }
@@ -744,7 +744,7 @@ contract('MarketCollateralPool', function(accounts) {
       // 3. attempt to redeem too much long tokens
       const longTokenQtyToRedeem = (await longPositionToken.balanceOf.call(accounts[0])).plus(1);
       try {
-        await collateralPool.settleAndClose(marketContract.address, longTokenQtyToRedeem, {
+        await collateralPool.settleAndClose(marketContract.address, longTokenQtyToRedeem, 0, {
           from: accounts[0]
         });
       } catch (err) {
@@ -758,7 +758,7 @@ contract('MarketCollateralPool', function(accounts) {
         .plus(1)
         .times(-1);
       try {
-        await collateralPool.settleAndClose(marketContract.address, shortTokenQtyToRedeem, {
+        await collateralPool.settleAndClose(marketContract.address, 0, shortTokenQtyToRedeem, {
           from: accounts[0]
         });
       } catch (err) {
@@ -781,7 +781,7 @@ contract('MarketCollateralPool', function(accounts) {
       await utility.shouldFail(
         async () => {
           const shortTokenQtyToRedeem = -1;
-          await collateralPool.settleAndClose(marketContract.address, shortTokenQtyToRedeem, {
+          await collateralPool.settleAndClose(marketContract.address, 0, shortTokenQtyToRedeem, {
             from: accounts[0]
           });
         },
@@ -808,9 +808,9 @@ contract('MarketCollateralPool', function(accounts) {
 
       // 3. redeem all short position tokens after settlement should pass
       const shortTokenBalanceBeforeRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
-      const shortTokenQtyToRedeem = -1;
+      const shortTokenQtyToRedeem = 1;
       try {
-        await collateralPool.settleAndClose(marketContract.address, shortTokenQtyToRedeem, {
+        await collateralPool.settleAndClose(marketContract.address, 0, shortTokenQtyToRedeem, {
           from: accounts[0]
         });
       } catch (err) {
@@ -819,7 +819,7 @@ contract('MarketCollateralPool', function(accounts) {
       assert.isNull(error, 'should be able to redeem short tokens after settlement');
 
       // 4. balance of short tokens should be updated.
-      const expectedShortTokenBalanceAfterRedeem = shortTokenBalanceBeforeRedeem.plus(
+      const expectedShortTokenBalanceAfterRedeem = shortTokenBalanceBeforeRedeem.minus(
         shortTokenQtyToRedeem
       );
       const actualShortTokenBalanceAfterRedeem = await shortPositionToken.balanceOf.call(
@@ -832,11 +832,11 @@ contract('MarketCollateralPool', function(accounts) {
       );
 
       // 5. ensure correct events are emitted for short settlement
-      const shortCollateralAmountReleased = utility.calculateNeededCollateral(
+      const shortCollateralAmountReleased = utility.calculateCollateralToReturn(
         priceFloor,
         priceCap,
         qtyMultiplier,
-        shortTokenQtyToRedeem,
+        shortTokenQtyToRedeem * -1,
         settlementPrice
       );
       let emittedEvents = await utility.getEvent(collateralPool, 'TokensRedeemed');
@@ -858,8 +858,8 @@ contract('MarketCollateralPool', function(accounts) {
         'incorrect user arg for TokensRedeemed'
       );
       assert.equal(
-        shortTokensRedeemedEvent.args.qtyRedeemed.toNumber(),
-        Math.abs(shortTokenQtyToRedeem),
+        shortTokensRedeemedEvent.args.shortQtyRedeemed.toNumber(),
+        shortTokenQtyToRedeem,
         'incorrect qtyRedeemed arg for TokensRedeemed'
       );
       assert.equal(
@@ -867,18 +867,13 @@ contract('MarketCollateralPool', function(accounts) {
         shortCollateralAmountReleased,
         'incorrect collateralUnlocked arg for TokensRedeemed'
       );
-      assert.equal(
-        shortTokensRedeemedEvent.args.marketSide.toNumber(),
-        MarketSides.Short,
-        'incorrect marketSide arg for TokensRedeemed'
-      );
 
       // 6. redeem all long position tokens after settlement should pass
       const longTokenBalanceBeforeRedeem = await longPositionToken.balanceOf.call(accounts[0]);
       const longTokenQtyToRedeem = 1;
       error = null;
       try {
-        await collateralPool.settleAndClose(marketContract.address, longTokenQtyToRedeem, {
+        await collateralPool.settleAndClose(marketContract.address, longTokenQtyToRedeem, 0, {
           from: accounts[0]
         });
       } catch (err) {
@@ -898,7 +893,7 @@ contract('MarketCollateralPool', function(accounts) {
       );
 
       // 8. ensure correct events are emitted for long settlement
-      const longCollateralAmountReleased = utility.calculateNeededCollateral(
+      const longCollateralAmountReleased = utility.calculateCollateralToReturn(
         priceFloor,
         priceCap,
         qtyMultiplier,
@@ -924,7 +919,7 @@ contract('MarketCollateralPool', function(accounts) {
         'incorrect user arg for TokensRedeemed'
       );
       assert.equal(
-        longTokensRedeemedEvent.args.qtyRedeemed.toNumber(),
+        longTokensRedeemedEvent.args.longQtyRedeemed.toNumber(),
         longTokenQtyToRedeem,
         'incorrect qtyRedeemed arg for TokensRedeemed'
       );
@@ -932,11 +927,6 @@ contract('MarketCollateralPool', function(accounts) {
         longTokensRedeemedEvent.args.collateralUnlocked.toNumber(),
         longCollateralAmountReleased,
         'incorrect collateralUnlocked arg for TokensRedeemed'
-      );
-      assert.equal(
-        longTokensRedeemedEvent.args.marketSide.toNumber(),
-        MarketSides.Long,
-        'incorrect marketSide arg for TokensRedeemed'
       );
     });
 
@@ -959,16 +949,16 @@ contract('MarketCollateralPool', function(accounts) {
       // 4. redeem all shorts on settlement
       const collateralBalanceBeforeRedeem = await collateralToken.balanceOf.call(accounts[0]);
       const qtyToRedeem = (await shortPositionToken.balanceOf.call(accounts[0])).toNumber();
-      await collateralPool.settleAndClose(marketContract.address, -qtyToRedeem, {
+      await collateralPool.settleAndClose(marketContract.address, 0, qtyToRedeem, {
         from: accounts[0]
       });
 
       // 5. should return appropriate collateral
-      const collateralToReturn = utility.calculateNeededCollateral(
+      const collateralToReturn = utility.calculateCollateralToReturn(
         priceFloor,
         priceCap,
         qtyMultiplier,
-        qtyToRedeem,
+        qtyToRedeem * -1,
         settlementPrice
       );
       const expectedCollateralBalanceAfterRedeem = collateralBalanceBeforeRedeem.plus(

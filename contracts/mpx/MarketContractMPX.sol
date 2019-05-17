@@ -80,6 +80,7 @@ contract MarketContractMPX is MarketContract {
     /// if a dispute arises that we believe is best resolved by early settlement.
     /// @param price settlement price
     function arbitrateSettlement(uint256 price) public onlyOwner {
+        require(price >= PRICE_FLOOR && price <= PRICE_CAP, 'arbitration price must be within contract bounds');
         lastPrice = price;
         emit UpdatedLastPrice(price);
         settleContract(price);
@@ -88,13 +89,13 @@ contract MarketContractMPX is MarketContract {
 
     /// @dev allows calls only from the oracle hub.
     modifier onlyOracleHub() {
-        require(msg.sender == ORACLE_HUB_ADDRESS);
+        require(msg.sender == ORACLE_HUB_ADDRESS, "only callable by the oracle hub");
         _;
     }
 
     /// @dev allows for the owner of the contract to change the oracle hub address if needed
     function setOracleHubAddress(address oracleHubAddress) public onlyOwner {
-        require(oracleHubAddress != address(0));
+        require(oracleHubAddress != address(0), "cannot set oracleHubAddress to null address");
         ORACLE_HUB_ADDRESS = oracleHubAddress;
     }
 
