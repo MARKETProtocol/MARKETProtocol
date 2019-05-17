@@ -2,7 +2,6 @@ const MarketContractMPX = artifacts.require('MarketContractMPX');
 const MarketContractFactoryMPX = artifacts.require('MarketContractFactoryMPX');
 const CollateralToken = artifacts.require('CollateralToken');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
-const utility = require('../utility.js');
 const truffleAssert = require('truffle-assertions');
 
 contract('MarketContractFactoryMPX', function(accounts) {
