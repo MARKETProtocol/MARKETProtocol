@@ -115,8 +115,10 @@ contract('MarketContract', function(accounts) {
       );
 
       const qtyToMint = 1;
-      const longPositionTokens = PositionToken.at(await marketContract.LONG_POSITION_TOKEN());
-      const shortPositionTokens = PositionToken.at(await marketContract.SHORT_POSITION_TOKEN());
+      const longPositionTokens = await PositionToken.at(await marketContract.LONG_POSITION_TOKEN());
+      const shortPositionTokens = await PositionToken.at(
+        await marketContract.SHORT_POSITION_TOKEN()
+      );
 
       await marketContract.mintPositionTokens(qtyToMint, accounts[1], { from: accounts[0] });
 
