@@ -81,12 +81,20 @@ contract('MarketContractFactoryMPX', function(accounts) {
     let marketContractAddress;
     await truffleAssert.eventEmitted(result, 'MarketContractCreated', async createdEvent => {
       marketContractAddress = createdEvent.contractAddress;
-
-      await truffleAssert.eventEmitted(result, 'AddressAddedToWhitelist', whitelistEvent => {
-        return marketContract.address === whitelistEvent.contractAddress;
-      });
       return true;
     });
+
+    let registryTransaction = await truffleAssert.createTransactionResult(
+      marketContractRegistry,
+      result.tx
+    );
+    await truffleAssert.eventEmitted(
+      registryTransaction,
+      'AddressAddedToWhitelist',
+      whitelistEvent => {
+        return marketContractAddress === whitelistEvent.contractAddress;
+      }
+    );
   });
 
   it('Allows the registry address to be changed only by the owner', async function() {
