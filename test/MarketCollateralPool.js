@@ -670,464 +670,484 @@ contract('MarketCollateralPool', function(accounts) {
       );
     });
 
-    // it('should fail to redeem single tokens before settlement', async function() {
-    //   // 1. approve collateral and mint tokens
-    //   const amountToApprove = 1e22;
-    //   await collateralToken.approve(collateralPool.address, amountToApprove);
-    //   const qtyToMint = 1;
-    //   await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
-    //     from: accounts[0]
-    //   });
-    //   const shortTokenBalance = (await shortPositionToken.balanceOf.call(accounts[0])).toNumber();
-    //   const longTokenBalance = (await longPositionToken.balanceOf.call(accounts[0])).toNumber();
-    //   assert.isTrue(
-    //     shortTokenBalance === longTokenBalance,
-    //     'long token and short token balances are not equals'
-    //   );
-    //
-    //   // 2. transfer part of the long token
-    //   await longPositionToken.transfer(accounts[1], 1, { from: accounts[0] });
-    //
-    //   // 3. attempting to redeem all shorts before settlement should fails
-    //   let error = null;
-    //   try {
-    //     const qtyToRedeem = (await shortPositionToken.balanceOf.call(accounts[0])).toNumber();
-    //     await collateralPool.redeemPositionTokens(marketContract.address, qtyToRedeem, {
-    //       from: accounts[0]
-    //     });
-    //   } catch (err) {
-    //     error = err;
-    //   }
-    //
-    //   assert.ok(
-    //     error instanceof Error,
-    //     'should not be able to redeem single tokens before settlement'
-    //   );
-    // });
+    it('should fail to redeem single tokens before settlement', async function() {
+      // 1. approve collateral and mint tokens
+      const amountToApprove = new BN('10000000000000000000000'); // 1e22
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = new BN('1');
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
+        from: accounts[0]
+      });
+      const shortTokenBalance = await shortPositionToken.balanceOf.call(accounts[0]);
+      const longTokenBalance = await longPositionToken.balanceOf.call(accounts[0]);
+      assert.isTrue(
+        shortTokenBalance.eq(longTokenBalance),
+        'long token and short token balances are not equals'
+      );
+
+      // 2. transfer part of the long token
+      await longPositionToken.transfer(accounts[1], qtyToMint, { from: accounts[0] });
+
+      // 3. attempting to redeem all shorts before settlement should fails
+      let error = null;
+      try {
+        const qtyToRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
+        await collateralPool.redeemPositionTokens(marketContract.address, qtyToRedeem, {
+          from: accounts[0]
+        });
+      } catch (err) {
+        error = err;
+      }
+
+      assert.ok(
+        error instanceof Error,
+        'should not be able to redeem single tokens before settlement'
+      );
+    });
   });
-  //
-  // describe('settleAndClose()', function() {
-  //   it('should fail if called before settlement', async () => {
-  //     let settleAndCloseError = null;
-  //     try {
-  //       await collateralPool.settleAndClose(marketContract.address, 1, 0, { from: accounts[0] });
-  //     } catch (err) {
-  //       settleAndCloseError = err;
-  //     }
-  //     assert.ok(
-  //       settleAndCloseError instanceof Error,
-  //       'settleAndClose() did not fail before settlement'
-  //     );
-  //   });
-  //
-  //   it('should fail if user has insufficient tokens', async function() {
-  //     let error = null;
-  //
-  //     // 1. approve collateral and mint tokens
-  //     const amountToApprove = 1e22;
-  //     await collateralToken.approve(collateralPool.address, amountToApprove);
-  //     const qtyToMint = 1;
-  //     await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
-  //       from: accounts[0]
-  //     });
-  //
-  //     // 2. force contract to settlement
-  //     const settlementPrice = await utility.settleContract(marketContract, priceCap, accounts[0]);
-  //
-  //     // 3. attempt to redeem too much long tokens
-  //     const longTokenQtyToRedeem = (await longPositionToken.balanceOf.call(accounts[0])).plus(1);
-  //     try {
-  //       await collateralPool.settleAndClose(marketContract.address, longTokenQtyToRedeem, 0, {
-  //         from: accounts[0]
-  //       });
-  //     } catch (err) {
-  //       error = err;
-  //     }
-  //     assert.instanceOf(error, Error, 'should not be able to redeem insufficient long tokens');
-  //
-  //     // 4. attempt to redeem too much short tokens
-  //     error = null;
-  //     const shortTokenQtyToRedeem = (await longPositionToken.balanceOf.call(accounts[0]))
-  //       .plus(1)
-  //       .times(-1);
-  //     try {
-  //       await collateralPool.settleAndClose(marketContract.address, 0, shortTokenQtyToRedeem, {
-  //         from: accounts[0]
-  //       });
-  //     } catch (err) {
-  //       error = err;
-  //     }
-  //     assert.instanceOf(error, Error, 'should not be able to redeem insufficient short tokens');
-  //   });
-  //
-  //   it('should fail if time not pass settlement delay', async function() {
-  //     let error = null;
-  //
-  //     // 1. force contract to settlement
-  //     await utility.settleContract(marketContract, priceCap, accounts[0]);
-  //
-  //     // 2. move time a little ahead but less than postSettlement < 1 day
-  //     await utility.increase(7000);
-  //
-  //     // 3. attempting to redeem token should fail
-  //
-  //     await utility.shouldFail(
-  //       async () => {
-  //         const shortTokenQtyToRedeem = -1;
-  //         await collateralPool.settleAndClose(marketContract.address, 0, shortTokenQtyToRedeem, {
-  //           from: accounts[0]
-  //         });
-  //       },
-  //       'should be able to settle and close',
-  //       'Contract is not past settlement delay',
-  //       'should have for contract not past settlement delay'
-  //     );
-  //   });
-  //
-  //   it('should redeem short and long tokens after settlement', async function() {
-  //     let error = null;
-  //
-  //     // 1. approve collateral and mint tokens
-  //     const amountToApprove = 1e22;
-  //     await collateralToken.approve(collateralPool.address, amountToApprove);
-  //     const qtyToMint = 1;
-  //     await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
-  //       from: accounts[0]
-  //     });
-  //
-  //     // 2. force contract to settlement
-  //     const settlementPrice = await utility.settleContract(marketContract, priceCap, accounts[0]);
-  //     await utility.increase(87000); // extend time past delay for withdrawal of funds
-  //
-  //     // 3. redeem all short position tokens after settlement should pass
-  //     const shortTokenBalanceBeforeRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
-  //     const shortTokenQtyToRedeem = 1;
-  //     try {
-  //       await collateralPool.settleAndClose(marketContract.address, 0, shortTokenQtyToRedeem, {
-  //         from: accounts[0]
-  //       });
-  //     } catch (err) {
-  //       error = err;
-  //     }
-  //     assert.isNull(error, 'should be able to redeem short tokens after settlement');
-  //
-  //     // 4. balance of short tokens should be updated.
-  //     const expectedShortTokenBalanceAfterRedeem = shortTokenBalanceBeforeRedeem.minus(
-  //       shortTokenQtyToRedeem
-  //     );
-  //     const actualShortTokenBalanceAfterRedeem = await shortPositionToken.balanceOf.call(
-  //       accounts[0]
-  //     );
-  //     assert.equal(
-  //       actualShortTokenBalanceAfterRedeem.toNumber(),
-  //       expectedShortTokenBalanceAfterRedeem.toNumber(),
-  //       'short position tokens balance was not reduced'
-  //     );
-  //
-  //     // 5. ensure correct events are emitted for short settlement
-  //     const shortCollateralAmountReleased = utility.calculateCollateralToReturn(
-  //       priceFloor,
-  //       priceCap,
-  //       qtyMultiplier,
-  //       shortTokenQtyToRedeem * -1,
-  //       settlementPrice
-  //     );
-  //     let emittedEvents = await utility.getEvent(collateralPool, 'TokensRedeemed');
-  //     const shortTokensRedeemedEvent = emittedEvents[0];
-  //
-  //     assert.equal(
-  //       shortTokensRedeemedEvent.event,
-  //       'TokensRedeemed',
-  //       'event TokensRedeemed was not emitted'
-  //     );
-  //     assert.equal(
-  //       shortTokensRedeemedEvent.args.marketContract,
-  //       marketContract.address,
-  //       'incorrect marketContract arg for TokensRedeemed'
-  //     );
-  //     assert.equal(
-  //       shortTokensRedeemedEvent.args.user,
-  //       accounts[0],
-  //       'incorrect user arg for TokensRedeemed'
-  //     );
-  //     assert.equal(
-  //       shortTokensRedeemedEvent.args.shortQtyRedeemed.toNumber(),
-  //       shortTokenQtyToRedeem,
-  //       'incorrect qtyRedeemed arg for TokensRedeemed'
-  //     );
-  //     assert.equal(
-  //       shortTokensRedeemedEvent.args.collateralUnlocked.toNumber(),
-  //       shortCollateralAmountReleased,
-  //       'incorrect collateralUnlocked arg for TokensRedeemed'
-  //     );
-  //
-  //     // 6. redeem all long position tokens after settlement should pass
-  //     const longTokenBalanceBeforeRedeem = await longPositionToken.balanceOf.call(accounts[0]);
-  //     const longTokenQtyToRedeem = 1;
-  //     error = null;
-  //     try {
-  //       await collateralPool.settleAndClose(marketContract.address, longTokenQtyToRedeem, 0, {
-  //         from: accounts[0]
-  //       });
-  //     } catch (err) {
-  //       error = err;
-  //     }
-  //     assert.isNull(error, 'should be able to redeem long tokens after settlement');
-  //
-  //     // 7. balance of long tokens should be updated.
-  //     const expectedLongTokenBalanceAfterRedeem = longTokenBalanceBeforeRedeem.minus(
-  //       longTokenQtyToRedeem
-  //     );
-  //     const actualLongTokenBalanceAfterRedeem = await longPositionToken.balanceOf.call(accounts[0]);
-  //     assert.equal(
-  //       actualLongTokenBalanceAfterRedeem.toNumber(),
-  //       expectedLongTokenBalanceAfterRedeem.toNumber(),
-  //       'long position tokens balance was not reduced'
-  //     );
-  //
-  //     // 8. ensure correct events are emitted for long settlement
-  //     const longCollateralAmountReleased = utility.calculateCollateralToReturn(
-  //       priceFloor,
-  //       priceCap,
-  //       qtyMultiplier,
-  //       longTokenQtyToRedeem,
-  //       settlementPrice
-  //     );
-  //     emittedEvents = await utility.getEvent(collateralPool, 'TokensRedeemed');
-  //     const longTokensRedeemedEvent = emittedEvents[0];
-  //
-  //     assert.equal(
-  //       longTokensRedeemedEvent.event,
-  //       'TokensRedeemed',
-  //       'event TokensRedeemed was not emitted'
-  //     );
-  //     assert.equal(
-  //       longTokensRedeemedEvent.args.marketContract,
-  //       marketContract.address,
-  //       'incorrect marketContract arg for TokensRedeemed'
-  //     );
-  //     assert.equal(
-  //       longTokensRedeemedEvent.args.user,
-  //       accounts[0],
-  //       'incorrect user arg for TokensRedeemed'
-  //     );
-  //     assert.equal(
-  //       longTokensRedeemedEvent.args.longQtyRedeemed.toNumber(),
-  //       longTokenQtyToRedeem,
-  //       'incorrect qtyRedeemed arg for TokensRedeemed'
-  //     );
-  //     assert.equal(
-  //       longTokensRedeemedEvent.args.collateralUnlocked.toNumber(),
-  //       longCollateralAmountReleased,
-  //       'incorrect collateralUnlocked arg for TokensRedeemed'
-  //     );
-  //   });
-  //
-  //   it('should return correct amount of collateral when redeemed after settlement', async function() {
-  //     // 1. approve collateral and mint tokens
-  //     const amountToApprove = 1e22;
-  //     await collateralToken.approve(collateralPool.address, amountToApprove);
-  //     const qtyToMint = 1;
-  //     await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
-  //       from: accounts[0]
-  //     });
-  //
-  //     // 2. transfer part of the long token
-  //     await longPositionToken.transfer(accounts[1], 1, { from: accounts[0] });
-  //
-  //     // 3. force contract to settlement
-  //     const settlementPrice = await utility.settleContract(marketContract, priceCap, accounts[0]);
-  //     await utility.increase(87000); // extend time past delay for withdrawal of funds
-  //
-  //     // 4. redeem all shorts on settlement
-  //     const collateralBalanceBeforeRedeem = await collateralToken.balanceOf.call(accounts[0]);
-  //     const qtyToRedeem = (await shortPositionToken.balanceOf.call(accounts[0])).toNumber();
-  //     await collateralPool.settleAndClose(marketContract.address, 0, qtyToRedeem, {
-  //       from: accounts[0]
-  //     });
-  //
-  //     // 5. should return appropriate collateral
-  //     const collateralToReturn = utility.calculateCollateralToReturn(
-  //       priceFloor,
-  //       priceCap,
-  //       qtyMultiplier,
-  //       qtyToRedeem * -1,
-  //       settlementPrice
-  //     );
-  //     const expectedCollateralBalanceAfterRedeem = collateralBalanceBeforeRedeem.plus(
-  //       collateralToReturn
-  //     );
-  //     const actualCollateralBalanceAfterRedeem = await collateralToken.balanceOf.call(accounts[0]);
-  //     assert.equal(
-  //       actualCollateralBalanceAfterRedeem.toNumber(),
-  //       expectedCollateralBalanceAfterRedeem.toNumber(),
-  //       'short position tokens balance was not reduced'
-  //     );
-  //   });
-  // });
-  //
-  // describe('withdrawFees()', function() {
-  //   beforeEach(async function() {
-  //     // approve tokens
-  //     await collateralToken.approve(collateralPool.address, 1e22, { from: accounts[0] });
-  //     await mktToken.approve(collateralPool.address, 1e22);
-  //   });
-  //
-  //   it('should fail if no fees available for token address', async function() {
-  //     await utility.shouldFail(
-  //       async function() {
-  //         await collateralPool.withdrawFees(collateralToken.address, accounts[1], {
-  //           from: accounts[0]
-  //         });
-  //       },
-  //       'did not fail on withdrawal of zero fees',
-  //       'No fees available for withdrawal',
-  //       'did not fail for no fees available'
-  //     );
-  //   });
-  //
-  //   it('should fail if sender is not owner of collateralPool', async function() {
-  //     await utility.shouldFail(async function() {
-  //       const notOwner = accounts[1];
-  //       await collateralPool.withdrawFees(collateralToken.address, accounts[1], {
-  //         from: notOwner
-  //       });
-  //     }, 'did not fail for sender !== owner');
-  //   });
-  //
-  //   it('should be able to withdraw collateral token fees', async function() {
-  //     const qtyToMint = 5;
-  //     collateralFeePerUnit = await feeMarketContract.COLLATERAL_TOKEN_FEE_PER_UNIT.call();
-  //     const expectedFeesWithdrawn = collateralFeePerUnit.toNumber() * qtyToMint;
-  //
-  //     // mint tokens with collateral fees
-  //     await collateralPool.mintPositionTokens(feeMarketContract.address, qtyToMint, false, {
-  //       from: accounts[0]
-  //     });
-  //
-  //     // withdraw collateral tokens to account[1]
-  //     const initialReceipientBalance = await collateralToken.balanceOf.call(accounts[1]);
-  //     await collateralPool.withdrawFees(collateralToken.address, accounts[1], {
-  //       from: accounts[0]
-  //     });
-  //
-  //     const finalRecipientBalance = await collateralToken.balanceOf.call(accounts[1]);
-  //     const actualFeesWithdrawn = finalRecipientBalance.minus(initialReceipientBalance).toNumber();
-  //
-  //     assert.equal(
-  //       actualFeesWithdrawn,
-  //       expectedFeesWithdrawn,
-  //       'incorrect collateral fees withdrawn'
-  //     );
-  //   });
-  //
-  //   it('should be able to withdraw mkt token fees', async function() {
-  //     const qtyToMint = 5;
-  //     mktFeePerUnit = await feeMarketContract.MKT_TOKEN_FEE_PER_UNIT.call();
-  //     const expectedFeesWithdrawn = mktFeePerUnit.toNumber() * qtyToMint;
-  //
-  //     // mint tokens with mkt fees
-  //     await collateralPool.mintPositionTokens(feeMarketContract.address, qtyToMint, true, {
-  //       from: accounts[0]
-  //     });
-  //
-  //     // withdraw fees to account[1]
-  //     const initialReceipientBalance = await mktToken.balanceOf.call(accounts[1]);
-  //     await collateralPool.withdrawFees(mktToken.address, accounts[1], {
-  //       from: accounts[0]
-  //     });
-  //
-  //     const finalReceipientBalance = await mktToken.balanceOf.call(accounts[1]);
-  //     const actualFeesWithdrawn = finalReceipientBalance.minus(initialReceipientBalance).toNumber();
-  //
-  //     assert.equal(actualFeesWithdrawn, expectedFeesWithdrawn, 'incorrect mkt fees withdrawn');
-  //   });
-  // });
-  //
-  // describe('setMKTTokenAddress()', function() {
-  //   it('should fail if attempting to set MKT address to null', async function() {
-  //     await utility.shouldFail(
-  //       async function() {
-  //         await collateralPool.setMKTTokenAddress('0x0000000000000000000000000000000000000000', {
-  //           from: accounts[0]
-  //         });
-  //       },
-  //       'did not fail on attempt to set MKT Token Address to null',
-  //       'Cannot set MKT Token Address To Null',
-  //       'did not fail with null MKT Token address'
-  //     );
-  //   });
-  //
-  //   it('should fail if attempting to set MKT address from non owner address', async function() {
-  //     await utility.shouldFail(
-  //       async function() {
-  //         await collateralPool.setMKTTokenAddress(collateralToken.address, {
-  //           from: accounts[3]
-  //         });
-  //       },
-  //       'did not fail on attempt to set MKT Token Address from non owner address',
-  //       '',
-  //       'did not fail from non owner address'
-  //     );
-  //   });
-  //
-  //   it('should work attempting to set MKT address from owner address', async function() {
-  //     await collateralPool.setMKTTokenAddress(collateralToken.address, {
-  //       from: accounts[0]
-  //     });
-  //
-  //     const newlySetAddress = await collateralPool.mktToken.call();
-  //
-  //     assert.equal(
-  //       newlySetAddress,
-  //       collateralToken.address,
-  //       'unable to set new MKT Token Address from owner account'
-  //     );
-  //   });
-  // });
-  //
-  // describe('setMarketContractRegistryAddress()', function() {
-  //   it('should fail if attempting to set registry address to null', async function() {
-  //     await utility.shouldFail(
-  //       async function() {
-  //         await collateralPool.setMarketContractRegistryAddress(
-  //           '0x0000000000000000000000000000000000000000',
-  //           {
-  //             from: accounts[0]
-  //           }
-  //         );
-  //       },
-  //       'did not fail on attempt to set registry address to null',
-  //       'Cannot set Market Contract Registry Address To Null',
-  //       'did not fail with null address'
-  //     );
-  //   });
-  //
-  //   it('should fail if attempting to set registry address from non owner address', async function() {
-  //     await utility.shouldFail(
-  //       async function() {
-  //         await collateralPool.setMarketContractRegistryAddress(collateralToken.address, {
-  //           from: accounts[3]
-  //         });
-  //       },
-  //       'did not fail on attempt to set registry Address from non owner address',
-  //       '',
-  //       'did not fail from non owner address'
-  //     );
-  //   });
-  //
-  //   it('should work attempting to set registry address from owner address', async function() {
-  //     await collateralPool.setMarketContractRegistryAddress(collateralToken.address, {
-  //       from: accounts[0]
-  //     });
-  //
-  //     const newlySetAddress = await collateralPool.marketContractRegistry.call();
-  //
-  //     assert.equal(
-  //       newlySetAddress,
-  //       collateralToken.address,
-  //       'unable to set new MKT Token Address from owner account'
-  //     );
-  //   });
-  // });
+
+  describe('settleAndClose()', function() {
+    it('should fail if called before settlement', async () => {
+      let settleAndCloseError = null;
+      try {
+        await collateralPool.settleAndClose(marketContract.address, 1, 0, { from: accounts[0] });
+      } catch (err) {
+        settleAndCloseError = err;
+      }
+      assert.ok(
+        settleAndCloseError instanceof Error,
+        'settleAndClose() did not fail before settlement'
+      );
+    });
+
+    it('should fail if user has insufficient tokens', async function() {
+      let error = null;
+
+      // 1. approve collateral and mint tokens
+      const amountToApprove = new BN('10000000000000000000000'); // 1e22
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = new BN('1');
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
+        from: accounts[0]
+      });
+
+      // 2. force contract to settlement
+      const settlementPrice = await utility.settleContract(
+        marketContract,
+        priceCap.sub(new BN('10')),
+        accounts[0]
+      );
+
+      // 3. attempt to redeem too much long tokens
+      const longTokenQtyToRedeem = (await longPositionToken.balanceOf.call(accounts[0])).add(
+        new BN('1')
+      );
+      try {
+        await collateralPool.settleAndClose(marketContract.address, longTokenQtyToRedeem, 0, {
+          from: accounts[0]
+        });
+      } catch (err) {
+        error = err;
+      }
+      assert.instanceOf(error, Error, 'should not be able to redeem insufficient long tokens');
+
+      // 4. attempt to redeem too much short tokens
+      error = null;
+      const shortTokenQtyToRedeem = (await shortPositionToken.balanceOf.call(accounts[0])).add(
+        new BN('1')
+      );
+      try {
+        await collateralPool.settleAndClose(marketContract.address, 0, shortTokenQtyToRedeem, {
+          from: accounts[0]
+        });
+      } catch (err) {
+        error = err;
+      }
+      assert.instanceOf(error, Error, 'should not be able to redeem insufficient short tokens');
+    });
+
+    it('should fail if time not pass settlement delay', async function() {
+      let error = null;
+
+      // 1. force contract to settlement
+      await utility.settleContract(marketContract, priceCap.sub(new BN('10')), accounts[0]);
+
+      // 2. move time a little ahead but less than postSettlement < 1 day
+      await utility.increase(7000);
+
+      // 3. attempting to redeem token should fail
+
+      await utility.shouldFail(
+        async () => {
+          const shortTokenQtyToRedeem = new BN('1');
+          await collateralPool.settleAndClose(marketContract.address, 0, shortTokenQtyToRedeem, {
+            from: accounts[0]
+          });
+        },
+        'should be able to settle and close',
+        'Contract is not past settlement delay',
+        'should have for contract not past settlement delay'
+      );
+    });
+
+    it('should redeem short and long tokens after settlement', async function() {
+      let error = null;
+      let result = null;
+
+      // 1. approve collateral and mint tokens
+      const amountToApprove = new BN('10000000000000000000000'); // 1e22
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = new BN('1');
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
+        from: accounts[0]
+      });
+
+      // 2. force contract to settlement
+      const settlementPrice = await utility.settleContract(
+        marketContract,
+        priceCap.sub(new BN('10')),
+        accounts[0]
+      );
+      await utility.increase(87000); // extend time past delay for withdrawal of funds
+
+      // 3. redeem all short position tokens after settlement should pass
+      const shortTokenBalanceBeforeRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
+      const shortTokenQtyToRedeem = new BN('1');
+      try {
+        result = await collateralPool.settleAndClose(
+          marketContract.address,
+          0,
+          shortTokenQtyToRedeem,
+          {
+            from: accounts[0]
+          }
+        );
+      } catch (err) {
+        error = err;
+      }
+      assert.isNull(error, 'should be able to redeem short tokens after settlement');
+
+      // 4. balance of short tokens should be updated.
+      const expectedShortTokenBalanceAfterRedeem = shortTokenBalanceBeforeRedeem.sub(
+        shortTokenQtyToRedeem
+      );
+      const actualShortTokenBalanceAfterRedeem = await shortPositionToken.balanceOf.call(
+        accounts[0]
+      );
+      assert.isTrue(
+        actualShortTokenBalanceAfterRedeem.eq(expectedShortTokenBalanceAfterRedeem),
+        'short position tokens balance was not reduced'
+      );
+
+      // 5. ensure correct events are emitted for short settlement
+      const shortCollateralAmountReleased = utility.calculateCollateralToReturn(
+        priceFloor,
+        priceCap,
+        qtyMultiplier,
+        shortTokenQtyToRedeem.mul(new BN('-1')),
+        settlementPrice
+      );
+
+      // assert correct TokensRedeemed event emitted
+      let shortTokensRedeemedEvent;
+      await truffleAssert.eventEmitted(result, 'TokensRedeemed', redeemed => {
+        shortTokensRedeemedEvent = redeemed;
+        return true;
+      });
+
+      assert.equal(
+        shortTokensRedeemedEvent.marketContract,
+        marketContract.address,
+        'incorrect marketContract arg for TokensRedeemed'
+      );
+      assert.equal(
+        shortTokensRedeemedEvent.user,
+        accounts[0],
+        'incorrect user arg for TokensRedeemed'
+      );
+      assert.isTrue(
+        shortTokensRedeemedEvent.shortQtyRedeemed.eq(shortTokenQtyToRedeem),
+        'incorrect qtyRedeemed arg for TokensRedeemed'
+      );
+
+      assert.isTrue(
+        shortCollateralAmountReleased.eq(shortTokensRedeemedEvent.collateralUnlocked),
+        'incorrect collateralUnlocked arg for TokensRedeemed'
+      );
+
+      // 6. redeem all long position tokens after settlement should pass
+      const longTokenBalanceBeforeRedeem = await longPositionToken.balanceOf.call(accounts[0]);
+      const longTokenQtyToRedeem = new BN('1');
+      error = null;
+      result = null;
+      try {
+        result = await collateralPool.settleAndClose(
+          marketContract.address,
+          longTokenQtyToRedeem,
+          0,
+          {
+            from: accounts[0]
+          }
+        );
+      } catch (err) {
+        error = err;
+      }
+      assert.isNull(error, 'should be able to redeem long tokens after settlement');
+
+      // 7. balance of long tokens should be updated.
+      const expectedLongTokenBalanceAfterRedeem = longTokenBalanceBeforeRedeem.sub(
+        longTokenQtyToRedeem
+      );
+      const actualLongTokenBalanceAfterRedeem = await longPositionToken.balanceOf.call(accounts[0]);
+      assert.isTrue(
+        actualLongTokenBalanceAfterRedeem.eq(expectedLongTokenBalanceAfterRedeem),
+        'long position tokens balance was not reduced'
+      );
+
+      // 8. ensure correct events are emitted for long settlement
+      const longCollateralAmountReleased = utility.calculateCollateralToReturn(
+        priceFloor,
+        priceCap,
+        qtyMultiplier,
+        longTokenQtyToRedeem,
+        settlementPrice
+      );
+
+      // assert correct TokensRedeemed event emitted
+      let longTokensRedeemedEvent;
+      await truffleAssert.eventEmitted(result, 'TokensRedeemed', redeemed => {
+        longTokensRedeemedEvent = redeemed;
+        return true;
+      });
+
+      assert.equal(
+        longTokensRedeemedEvent.marketContract,
+        marketContract.address,
+        'incorrect marketContract arg for TokensRedeemed'
+      );
+      assert.equal(
+        longTokensRedeemedEvent.user,
+        accounts[0],
+        'incorrect user arg for TokensRedeemed'
+      );
+      assert.isTrue(
+        longTokensRedeemedEvent.longQtyRedeemed.eq(longTokenQtyToRedeem),
+        'incorrect qtyRedeemed arg for TokensRedeemed'
+      );
+      assert.isTrue(
+        longTokensRedeemedEvent.collateralUnlocked.eq(longCollateralAmountReleased),
+        'incorrect collateralUnlocked arg for TokensRedeemed'
+      );
+    });
+
+    it('should return correct amount of collateral when redeemed after settlement', async function() {
+      // 1. approve collateral and mint tokens
+      const amountToApprove = new BN('10000000000000000000000'); // 1e22
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = new BN('1');
+      await collateralPool.mintPositionTokens(marketContract.address, qtyToMint, false, {
+        from: accounts[0]
+      });
+
+      // 2. transfer part of the long token
+      await longPositionToken.transfer(accounts[1], 1, { from: accounts[0] });
+
+      // 3. force contract to settlement
+      const settlementPrice = await utility.settleContract(
+        marketContract,
+        priceCap.sub(new BN('10')),
+        accounts[0]
+      );
+      await utility.increase(87000); // extend time past delay for withdrawal of funds
+
+      // 4. redeem all shorts on settlement
+      const collateralBalanceBeforeRedeem = await collateralToken.balanceOf.call(accounts[0]);
+      const qtyToRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
+      await collateralPool.settleAndClose(marketContract.address, 0, qtyToRedeem, {
+        from: accounts[0]
+      });
+
+      // 5. should return appropriate collateral
+      const collateralToReturn = utility.calculateCollateralToReturn(
+        priceFloor,
+        priceCap,
+        qtyMultiplier,
+        qtyToRedeem.mul(new BN('-1')),
+        settlementPrice
+      );
+      const expectedCollateralBalanceAfterRedeem = collateralBalanceBeforeRedeem.add(
+        collateralToReturn
+      );
+      const actualCollateralBalanceAfterRedeem = await collateralToken.balanceOf.call(accounts[0]);
+      assert.isTrue(
+        actualCollateralBalanceAfterRedeem.eq(expectedCollateralBalanceAfterRedeem),
+        'short position tokens balance was not reduced'
+      );
+    });
+  });
+
+  describe('withdrawFees()', function() {
+    beforeEach(async function() {
+      // approve tokens
+      const amountToApprove = new BN('10000000000000000000000'); // 1e22
+      await collateralToken.approve(collateralPool.address, amountToApprove, { from: accounts[0] });
+      await mktToken.approve(collateralPool.address, amountToApprove);
+    });
+
+    it('should fail if no fees available for token address', async function() {
+      await utility.shouldFail(
+        async function() {
+          await collateralPool.withdrawFees(collateralToken.address, accounts[1], {
+            from: accounts[0]
+          });
+        },
+        'did not fail on withdrawal of zero fees',
+        'No fees available for withdrawal',
+        'did not fail for no fees available'
+      );
+    });
+
+    it('should fail if sender is not owner of collateralPool', async function() {
+      await utility.shouldFail(async function() {
+        const notOwner = accounts[1];
+        await collateralPool.withdrawFees(collateralToken.address, accounts[1], {
+          from: notOwner
+        });
+      }, 'did not fail for sender !== owner');
+    });
+
+    it('should be able to withdraw collateral token fees', async function() {
+      const qtyToMint = new BN('5');
+      collateralFeePerUnit = await feeMarketContract.COLLATERAL_TOKEN_FEE_PER_UNIT.call();
+      const expectedFeesWithdrawn = collateralFeePerUnit.mul(qtyToMint);
+
+      // mint tokens with collateral fees
+      await collateralPool.mintPositionTokens(feeMarketContract.address, qtyToMint, false, {
+        from: accounts[0]
+      });
+
+      // withdraw collateral tokens to account[1]
+      const initialReceipientBalance = await collateralToken.balanceOf.call(accounts[1]);
+      await collateralPool.withdrawFees(collateralToken.address, accounts[1], {
+        from: accounts[0]
+      });
+
+      const finalRecipientBalance = await collateralToken.balanceOf.call(accounts[1]);
+      const actualFeesWithdrawn = finalRecipientBalance.sub(initialReceipientBalance);
+
+      assert.isTrue(
+        actualFeesWithdrawn.eq(expectedFeesWithdrawn),
+        'incorrect collateral fees withdrawn'
+      );
+    });
+
+    it('should be able to withdraw mkt token fees', async function() {
+      const qtyToMint = new BN('5');
+      mktFeePerUnit = await feeMarketContract.MKT_TOKEN_FEE_PER_UNIT.call();
+      const expectedFeesWithdrawn = mktFeePerUnit.mul(qtyToMint);
+
+      // mint tokens with mkt fees
+      await collateralPool.mintPositionTokens(feeMarketContract.address, qtyToMint, true, {
+        from: accounts[0]
+      });
+
+      // withdraw fees to account[1]
+      const initialReceipientBalance = await mktToken.balanceOf.call(accounts[1]);
+      await collateralPool.withdrawFees(mktToken.address, accounts[1], {
+        from: accounts[0]
+      });
+
+      const finalReceipientBalance = await mktToken.balanceOf.call(accounts[1]);
+      const actualFeesWithdrawn = finalReceipientBalance.sub(initialReceipientBalance);
+
+      assert.isTrue(actualFeesWithdrawn.eq(expectedFeesWithdrawn), 'incorrect mkt fees withdrawn');
+    });
+  });
+
+  describe('setMKTTokenAddress()', function() {
+    it('should fail if attempting to set MKT address to null', async function() {
+      await utility.shouldFail(
+        async function() {
+          await collateralPool.setMKTTokenAddress('0x0000000000000000000000000000000000000000', {
+            from: accounts[0]
+          });
+        },
+        'did not fail on attempt to set MKT Token Address to null',
+        'Cannot set MKT Token Address To Null',
+        'did not fail with null MKT Token address'
+      );
+    });
+
+    it('should fail if attempting to set MKT address from non owner address', async function() {
+      await utility.shouldFail(
+        async function() {
+          await collateralPool.setMKTTokenAddress(collateralToken.address, {
+            from: accounts[3]
+          });
+        },
+        'did not fail on attempt to set MKT Token Address from non owner address',
+        '',
+        'did not fail from non owner address'
+      );
+    });
+
+    it('should work attempting to set MKT address from owner address', async function() {
+      await collateralPool.setMKTTokenAddress(collateralToken.address, {
+        from: accounts[0]
+      });
+
+      const newlySetAddress = await collateralPool.mktToken.call();
+
+      assert.equal(
+        newlySetAddress,
+        collateralToken.address,
+        'unable to set new MKT Token Address from owner account'
+      );
+    });
+  });
+
+  describe('setMarketContractRegistryAddress()', function() {
+    it('should fail if attempting to set registry address to null', async function() {
+      await utility.shouldFail(
+        async function() {
+          await collateralPool.setMarketContractRegistryAddress(
+            '0x0000000000000000000000000000000000000000',
+            {
+              from: accounts[0]
+            }
+          );
+        },
+        'did not fail on attempt to set registry address to null',
+        'Cannot set Market Contract Registry Address To Null',
+        'did not fail with null address'
+      );
+    });
+
+    it('should fail if attempting to set registry address from non owner address', async function() {
+      await utility.shouldFail(
+        async function() {
+          await collateralPool.setMarketContractRegistryAddress(collateralToken.address, {
+            from: accounts[3]
+          });
+        },
+        'did not fail on attempt to set registry Address from non owner address',
+        '',
+        'did not fail from non owner address'
+      );
+    });
+
+    it('should work attempting to set registry address from owner address', async function() {
+      await collateralPool.setMarketContractRegistryAddress(collateralToken.address, {
+        from: accounts[0]
+      });
+
+      const newlySetAddress = await collateralPool.marketContractRegistry.call();
+
+      assert.equal(
+        newlySetAddress,
+        collateralToken.address,
+        'unable to set new MKT Token Address from owner account'
+      );
+    });
+  });
 });

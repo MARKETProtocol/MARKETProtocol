@@ -95,16 +95,16 @@ module.exports = {
       if (price <= priceFloor) {
         maxLoss = zero;
       } else {
-        maxLoss = price - priceFloor;
+        maxLoss = price.sub(priceFloor);
       }
     } else {
       if (price >= priceCap) {
         maxLoss = zero;
       } else {
-        maxLoss = priceCap - price;
+        maxLoss = priceCap.sub(price);
       }
     }
-    return maxLoss * Math.abs(qty) * qtyMultiplier;
+    return maxLoss.mul(qty.abs()).mul(qtyMultiplier);
   },
 
   /**
@@ -190,12 +190,12 @@ module.exports = {
    * Settle MarketContract
    *
    * @param {MarketContractMPX} marketContract
-   * @param {number} priceCap
+   * @param {number} settlementPrice
    * @param {string} userAddress
    * @return {MarketContractMPX}
    */
-  async settleContract(marketContract, priceCap, userAddress) {
-    await marketContract.oracleCallBack(priceCap.add(new BN('10')), { from: userAddress }); // price above cap!
+  async settleContract(marketContract, settlementPrice, userAddress) {
+    await marketContract.arbitrateSettlement(settlementPrice, { from: userAddress }); // price above cap!
     return await marketContract.settlementPrice.call({ from: userAddress });
   },
 
