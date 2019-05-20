@@ -1,13 +1,14 @@
+const BN = require('bn.js');
+const MarketContractMPX = artifacts.require('MarketContractMPX');
 const Utils = require('web3-utils');
-const { formatters } = require('web3-core-helpers');
+
 const { AbstractWeb3Module } = require('web3-core');
 const {
   AbstractMethodFactory,
   GetBlockByNumberMethod,
   AbstractMethod
 } = require('web3-core-method');
-
-const MarketContractMPX = artifacts.require('MarketContractMPX');
+const { formatters } = require('web3-core-helpers');
 
 class EVMManipulator extends AbstractWeb3Module {
   /**
@@ -115,7 +116,7 @@ module.exports = {
    * @return {number}
    */
   calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier) {
-    return (priceCap - priceFloor) * qtyMultiplier;
+    return priceCap.sub(priceFloor).mul(qtyMultiplier);
   },
 
   /**
@@ -194,7 +195,7 @@ module.exports = {
    * @return {MarketContractMPX}
    */
   async settleContract(marketContract, priceCap, userAddress) {
-    await marketContract.oracleCallBack(priceCap.plus(10), { from: userAddress }); // price above cap!
+    await marketContract.oracleCallBack(priceCap.add(new BN('10')), { from: userAddress }); // price above cap!
     return await marketContract.settlementPrice.call({ from: userAddress });
   },
 
