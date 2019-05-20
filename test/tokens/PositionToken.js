@@ -46,7 +46,7 @@ contract('PositionToken', function(accounts) {
   describe('Token symbols correctly created', function() {
     it(`long position token symbol`, async function() {
       assert.equal(
-        await longPositionToken.symbol(),
+        (await longPositionToken.symbol()).replace(/\0.*$/g, ''),
         'LBTC',
         'should set symbol of long position token correctly from constructor'
       );
@@ -54,7 +54,7 @@ contract('PositionToken', function(accounts) {
 
     it(`short position token symbol`, async function() {
       assert.equal(
-        await shortPositionToken.symbol(),
+        (await shortPositionToken.symbol()).replace(/\0.*$/g, ''),
         'SBTC',
         'should set symbol of long position token correctly from constructor'
       );

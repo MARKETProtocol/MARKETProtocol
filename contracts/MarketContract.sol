@@ -55,7 +55,10 @@ contract MarketContract is Ownable {
     event UpdatedLastPrice(uint256 price);
     event ContractSettled(uint settlePrice);
 
-    /// @param contractNames comma separated list of 3 names "contractName,longTokenSymbol,shortTokenSymbol"
+    /// @param contractNames bytes32 array of names
+    ///     contractName            name of the market contract
+    ///     longTokenSymbol         symbol for the long token
+    ///     shortTokenSymbol        symbol for the short token
     /// @param baseAddresses array of 2 addresses needed for our contract including:
     ///     ownerAddress                    address of the owner of these contracts.
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
@@ -70,7 +73,7 @@ contract MarketContract is Ownable {
     ///     mktFeeInBasisPoints fee amount in basis points (MKT denominated) for minting.
     ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
     constructor(
-        string memory contractNames,
+        bytes32[3] memory contractNames,
         address[3] memory baseAddresses,
         uint[7] memory contractSpecs
     ) public
@@ -102,13 +105,9 @@ contract MarketContract is Ownable {
         );
 
         // create long and short tokens
-        StringLib.slice memory pathSlice = contractNames.toSlice();
-        StringLib.slice memory delim = ",".toSlice();
-        require(pathSlice.count(delim) == 2, "ContractNames must contain 3 names");  //contractName,lTokenName,sTokenName
-        CONTRACT_NAME = pathSlice.split(delim).toString();
-
-        PositionToken longPosToken = new PositionToken("MARKET Protocol Long Position Token", pathSlice.split(delim).toString(), 0);
-        PositionToken shortPosToken = new PositionToken("MARKET Protocol Short Position Token", pathSlice.split(delim).toString(), 1);
+        CONTRACT_NAME = contractNames[0].bytes32ToString();
+        PositionToken longPosToken = new PositionToken("MARKET Protocol Long Position Token", contractNames[1].bytes32ToString(), 0);
+        PositionToken shortPosToken = new PositionToken("MARKET Protocol Short Position Token", contractNames[2].bytes32ToString(), 1);
 
         LONG_POSITION_TOKEN = address(longPosToken);
         SHORT_POSITION_TOKEN = address(shortPosToken);

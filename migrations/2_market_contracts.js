@@ -51,9 +51,14 @@ module.exports = async function(deployer, network, accounts) {
                                     .addFactoryAddress(factory.address)
                                     .then(function() {
                                       // white list the factory
+
                                       return factory
                                         .deployMarketContractMPX(
-                                          'BTC,LBTC,SBTC',
+                                          [
+                                            web3.utils.asciiToHex('BTC', 32),
+                                            web3.utils.asciiToHex('LBTC', 32),
+                                            web3.utils.asciiToHex('SBTC', 32)
+                                          ],
                                           CollateralToken.address,
                                           [
                                             20000000000000,
@@ -70,7 +75,11 @@ module.exports = async function(deployer, network, accounts) {
                                         )
                                         .then(function() {
                                           return factory.deployMarketContractMPX(
-                                            'BTC-2,LBTC,SBTC',
+                                            [
+                                              web3.utils.asciiToHex('BTC-2', 32),
+                                              web3.utils.asciiToHex('LBTC', 32),
+                                              web3.utils.asciiToHex('SBTC', 32)
+                                            ],
                                             CollateralToken.address,
                                             [
                                               20000000000000,
