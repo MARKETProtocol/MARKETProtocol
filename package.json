@@ -7,16 +7,21 @@
     "test": "test"
   },
   "dependencies": {
-    "openzeppelin-solidity": "2.0.1",
-    "truffle": "4.1.15"
+    "openzeppelin-solidity": "2.2.0",
+    "truffle": "5.0.18"
   },
   "devDependencies": {
+    "bn.js": "^4.11.8",
     "coveralls": "^3.0.0",
     "eslint": "^4.19.1",
     "husky": "^1.2.0",
     "prettier-eslint-cli": "^4.7.1",
-    "solidity-coverage": "^0.5.11",
-    "solium": "^1.0.5"
+    "solium": "^1.0.5",
+    "truffle-assertions": "^0.9.0",
+    "web3-core": "^1.0.0-beta.55",
+    "web3-core-helpers": "^1.0.0-beta.55",
+    "web3-core-method": "^1.0.0-beta.55",
+    "web3-utils": "^1.0.0-beta.55"
   },
   "scripts": {
     "test": "truffle test",

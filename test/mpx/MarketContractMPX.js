@@ -1,9 +1,10 @@
-const MarketContractMPX = artifacts.require('MarketContractMPX');
 const CollateralToken = artifacts.require('CollateralToken');
+const MarketContractMPX = artifacts.require('MarketContractMPX');
+const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MathLib = artifacts.require('MathLib');
 
 contract('MarketContractMPX', function(accounts) {
-  const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
+  const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50); // order expires 50 minutes from now.
   const oracleURL = 'api.coincap.io/v2/rates/bitcoin';
   const oracleStatistic = 'rateUsd';
   let marketContract;
@@ -11,7 +12,7 @@ contract('MarketContractMPX', function(accounts) {
   before(async function() {
     marketContract = await MarketContractMPX.new(
       'NTC,LBTC,SBTC',
-      [accounts[0], CollateralToken.address],
+      [accounts[0], CollateralToken.address, MarketCollateralPool.address],
       accounts[8], // substitute our address for the oracleHubAddress so we can callback from queries.
       [0, 150, 2, 2, 0, 0, expiration],
       oracleURL,
@@ -77,7 +78,7 @@ contract('MarketContractMPX', function(accounts) {
   it('arbitrateSettlement can push contract into settlement', async function() {
     marketContract = await MarketContractMPX.new(
       'NTC,LBTC,SBTC',
-      [accounts[0], CollateralToken.address],
+      [accounts[0], CollateralToken.address, MarketCollateralPool.address],
       accounts[8], // substitute our address for the oracleHubAddress so we can callback from queries.
       [25, 150, 2, 2, 0, 0, expiration],
       oracleURL,
