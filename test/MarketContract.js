@@ -1,6 +1,7 @@
-const PositionToken = artifacts.require('PositionToken');
-const MarketCollateralPool = artifacts.require('MarketCollateralPool');
+const BN = require('bn.js');
 const CollateralToken = artifacts.require('CollateralToken');
+const MarketCollateralPool = artifacts.require('MarketCollateralPool');
+const PositionToken = artifacts.require('PositionToken');
 const utility = require('./utility');
 
 contract('MarketContract', function(accounts) {
@@ -16,12 +17,12 @@ contract('MarketContract', function(accounts) {
   describe('constructor', function() {
     it('should set needed variables correctly', async function() {
       const name = 'BTC';
-      const priceFloor = 50;
-      const priceCap = 100;
-      const priceDecimalPlaces = 2;
-      const qtyMultiplier = 10;
+      const priceFloor = new BN('50');
+      const priceCap = new BN('100');
+      const priceDecimalPlaces = new BN('2');
+      const qtyMultiplier = new BN('10');
       const expiration = Math.floor(new Date().getTime() / 1000 + 60 * 50);
-      const fees = 0;
+      const fees = new BN('0');
 
       marketContract = await utility.createMarketContract(
         collateralToken,
@@ -31,16 +32,17 @@ contract('MarketContract', function(accounts) {
         [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, fees, fees, expiration]
       );
 
-      assert.equal(await marketContract.PRICE_FLOOR(), priceFloor, 'price floor is not correct');
-      assert.equal(await marketContract.PRICE_CAP(), priceCap, 'price cap is not correct');
-      assert.equal(
-        await marketContract.PRICE_DECIMAL_PLACES(),
-        priceDecimalPlaces,
+      assert.isTrue(
+        (await marketContract.PRICE_FLOOR()).eq(priceFloor),
+        'price floor is not correct'
+      );
+      assert.isTrue((await marketContract.PRICE_CAP()).eq(priceCap), 'price cap is not correct');
+      assert.isTrue(
+        (await marketContract.PRICE_DECIMAL_PLACES()).eq(priceDecimalPlaces),
         'price decimal places is not correct'
       );
-      assert.equal(
-        await marketContract.QTY_MULTIPLIER(),
-        qtyMultiplier,
+      assert.isTrue(
+        (await marketContract.QTY_MULTIPLIER()).eq(qtyMultiplier),
         'qty multiplier is not correct'
       );
       assert.equal(await marketContract.EXPIRATION(), expiration, 'expiration is not correct');
@@ -62,9 +64,8 @@ contract('MarketContract', function(accounts) {
         priceCap,
         qtyMultiplier
       );
-      assert.equal(
-        await marketContract.COLLATERAL_PER_UNIT(),
-        collateralPerUnit,
+      assert.isTrue(
+        (await marketContract.COLLATERAL_PER_UNIT()).eq(collateralPerUnit),
         'collateral per unit is not correct'
       );
     });
