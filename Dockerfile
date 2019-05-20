@@ -13,6 +13,6 @@ COPY contracts/ contracts/
 COPY migrations/ migrations/
 COPY scripts/ scripts/
 COPY test/ test/
-COPY truffle-config.js truffle.js .solcover.js ./
+COPY truffle.js .solcover.js ./
 
 
