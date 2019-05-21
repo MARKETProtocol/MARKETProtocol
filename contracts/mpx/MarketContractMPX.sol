@@ -27,7 +27,10 @@ contract MarketContractMPX is MarketContract {
     string public ORACLE_URL;
     string public ORACLE_STATISTIC;
 
-    /// @param contractNames comma separated list of 3 names "contractName,longTokenSymbol,shortTokenSymbol"
+    /// @param contractNames bytes32 array of names
+    ///     contractName            name of the market contract
+    ///     longTokenSymbol         symbol for the long token
+    ///     shortTokenSymbol        symbol for the short token
     /// @param baseAddresses array of 2 addresses needed for our contract including:
     ///     ownerAddress                    address of the owner of these contracts.
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
@@ -45,7 +48,7 @@ contract MarketContractMPX is MarketContract {
     /// @param oracleURL url of data
     /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
     constructor(
-        string memory contractNames,
+        bytes32[3] memory contractNames,
         address[3] memory baseAddresses,
         address oracleHubAddress,
         uint[7] memory contractSpecs,

@@ -8,7 +8,11 @@ contract('MarketContractFactoryMPX', function(accounts) {
   const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50); //expires 50 minutes from now.
   const oracleURL = 'api.coincap.io/v2/rates/bitcoin';
   const oracleStatistic = 'rateUsd';
-  const contractName = 'ETHUSD,LETH,SETH';
+  const contractName = [
+    web3.utils.asciiToHex('ETHUSD', 32),
+    web3.utils.asciiToHex('LETH', 32),
+    web3.utils.asciiToHex('SETH', 32)
+  ];
   const priceCap = 60465;
   const priceFloor = 20155;
   const priceDecimalPlaces = 2;
@@ -57,7 +61,10 @@ contract('MarketContractFactoryMPX', function(accounts) {
     assert.equal((await marketContract.PRICE_FLOOR()).toNumber(), priceFloor);
     assert.equal((await marketContract.PRICE_CAP()).toNumber(), priceCap);
     assert.equal(await marketContract.COLLATERAL_TOKEN_ADDRESS(), CollateralToken.address);
-    assert.equal(await marketContract.CONTRACT_NAME(), 'ETHUSD');
+    assert.equal(
+      (await marketContract.CONTRACT_NAME()).replace(/\0.*$/g, ''),
+      web3.utils.toUtf8(contractName[0])
+    );
   });
 
   it('Adds a new MarketContract to the white list', async function() {

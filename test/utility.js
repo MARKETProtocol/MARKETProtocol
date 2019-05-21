@@ -59,25 +59,6 @@ class EVMManipulator extends AbstractWeb3Module {
 
 module.exports = {
   /**
-   * Returns a promise that resolves to the next set of events of eventName publish by the contract
-   *
-   * @param contract
-   * @param eventName
-   * @return {Promise}
-   */
-  getEvent(contract, eventName) {
-    return new Promise((resolve, reject) => {
-      const event = contract[eventName]();
-      event.get((error, logs) => {
-        if (error) {
-          return reject(error);
-        }
-        return resolve(logs);
-      });
-    });
-  },
-
-  /**
    * Given a specific set of contract specifications and an execution price, this function returns
    * the needed collateral a user must post in order to execute a trade at that price.
    *
@@ -147,7 +128,11 @@ module.exports = {
     if (!contractSpecs) {
       contractSpecs = [0, 150, 2, 2, 100, 50, expiration];
     }
-    const contractNames = 'BTC,LBTC,SBTC';
+    const contractNames = [
+      web3.utils.asciiToHex('BTC', 32),
+      web3.utils.asciiToHex('LBTC', 32),
+      web3.utils.asciiToHex('SBTC', 32)
+    ];
 
     return MarketContractMPX.new(
       contractNames,

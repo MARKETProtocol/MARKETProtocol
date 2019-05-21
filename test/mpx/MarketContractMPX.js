@@ -10,8 +10,13 @@ contract('MarketContractMPX', function(accounts) {
   let marketContract;
 
   before(async function() {
+    const contractNames = [
+      web3.utils.asciiToHex('BTC', 32),
+      web3.utils.asciiToHex('LBTC', 32),
+      web3.utils.asciiToHex('SBTC', 32)
+    ];
     marketContract = await MarketContractMPX.new(
-      'NTC,LBTC,SBTC',
+      contractNames,
       [accounts[0], CollateralToken.address, MarketCollateralPool.address],
       accounts[8], // substitute our address for the oracleHubAddress so we can callback from queries.
       [0, 150, 2, 2, 0, 0, expiration],
@@ -76,8 +81,13 @@ contract('MarketContractMPX', function(accounts) {
   });
 
   it('arbitrateSettlement can push contract into settlement', async function() {
+    const contractNames = [
+      web3.utils.asciiToHex('BTC', 32),
+      web3.utils.asciiToHex('LBTC', 32),
+      web3.utils.asciiToHex('SBTC', 32)
+    ];
     marketContract = await MarketContractMPX.new(
-      'NTC,LBTC,SBTC',
+      contractNames,
       [accounts[0], CollateralToken.address, MarketCollateralPool.address],
       accounts[8], // substitute our address for the oracleHubAddress so we can callback from queries.
       [25, 150, 2, 2, 0, 0, expiration],

@@ -16,7 +16,7 @@ contract('MarketContract', function(accounts) {
 
   describe('constructor', function() {
     it('should set needed variables correctly', async function() {
-      const name = 'BTC';
+      const name = web3.utils.toUtf8(web3.utils.asciiToHex('BTC', 32));
       const priceFloor = new BN('50');
       const priceCap = new BN('100');
       const priceDecimalPlaces = new BN('2');
@@ -46,7 +46,12 @@ contract('MarketContract', function(accounts) {
         'qty multiplier is not correct'
       );
       assert.equal(await marketContract.EXPIRATION(), expiration, 'expiration is not correct');
-      assert.equal(await marketContract.CONTRACT_NAME(), name, 'contract name is not correct');
+      // strip null chars from string!
+      assert.equal(
+        (await marketContract.CONTRACT_NAME()).replace(/\0.*$/g, ''),
+        name,
+        'contract name is not correct'
+      );
 
       assert.equal(
         await marketContract.COLLATERAL_TOKEN_ADDRESS(),
