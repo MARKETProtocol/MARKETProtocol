@@ -106,6 +106,28 @@ contract TestMathLib {
                      0, "collateral for a short position and price greater than priceCap should be 0");
     }
 
+    function testcalculateCollateralToReturnBoth() public {
+        uint priceFloor = 250;
+        uint priceCap = 350;
+        uint qtyMultiplier = 100;
+        uint price = 275;
+        uint shortQty = 5;
+        uint longQty = 1;
+
+        uint collateralToReturn = MathLib.calculateCollateralToReturn(
+            priceFloor,
+            priceCap,
+            qtyMultiplier,
+            1,
+            shortQty,
+            price
+        );
+        // for a short position we need to look at the priceCeiling from the price, this represents a shorts max loss
+        // so 350 - 275 = 75 max loss per unit * 5 units * 100 qtyMultiplier = 62500 collateral units
+        // plus a 1 lot long with 25 max loss per unit * 1 unit * 100
+        Assert.equal(collateralToReturn, 40000, "max loss of 75 and qty of 5 with 100 multiplier should be 37500 units");
+    }
+
     function testCalculateTotalCollateralSingleUnit() public {
         uint priceFloor = 10;
         uint priceCap = 20;
