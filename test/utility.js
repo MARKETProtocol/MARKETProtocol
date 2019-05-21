@@ -1,25 +1,63 @@
+const BN = require('bn.js');
 const MarketContractMPX = artifacts.require('MarketContractMPX');
+const Utils = require('web3-utils');
+
+const { AbstractWeb3Module } = require('web3-core');
+const {
+  AbstractMethodFactory,
+  GetBlockByNumberMethod,
+  AbstractMethod
+} = require('web3-core-method');
+const { formatters } = require('web3-core-helpers');
+
+class EVMManipulator extends AbstractWeb3Module {
+  /**
+   * @param {AbstractSocketProvider|HttpProvider|CustomProvider|String} provider
+   *
+   * @constructor
+   */
+  constructor(provider) {
+    super(provider);
+  }
+
+  /**
+   * Creates and evm snapshot
+   *
+   * @returns {Promise<string>} evm snapshot Id
+   */
+  createSnapshot() {
+    const method = new AbstractMethod('evm_snapshot', 0, Utils, formatters, this);
+    method.setArguments(arguments);
+
+    return method.execute();
+  }
+
+  /**
+   * Restores the EVM to the snapshot set in id
+   *
+   * @param {string} snapshotId
+   */
+  restoreSnapshot(snapshotId) {
+    const method = new AbstractMethod('evm_revert', 1, Utils, formatters, this);
+    method.setArguments([snapshotId]);
+
+    return method.execute();
+  }
+
+  increase(duration) {
+    const increaseTimeMethod = new AbstractMethod('evm_increaseTime', 1, Utils, formatters, this);
+    increaseTimeMethod.setArguments([duration]);
+
+    return increaseTimeMethod.execute().then(() => {
+      const mineMethod = new AbstractMethod('evm_mine', 0, Utils, formatters, this);
+      mineMethod.setArguments([]);
+
+      return mineMethod.execute();
+    });
+  }
+}
 
 module.exports = {
-  /**
-   * Returns a promise that resolves to the next set of events of eventName publish by the contract
-   *
-   * @param contract
-   * @param eventName
-   * @return {Promise}
-   */
-  getEvent(contract, eventName) {
-    return new Promise((resolve, reject) => {
-      const event = contract[eventName]();
-      event.get((error, logs) => {
-        if (error) {
-          return reject(error);
-        }
-        return resolve(logs);
-      });
-    });
-  },
-
   /**
    * Given a specific set of contract specifications and an execution price, this function returns
    * the needed collateral a user must post in order to execute a trade at that price.
@@ -31,23 +69,23 @@ module.exports = {
    * @param price
    * @return {number}
    */
-  calculateNeededCollateral(priceFloor, priceCap, qtyMultiplier, qty, price) {
+  calculateCollateralToReturn(priceFloor, priceCap, qtyMultiplier, qty, price) {
     const zero = 0;
     let maxLoss;
     if (qty > zero) {
       if (price <= priceFloor) {
         maxLoss = zero;
       } else {
-        maxLoss = price - priceFloor;
+        maxLoss = price.sub(priceFloor);
       }
     } else {
       if (price >= priceCap) {
         maxLoss = zero;
       } else {
-        maxLoss = priceCap - price;
+        maxLoss = priceCap.sub(price);
       }
     }
-    return maxLoss * Math.abs(qty) * qtyMultiplier;
+    return maxLoss.mul(qty.abs()).mul(qtyMultiplier);
   },
 
   /**
@@ -59,7 +97,7 @@ module.exports = {
    * @return {number}
    */
   calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier) {
-    return (priceCap - priceFloor) * qtyMultiplier;
+    return priceCap.sub(priceFloor).mul(qtyMultiplier);
   },
 
   /**
@@ -90,7 +128,11 @@ module.exports = {
     if (!contractSpecs) {
       contractSpecs = [0, 150, 2, 2, 100, 50, expiration];
     }
-    const contractNames = 'BTC,LBTC,SBTC';
+    const contractNames = [
+      web3.utils.asciiToHex('BTC', 32),
+      web3.utils.asciiToHex('LBTC', 32),
+      web3.utils.asciiToHex('SBTC', 32)
+    ];
 
     return MarketContractMPX.new(
       contractNames,
@@ -103,31 +145,7 @@ module.exports = {
   },
 
   increase(duration) {
-    const id = Date.now();
-    return new Promise((resolve, reject) => {
-      web3.currentProvider.sendAsync(
-        {
-          jsonrpc: '2.0',
-          method: 'evm_increaseTime',
-          params: [duration],
-          id: id
-        },
-        err1 => {
-          if (err1) return reject(err1);
-
-          web3.currentProvider.sendAsync(
-            {
-              jsonrpc: '2.0',
-              method: 'evm_mine',
-              id: id + 1
-            },
-            (err2, res) => {
-              return err2 ? reject(err2) : resolve(res);
-            }
-          );
-        }
-      );
-    });
+    return new EVMManipulator(web3.currentProvider).increase(duration);
   },
 
   expirationInDays(days) {
@@ -137,27 +155,11 @@ module.exports = {
 
   /**
    * Creates an EVM Snapshot and returns a Promise that resolves to the id of the snapshot.
+   *
+   * @returns {Promise<string>} snapshotId
    */
   createEVMSnapshot() {
-    return new Promise((resolve, reject) => {
-      web3.currentProvider.sendAsync(
-        {
-          jsonrpc: '2.0',
-          method: 'evm_snapshot',
-          params: [],
-          id: new Date().getTime()
-        },
-        (err, response) => {
-          if (err) {
-            reject(err);
-          }
-
-          if (response) {
-            resolve(response.result);
-          }
-        }
-      );
-    });
+    return new EVMManipulator(web3.currentProvider).createSnapshot();
   },
 
   /**
@@ -166,37 +168,19 @@ module.exports = {
    * @param {string} snapshotId
    */
   restoreEVMSnapshotsnapshotId(snapshotId) {
-    return new Promise((resolve, reject) => {
-      web3.currentProvider.sendAsync(
-        {
-          jsonrpc: '2.0',
-          method: 'evm_revert',
-          params: [snapshotId],
-          id: new Date().getTime()
-        },
-        (err, response) => {
-          if (err) {
-            reject(err);
-          }
-
-          if (response) {
-            resolve();
-          }
-        }
-      );
-    });
+    return new EVMManipulator(web3.currentProvider).restoreSnapshot(snapshotId);
   },
 
   /**
    * Settle MarketContract
    *
    * @param {MarketContractMPX} marketContract
-   * @param {number} priceCap
+   * @param {number} settlementPrice
    * @param {string} userAddress
    * @return {MarketContractMPX}
    */
-  async settleContract(marketContract, priceCap, userAddress) {
-    await marketContract.oracleCallBack(priceCap.plus(10), { from: userAddress }); // price above cap!
+  async settleContract(marketContract, settlementPrice, userAddress) {
+    await marketContract.arbitrateSettlement(settlementPrice, { from: userAddress }); // price above cap!
     return await marketContract.settlementPrice.call({ from: userAddress });
   },
 

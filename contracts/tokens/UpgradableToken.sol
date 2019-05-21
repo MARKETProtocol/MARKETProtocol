@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity 0.4.25;
+pragma solidity 0.5.2;
 
 import "./UpgradeableTarget.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
@@ -39,7 +39,7 @@ contract UpgradeableToken is Ownable, ERC20Burnable {
     /// @notice Update token to the new upgraded token
     /// @param value The amount of token to be migrated to upgraded token
     function upgrade(uint256 value) external {
-        require(upgradeableTarget != address(0));
+        require(upgradeableTarget != address(0), "cannot upgrade with no target");
 
         burn(value);                    // burn tokens as we migrate them.
         totalUpgraded = totalUpgraded.add(value);

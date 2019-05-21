@@ -2,13 +2,17 @@ const MarketContractMPX = artifacts.require('MarketContractMPX');
 const MarketContractFactoryMPX = artifacts.require('MarketContractFactoryMPX');
 const CollateralToken = artifacts.require('CollateralToken');
 const MarketContractRegistry = artifacts.require('MarketContractRegistry');
-const utility = require('../utility.js');
+const truffleAssert = require('truffle-assertions');
 
 contract('MarketContractFactoryMPX', function(accounts) {
   const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50); //expires 50 minutes from now.
   const oracleURL = 'api.coincap.io/v2/rates/bitcoin';
   const oracleStatistic = 'rateUsd';
-  const contractName = 'ETHUSD,LETH,SETH';
+  const contractName = [
+    web3.utils.asciiToHex('ETHUSD', 32),
+    web3.utils.asciiToHex('LETH', 32),
+    web3.utils.asciiToHex('SETH', 32)
+  ];
   const priceCap = 60465;
   const priceFloor = 20155;
   const priceDecimalPlaces = 2;
@@ -25,7 +29,7 @@ contract('MarketContractFactoryMPX', function(accounts) {
   });
 
   it('Deploys a new MarketContract with the correct variables', async function() {
-    await marketContractFactory.deployMarketContractMPX(
+    let result = await marketContractFactory.deployMarketContractMPX(
       contractName,
       CollateralToken.address,
       [
@@ -42,14 +46,13 @@ contract('MarketContractFactoryMPX', function(accounts) {
     );
 
     // Should fire the MarketContractCreated event!
-    const events = await utility.getEvent(marketContractFactory, 'MarketContractCreated');
-    assert.equal(
-      'MarketContractCreated',
-      events[0].event,
-      'Event called is not MarketContractCreated'
-    );
+    let marketContractAddress;
+    await truffleAssert.eventEmitted(result, 'MarketContractCreated', createdEvent => {
+      marketContractAddress = createdEvent.contractAddress;
+      return true;
+    });
 
-    const marketContract = await MarketContractMPX.at(events[0].args.contractAddress);
+    const marketContract = await MarketContractMPX.at(marketContractAddress);
     assert.equal(await marketContract.ORACLE_URL(), oracleURL);
     assert.equal(await marketContract.ORACLE_STATISTIC(), oracleStatistic);
     assert.equal((await marketContract.EXPIRATION()).toNumber(), expiration);
@@ -58,11 +61,14 @@ contract('MarketContractFactoryMPX', function(accounts) {
     assert.equal((await marketContract.PRICE_FLOOR()).toNumber(), priceFloor);
     assert.equal((await marketContract.PRICE_CAP()).toNumber(), priceCap);
     assert.equal(await marketContract.COLLATERAL_TOKEN_ADDRESS(), CollateralToken.address);
-    assert.equal(await marketContract.CONTRACT_NAME(), 'ETHUSD');
+    assert.equal(
+      (await marketContract.CONTRACT_NAME()).replace(/\0.*$/g, ''),
+      web3.utils.toUtf8(contractName[0])
+    );
   });
 
   it('Adds a new MarketContract to the white list', async function() {
-    await marketContractFactory.deployMarketContractMPX(
+    const result = await marketContractFactory.deployMarketContractMPX(
       contractName,
       CollateralToken.address,
       [
@@ -79,30 +85,22 @@ contract('MarketContractFactoryMPX', function(accounts) {
     );
 
     // Should fire the MarketContractCreated event!
-    const events = await utility.getEvent(marketContractFactory, 'MarketContractCreated');
-    const eventsRegistry = await utility.getEvent(
+    let marketContractAddress;
+    await truffleAssert.eventEmitted(result, 'MarketContractCreated', async createdEvent => {
+      marketContractAddress = createdEvent.contractAddress;
+      return true;
+    });
+
+    let registryTransaction = await truffleAssert.createTransactionResult(
       marketContractRegistry,
-      'AddressAddedToWhitelist'
+      result.tx
     );
-
-    const marketContract = await MarketContractMPX.at(events[0].args.contractAddress);
-    assert.equal(
-      'MarketContractCreated',
-      events[0].event,
-      'Event called is not MarketContractCreated'
-    );
-
-    // Should fire the add event after creating the MarketContract
-    assert.equal(
+    await truffleAssert.eventEmitted(
+      registryTransaction,
       'AddressAddedToWhitelist',
-      eventsRegistry[0].event,
-      'Event called is not AddressAddedToWhitelist'
-    );
-
-    assert.equal(
-      marketContract.address,
-      eventsRegistry[0].args.contractAddress,
-      'Address in event does not match'
+      whitelistEvent => {
+        return marketContractAddress === whitelistEvent.contractAddress;
+      }
     );
   });
 

@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity 0.4.25;
+pragma solidity 0.5.2;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./MarketContractRegistryInterface.sol";
@@ -58,10 +58,10 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
     function removeContractFromWhiteList(
         address contractAddress,
         uint whiteListIndex
-    ) external onlyOwner returns (bool)
+    ) external onlyOwner
     {
-        require(isWhiteListed[contractAddress]);
-        require(addressWhiteList[whiteListIndex] == contractAddress);
+        require(isWhiteListed[contractAddress], "can only remove whitelisted addresses");
+        require(addressWhiteList[whiteListIndex] == contractAddress, "index does not match address");
         isWhiteListed[contractAddress] = false;
 
         // push the last item in array to replace the address we are removing and then trim the array.
@@ -75,7 +75,7 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
     /// @param contractAddress contract to removed from white list
     function addAddressToWhiteList(address contractAddress) external {
         require(isOwner() || factoryAddressWhiteList[msg.sender], "Can only be added by factory or owner");
-        require(!isWhiteListed[contractAddress]);
+        require(!isWhiteListed[contractAddress], "Address must not be whitelisted");
         isWhiteListed[contractAddress] = true;
         addressWhiteList.push(contractAddress);
         emit AddressAddedToWhitelist(contractAddress);
@@ -92,7 +92,7 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
     /// @dev allows for the owner to remove an address of a factory
     /// @param factoryAddress address of factory to be removed
     function removeFactoryAddress(address factoryAddress) external onlyOwner {
-        require(factoryAddressWhiteList[factoryAddress]);
+        require(factoryAddressWhiteList[factoryAddress], "factory address is not in the white list");
         factoryAddressWhiteList[factoryAddress] = false;
         emit FactoryAddressRemoved(factoryAddress);
     }

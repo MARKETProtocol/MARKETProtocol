@@ -14,9 +14,10 @@
     limitations under the License.
 */
 
-pragma solidity 0.4.25;
+pragma solidity 0.5.2;
 
 import "../MarketContract.sol";
+
 
 /// @title MarketContractMPX - a MarketContract designed to be used with our internal oracle service
 /// @author Phil Elsasser <phil@marketprotocol.io>
@@ -26,7 +27,10 @@ contract MarketContractMPX is MarketContract {
     string public ORACLE_URL;
     string public ORACLE_STATISTIC;
 
-    /// @param contractNames comma separated list of 3 names "contractName,longTokenSymbol,shortTokenSymbol"
+    /// @param contractNames bytes32 array of names
+    ///     contractName            name of the market contract
+    ///     longTokenSymbol         symbol for the long token
+    ///     shortTokenSymbol        symbol for the short token
     /// @param baseAddresses array of 2 addresses needed for our contract including:
     ///     ownerAddress                    address of the owner of these contracts.
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
@@ -44,7 +48,7 @@ contract MarketContractMPX is MarketContract {
     /// @param oracleURL url of data
     /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
     constructor(
-        string memory contractNames,
+        bytes32[3] memory contractNames,
         address[3] memory baseAddresses,
         address oracleHubAddress,
         uint[7] memory contractSpecs,
@@ -60,7 +64,6 @@ contract MarketContractMPX is MarketContract {
         ORACLE_STATISTIC = oracleStatistic;
         ORACLE_HUB_ADDRESS = oracleHubAddress;
     }
-
 
     /*
     // PUBLIC METHODS
@@ -80,6 +83,7 @@ contract MarketContractMPX is MarketContract {
     /// if a dispute arises that we believe is best resolved by early settlement.
     /// @param price settlement price
     function arbitrateSettlement(uint256 price) public onlyOwner {
+        require(price >= PRICE_FLOOR && price <= PRICE_CAP, "arbitration price must be within contract bounds");
         lastPrice = price;
         emit UpdatedLastPrice(price);
         settleContract(price);
@@ -88,13 +92,13 @@ contract MarketContractMPX is MarketContract {
 
     /// @dev allows calls only from the oracle hub.
     modifier onlyOracleHub() {
-        require(msg.sender == ORACLE_HUB_ADDRESS);
+        require(msg.sender == ORACLE_HUB_ADDRESS, "only callable by the oracle hub");
         _;
     }
 
     /// @dev allows for the owner of the contract to change the oracle hub address if needed
     function setOracleHubAddress(address oracleHubAddress) public onlyOwner {
-        require(oracleHubAddress != address(0));
+        require(oracleHubAddress != address(0), "cannot set oracleHubAddress to null address");
         ORACLE_HUB_ADDRESS = oracleHubAddress;
     }
 

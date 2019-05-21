@@ -1,17 +1,23 @@
-const MarketContractMPX = artifacts.require('MarketContractMPX');
 const CollateralToken = artifacts.require('CollateralToken');
+const MarketContractMPX = artifacts.require('MarketContractMPX');
+const MarketCollateralPool = artifacts.require('MarketCollateralPool');
 const MathLib = artifacts.require('MathLib');
 
 contract('MarketContractMPX', function(accounts) {
-  const expiration = new Date().getTime() / 1000 + 60 * 50; // order expires 50 minutes from now.
+  const expiration = Math.round(new Date().getTime() / 1000 + 60 * 50); // order expires 50 minutes from now.
   const oracleURL = 'api.coincap.io/v2/rates/bitcoin';
   const oracleStatistic = 'rateUsd';
   let marketContract;
 
   before(async function() {
+    const contractNames = [
+      web3.utils.asciiToHex('BTC', 32),
+      web3.utils.asciiToHex('LBTC', 32),
+      web3.utils.asciiToHex('SBTC', 32)
+    ];
     marketContract = await MarketContractMPX.new(
-      'NTC,LBTC,SBTC',
-      [accounts[0], CollateralToken.address],
+      contractNames,
+      [accounts[0], CollateralToken.address, MarketCollateralPool.address],
       accounts[8], // substitute our address for the oracleHubAddress so we can callback from queries.
       [0, 150, 2, 2, 0, 0, expiration],
       oracleURL,
@@ -75,9 +81,14 @@ contract('MarketContractMPX', function(accounts) {
   });
 
   it('arbitrateSettlement can push contract into settlement', async function() {
+    const contractNames = [
+      web3.utils.asciiToHex('BTC', 32),
+      web3.utils.asciiToHex('LBTC', 32),
+      web3.utils.asciiToHex('SBTC', 32)
+    ];
     marketContract = await MarketContractMPX.new(
-      'NTC,LBTC,SBTC',
-      [accounts[0], CollateralToken.address],
+      contractNames,
+      [accounts[0], CollateralToken.address, MarketCollateralPool.address],
       accounts[8], // substitute our address for the oracleHubAddress so we can callback from queries.
       [25, 150, 2, 2, 0, 0, expiration],
       oracleURL,
@@ -85,7 +96,7 @@ contract('MarketContractMPX', function(accounts) {
     );
 
     assert.isTrue(!(await marketContract.isSettled()), 'marketContract is already settled');
-    await marketContract.arbitrateSettlement(5, { from: accounts[0] }); // price below floor
+    await marketContract.arbitrateSettlement(25, { from: accounts[0] }); // price at floor
     assert.isTrue(await marketContract.isSettled(), 'marketContract is not settled');
   });
 });

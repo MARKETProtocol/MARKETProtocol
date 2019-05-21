@@ -1,6 +1,6 @@
 FROM node:9.2.0
 
-RUN npm install -g truffle@4.1.15 ethereumjs-testrpc-sc@6.1.2
+RUN npm install -g truffle@5.0.18 ethereumjs-testrpc-sc@6.1.2 --unsafe
 
 WORKDIR /app
 
@@ -13,6 +13,6 @@ COPY contracts/ contracts/
 COPY migrations/ migrations/
 COPY scripts/ scripts/
 COPY test/ test/
-COPY truffle-config.js truffle.js .solcover.js ./
+COPY truffle.js .solcover.js ./
 
 

@@ -7,10 +7,10 @@ const MarketContractFactory = artifacts.require('./mpx/MarketContractFactoryMPX.
 const MarketCollateralPool = artifacts.require('./MarketCollateralPool.sol');
 const MarketContractRegistry = artifacts.require('./MarketContractRegistry.sol');
 
-module.exports = function(deployer, network) {
+module.exports = async function(deployer, network, accounts) {
   if (network !== 'live') {
     const marketContractExpiration = Math.floor(Date.now() / 1000) + 60 * 15; // expires in 15 minutes.
-    var gasLimit = web3.eth.getBlock('latest').gasLimit;
+    const gasLimit = (await web3.eth.getBlock('latest')).gasLimit;
 
     return deployer.deploy(MarketToken).then(function() {
       return deployer.deploy(StringLib).then(function() {
@@ -38,7 +38,7 @@ module.exports = function(deployer, network) {
                                 MarketContractFactory,
                                 MarketContractRegistry.address,
                                 MarketCollateralPool.address,
-                                web3.eth.accounts[8],
+                                accounts[8],
                                 {
                                   gas: gasLimit
                                 }
@@ -54,7 +54,11 @@ module.exports = function(deployer, network) {
 
                                       return factory
                                         .deployMarketContractMPX(
-                                          'BTC,LBTC,SBTC',
+                                          [
+                                            web3.utils.asciiToHex('BTC', 32),
+                                            web3.utils.asciiToHex('LBTC', 32),
+                                            web3.utils.asciiToHex('SBTC', 32)
+                                          ],
                                           CollateralToken.address,
                                           [
                                             20000000000000,
@@ -71,7 +75,11 @@ module.exports = function(deployer, network) {
                                         )
                                         .then(function() {
                                           return factory.deployMarketContractMPX(
-                                            'BTC-2,LBTC,SBTC',
+                                            [
+                                              web3.utils.asciiToHex('BTC-2', 32),
+                                              web3.utils.asciiToHex('LBTC', 32),
+                                              web3.utils.asciiToHex('SBTC', 32)
+                                            ],
                                             CollateralToken.address,
                                             [
                                               20000000000000,

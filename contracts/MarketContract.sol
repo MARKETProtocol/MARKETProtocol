@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-pragma solidity 0.4.25;
+pragma solidity 0.5.2;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
@@ -30,6 +30,7 @@ import "./tokens/PositionToken.sol";
 contract MarketContract is Ownable {
     using StringLib for *;
 
+    enum MarketSide { Long, Short }
     string public CONTRACT_NAME;
     address public COLLATERAL_TOKEN_ADDRESS;
     address public COLLATERAL_POOL_ADDRESS;
@@ -55,7 +56,10 @@ contract MarketContract is Ownable {
     event UpdatedLastPrice(uint256 price);
     event ContractSettled(uint settlePrice);
 
-    /// @param contractNames comma separated list of 3 names "contractName,longTokenSymbol,shortTokenSymbol"
+    /// @param contractNames bytes32 array of names
+    ///     contractName            name of the market contract
+    ///     longTokenSymbol         symbol for the long token
+    ///     shortTokenSymbol        symbol for the short token
     /// @param baseAddresses array of 2 addresses needed for our contract including:
     ///     ownerAddress                    address of the owner of these contracts.
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
@@ -70,19 +74,20 @@ contract MarketContract is Ownable {
     ///     mktFeeInBasisPoints fee amount in basis points (MKT denominated) for minting.
     ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
     constructor(
-        string memory contractNames,
+        bytes32[3] memory contractNames,
         address[3] memory baseAddresses,
         uint[7] memory contractSpecs
     ) public
     {
         PRICE_FLOOR = contractSpecs[0];
         PRICE_CAP = contractSpecs[1];
-        require(PRICE_CAP > PRICE_FLOOR);
+        require(PRICE_CAP > PRICE_FLOOR, "PRICE_CAP must be greater than PRICE_FLOOR");
 
         PRICE_DECIMAL_PLACES = contractSpecs[2];
         QTY_MULTIPLIER = contractSpecs[3];
         EXPIRATION = contractSpecs[6];
-        require(EXPIRATION > now, "expiration must be in the future");
+        require(EXPIRATION > now, "EXPIRATION must be in the future");
+        require(QTY_MULTIPLIER != 0,"QTY_MULTIPLIER cannot be 0");
 
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         COLLATERAL_POOL_ADDRESS = baseAddresses[2];
@@ -101,13 +106,17 @@ contract MarketContract is Ownable {
         );
 
         // create long and short tokens
-        StringLib.slice memory pathSlice = contractNames.toSlice();
-        StringLib.slice memory delim = ",".toSlice();
-        require(pathSlice.count(delim) == 2, "ContractNames must contain 3 names");  //contractName,lTokenName,sTokenName
-        CONTRACT_NAME = pathSlice.split(delim).toString();
-
-        PositionToken longPosToken = new PositionToken("MARKET Protocol Long Position Token", pathSlice.split(delim).toString(), 0);
-        PositionToken shortPosToken = new PositionToken("MARKET Protocol Short Position Token", pathSlice.split(delim).toString(), 1);
+        CONTRACT_NAME = contractNames[0].bytes32ToString();
+        PositionToken longPosToken = new PositionToken(
+            "MARKET Protocol Long Position Token",
+            contractNames[1].bytes32ToString(),
+            uint8(MarketSide.Long)
+        );
+        PositionToken shortPosToken = new PositionToken(
+            "MARKET Protocol Short Position Token",
+            contractNames[2].bytes32ToString(),
+            uint8(MarketSide.Short)
+        );
 
         LONG_POSITION_TOKEN = address(longPosToken);
         SHORT_POSITION_TOKEN = address(shortPosToken);
@@ -172,7 +181,7 @@ contract MarketContract is Ownable {
     /// @dev checks our last query price to see if our contract should enter settlement due to it being past our
     //  expiration date or outside of our tradeable ranges.
     function checkSettlement() internal {
-        require(!isSettled); // already settled.
+        require(!isSettled, "Contract is already settled"); // already settled.
 
         uint newSettlementPrice;
         if (now > EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
@@ -202,7 +211,7 @@ contract MarketContract is Ownable {
     /// @notice only able to be called directly by our collateral pool which controls the position tokens
     /// for this contract!
     modifier onlyCollateralPool {
-        require(msg.sender == COLLATERAL_POOL_ADDRESS);
+        require(msg.sender == COLLATERAL_POOL_ADDRESS, "Only callable from the collateral pool");
         _;
     }
 
