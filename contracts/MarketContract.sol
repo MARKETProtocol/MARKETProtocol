@@ -30,7 +30,6 @@ import "./tokens/PositionToken.sol";
 contract MarketContract is Ownable {
     using StringLib for *;
 
-    enum MarketSide { Long, Short }
     string public CONTRACT_NAME;
     address public COLLATERAL_TOKEN_ADDRESS;
     address public COLLATERAL_POOL_ADDRESS;
@@ -110,12 +109,12 @@ contract MarketContract is Ownable {
         PositionToken longPosToken = new PositionToken(
             "MARKET Protocol Long Position Token",
             contractNames[1].bytes32ToString(),
-            uint8(MarketSide.Long)
+            uint8(PositionToken.MarketSide.Long)
         );
         PositionToken shortPosToken = new PositionToken(
             "MARKET Protocol Short Position Token",
             contractNames[2].bytes32ToString(),
-            uint8(MarketSide.Short)
+            uint8(PositionToken.MarketSide.Short)
         );
 
         LONG_POSITION_TOKEN = address(longPosToken);
