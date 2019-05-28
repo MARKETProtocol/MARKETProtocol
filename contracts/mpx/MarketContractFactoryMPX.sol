@@ -73,7 +73,7 @@ contract MarketContractFactoryMPX is Ownable {
         uint[7] calldata contractSpecs,
         string calldata oracleURL,
         string calldata oracleStatistic
-    ) external
+    ) external onlyOwner
     {
         MarketContractMPX mktContract = new MarketContractMPX(
             contractNames,
