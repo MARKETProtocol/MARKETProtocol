@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2019 Phillip A. Elsasser
+    Copyright 2017-2019 MARKET Protocol
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import "./UpgradableToken.sol";
 
 /// @title Upgradeable Token Mock for testing only.
 /// @notice A token to be able to test upgrade from another token
-/// @author Phil Elsasser <phil@marketprotocol.io>
+/// @author MARKET Protocol <support@marketprotocol.io>
 contract UpgradeableTokenMock is UpgradeableToken, UpgradeableTarget {
 
     address public PREVIOUS_TOKEN_ADDRESS;

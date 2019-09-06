@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2019 Phillip A. Elsasser
+    Copyright 2017-2019 MARKET Protocol
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import "../MarketContract.sol";
 
 
 /// @title MarketContractMPX - a MarketContract designed to be used with our internal oracle service
-/// @author Phil Elsasser <phil@marketprotocol.io>
+/// @author MARKET Protocol <support@marketprotocol.io>
 contract MarketContractMPX is MarketContract {
 
     address public ORACLE_HUB_ADDRESS;

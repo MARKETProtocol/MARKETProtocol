@@ -38,7 +38,6 @@ module.exports = async function(deployer, network, accounts) {
                                 MarketContractFactory,
                                 MarketContractRegistry.address,
                                 MarketCollateralPool.address,
-                                accounts[8],
                                 {
                                   gas: gasLimit
                                 }
@@ -71,6 +70,7 @@ module.exports = async function(deployer, network, accounts) {
                                           ],
                                           'api.coincap.io/v2/rates/bitcoin',
                                           'rateUsd',
+                                          accounts[8],
                                           { gas: gasLimit }
                                         )
                                         .then(function() {
@@ -92,6 +92,7 @@ module.exports = async function(deployer, network, accounts) {
                                             ],
                                             'api.coincap.io/v2/rates/bitcoin',
                                             'rateUsd',
+                                            accounts[8],
                                             { gas: gasLimit }
                                           );
                                         });

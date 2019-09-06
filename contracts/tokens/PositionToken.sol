@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2019 Phillip A. Elsasser
+    Copyright 2017-2019 MARKET Protocol
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 /// tokens based on locked collateral in the pool.
 /// NOTE: We eventually can move all of this logic into a library to avoid deploying all of the logic
 /// every time a new market contract is deployed.
-/// @author Phil Elsasser <phil@marketprotocol.io>
+/// @author MARKET Protocol <support@marketprotocol.io>
 contract PositionToken is ERC20, Ownable {
 
     string public name;

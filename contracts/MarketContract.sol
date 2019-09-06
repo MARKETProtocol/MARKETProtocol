@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2019 Phillip A. Elsasser
+    Copyright 2017-2019 MARKET Protocol
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import "./tokens/PositionToken.sol";
 /// @title MarketContract base contract implement all needed functionality for trading.
 /// @notice this is the abstract base contract that all contracts should inherit from to
 /// implement different oracle solutions.
-/// @author Phil Elsasser <phil@marketprotocol.io>
+/// @author MARKET Protocol <support@marketprotocol.io>
 contract MarketContract is Ownable {
     using StringLib for *;
 

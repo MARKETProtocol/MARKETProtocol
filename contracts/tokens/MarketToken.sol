@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2019 Phillip A. Elsasser
+    Copyright 2017-2019 MARKET Protocol
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import "./UpgradableToken.sol";
 /// @title Market Token
 /// @notice Our membership token.  Users must lock tokens to enable trading for a given Market Contract
 /// as well as have a minimum balance of tokens to create new Market Contracts.
-/// @author Phil Elsasser <phil@marketprotocol.io>
+/// @author MARKET Protocol <support@marketprotocol.io>
 contract MarketToken is UpgradeableToken {
 
     string public constant name = "MARKET Protocol Token";

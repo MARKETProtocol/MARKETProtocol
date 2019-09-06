@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2019 Phillip A. Elsasser
+    Copyright 2017-2019 MARKET Protocol
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,33 +21,27 @@ import "../MarketContractRegistryInterface.sol";
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
-
 /// @title MarketContractFactoryMPX
-/// @author Phil Elsasser <phil@marketprotocol.io>
+/// @author MARKET Protocol <support@marketprotocol.io>
 contract MarketContractFactoryMPX is Ownable {
 
     address public marketContractRegistry;
-    address public oracleHub;
-    address public MARKET_COLLATERAL_POOL;
+    address public marketCollateralPool;
 
     event MarketContractCreated(address indexed creator, address indexed contractAddress);
 
     /// @dev deploys our factory and ties it to the supplied registry address
     /// @param registryAddress - address of our MARKET registry
     /// @param collateralPoolAddress - address of our MARKET Collateral pool
-    /// @param oracleHubAddress - address of the MPX oracle
     constructor(
         address registryAddress,
-        address collateralPoolAddress,
-        address oracleHubAddress
+        address collateralPoolAddress
     ) public {
         require(registryAddress != address(0), "registryAddress can not be null");
         require(collateralPoolAddress != address(0), "collateralPoolAddress can not be null");
-        require(oracleHubAddress != address(0), "oracleHubAddress can not be null");
-        
+
         marketContractRegistry = registryAddress;
-        MARKET_COLLATERAL_POOL = collateralPoolAddress;
-        oracleHub = oracleHubAddress;
+        marketCollateralPool = collateralPoolAddress;
     }
 
     /// @dev Deploys a new instance of a market contract and adds it to the whitelist.
@@ -67,28 +61,30 @@ contract MarketContractFactoryMPX is Ownable {
     ///     expirationTimeStamp     seconds from epoch that this contract expires and enters settlement
     /// @param oracleURL url of data
     /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
+    /// @param oracleHubAddress address of the wallet which can trigger settlement
     function deployMarketContractMPX(
         bytes32[3] calldata contractNames,
         address collateralTokenAddress,
         uint[7] calldata contractSpecs,
         string calldata oracleURL,
-        string calldata oracleStatistic
-    ) external onlyOwner
+        string calldata oracleStatistic,
+        address oracleHubAddress
+    ) external
     {
         MarketContractMPX mktContract = new MarketContractMPX(
             contractNames,
             [
             owner(),
             collateralTokenAddress,
-            MARKET_COLLATERAL_POOL
+            marketCollateralPool
             ],
-            oracleHub,
+            oracleHubAddress,
             contractSpecs,
             oracleURL,
             oracleStatistic
         );
 
-        MarketContractRegistryInterface(marketContractRegistry).addAddressToWhiteList(address(mktContract));
+        MarketContractRegistryInterface(marketContractRegistry).addOwnerContract(msg.sender, address(mktContract));
         emit MarketContractCreated(msg.sender, address(mktContract));
     }
 
@@ -97,13 +93,5 @@ contract MarketContractFactoryMPX is Ownable {
     function setRegistryAddress(address registryAddress) external onlyOwner {
         require(registryAddress != address(0), "registryAddress can not be null");
         marketContractRegistry = registryAddress;
-    }
-
-    /// @dev allows for the owner to set a new oracle hub address which is responsible for providing data to our
-    /// contracts
-    /// @param oracleHubAddress   address of the oracle hub, cannot be null address
-    function setOracleHubAddress(address oracleHubAddress) external onlyOwner {
-        require(oracleHubAddress != address(0), "oracleHubAddress can not be null");
-        oracleHub = oracleHubAddress;
     }
 }

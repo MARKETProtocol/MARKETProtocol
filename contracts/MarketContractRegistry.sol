@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2019 Phillip A. Elsasser
+    Copyright 2017-2019 MARKET Protocol
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,81 +19,76 @@ pragma solidity 0.5.2;
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./MarketContractRegistryInterface.sol";
 
-
 /// @title MarketContractRegistry
-/// @author Phil Elsasser <phil@marketprotocol.io>
+/// @author MARKET Protocol <support@marketprotocol.io>
 contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
-
-    // whitelist accounting
-    mapping(address => bool) public isWhiteListed;
-    address[] public addressWhiteList;                             // record of currently deployed addresses;
-    mapping(address => bool) public factoryAddressWhiteList;       // record of authorized factories
+    mapping(address => bool) private registered;       // record of registered addresses
+    mapping(address => bool) private whitelist;        // record of whitelist
+    mapping(address => address[]) private ownerStore;  // record of owned contracts
 
     // events
-    event AddressAddedToWhitelist(address indexed contractAddress);
-    event AddressRemovedFromWhitelist(address indexed contractAddress);
+
+    event OwnerContractAdded(address ownerAddress, address contractAddress);
     event FactoryAddressAdded(address indexed factoryAddress);
     event FactoryAddressRemoved(address indexed factoryAddress);
+
+    // modifiers
+
+    modifier isRegistered(address addy) {
+        require(registered[addy], "Address is not registered");
+        _;
+    }
+
+    modifier notRegistered(address addy) {
+        require(!registered[addy], "Address is already registered");
+        _;
+    }
+
+    modifier onlyFactoryOrOwner(address ownerAddress) {
+        require(isOwner() || whitelist[msg.sender], "Can only be added by a whitelisted factory or owner");
+        _;
+    }
 
     /*
     // External Methods
     */
 
-    /// @notice determines if an address is a valid MarketContract
-    /// @return false if the address is not white listed.
-    function isAddressWhiteListed(address contractAddress) external view returns (bool) {
-        return isWhiteListed[contractAddress];
-    }
-
-    /// @notice all currently whitelisted addresses
-    /// returns array of addresses
-    function getAddressWhiteList() external view returns (address[] memory) {
-        return addressWhiteList;
-    }
-
-    /// @dev allows for the owner to remove a white listed contract, eventually ownership could transition to
-    /// a decentralized smart contract of community members to vote
-    /// @param contractAddress contract to removed from white list
-    /// @param whiteListIndex of the contractAddress in the addressWhiteList to be removed.
-    function removeContractFromWhiteList(
-        address contractAddress,
-        uint whiteListIndex
-    ) external onlyOwner
-    {
-        require(isWhiteListed[contractAddress], "can only remove whitelisted addresses");
-        require(addressWhiteList[whiteListIndex] == contractAddress, "index does not match address");
-        isWhiteListed[contractAddress] = false;
-
-        // push the last item in array to replace the address we are removing and then trim the array.
-        addressWhiteList[whiteListIndex] = addressWhiteList[addressWhiteList.length - 1];
-        addressWhiteList.length -= 1;
-        emit AddressRemovedFromWhitelist(contractAddress);
-    }
-
-    /// @dev allows for the owner or factory to add a white listed contract, eventually ownership could transition to
-    /// a decentralized smart contract of community members to vote
-    /// @param contractAddress contract to removed from white list
-    function addAddressToWhiteList(address contractAddress) external {
-        require(isOwner() || factoryAddressWhiteList[msg.sender], "Can only be added by factory or owner");
-        require(!isWhiteListed[contractAddress], "Address must not be whitelisted");
-        isWhiteListed[contractAddress] = true;
-        addressWhiteList.push(contractAddress);
-        emit AddressAddedToWhitelist(contractAddress);
-    }
-
     /// @dev allows for the owner to add a new address of a factory responsible for creating new market contracts
     /// @param factoryAddress address of factory to be allowed to add contracts to whitelist
-    function addFactoryAddress(address factoryAddress) external onlyOwner {
-        require(!factoryAddressWhiteList[factoryAddress], "address already added");
-        factoryAddressWhiteList[factoryAddress] = true;
+    function addFactoryAddress(address factoryAddress) public onlyOwner notRegistered(factoryAddress) {
+        registered[factoryAddress] = true;
+        whitelist[factoryAddress] = true;
         emit FactoryAddressAdded(factoryAddress);
     }
 
+    /// @dev tracks the owner of a contract so that contracts can be looked up by owner
+    /// @param ownerAddress address of the owner wallet
+    /// @param contractAddress address of the contract
+    function addOwnerContract(address ownerAddress, address contractAddress) public onlyFactoryOrOwner(ownerAddress) notRegistered(contractAddress) {
+        registered[contractAddress] = true;
+        ownerStore[ownerAddress].push(contractAddress);
+        emit OwnerContractAdded(ownerAddress, contractAddress);
+    }
+
+    /// @notice all contracts owned by owner
+    /// returns array of addresses
+    function getOwnerList(address ownerAddress) public view returns (address[] memory) {
+        return ownerStore[ownerAddress];
+    }
+
+    /// @notice determines if an address is a valid MarketContract
+    /// @return false if the address is not white listed.
+    function isAddressWhiteListed(address contractAddress) public view returns (bool) {
+        return whitelist[contractAddress];
+    }
+
+
     /// @dev allows for the owner to remove an address of a factory
     /// @param factoryAddress address of factory to be removed
-    function removeFactoryAddress(address factoryAddress) external onlyOwner {
-        require(factoryAddressWhiteList[factoryAddress], "factory address is not in the white list");
-        factoryAddressWhiteList[factoryAddress] = false;
+    function removeFactoryAddress(address factoryAddress) public onlyOwner isRegistered(factoryAddress) {
+        registered[factoryAddress] = false;
+        whitelist[factoryAddress] = false;
         emit FactoryAddressRemoved(factoryAddress);
     }
 }
+

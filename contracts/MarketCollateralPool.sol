@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2019 Phillip A. Elsasser
+    Copyright 2017-2019 MARKET Protocol
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 /// @title MarketCollateralPool
 /// @notice This collateral pool houses all of the collateral for all market contracts currently in circulation.
 /// This pool facilitates locking of collateral and minting / redemption of position tokens for that collateral.
-/// @author Phil Elsasser <phil@marketprotocol.io>
+/// @author MARKET Protocol <support@marketprotocol.io>
 contract MarketCollateralPool is Ownable {
     using MathLib for uint;
     using MathLib for int;

@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2019 Phillip A. Elsasser
+    Copyright 2017-2019 MARKET Protocol
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ pragma solidity 0.5.2;
 /// @title Upgradeable Target
 /// @notice A contract (or a token itself) that can facilitate the upgrade from an existing deployed token
 /// to allow us to upgrade our token's functionality.
-/// @author Phil Elsasser <phil@marketprotocol.io>
+/// @author MARKET Protocol <support@marketprotocol.io>
 contract UpgradeableTarget {
     function upgradeFrom(address from, uint256 value) external; // note: implementation should require(from == oldToken)
 }

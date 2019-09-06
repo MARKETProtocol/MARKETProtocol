@@ -1,5 +1,5 @@
 /*
-    Copyright 2017-2019 Phillip A. Elsasser
+    Copyright 2017-2019 MARKET Protocol
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,8 +16,9 @@
 
 pragma solidity 0.5.2;
 
-
 contract MarketContractRegistryInterface {
-    function addAddressToWhiteList(address contractAddress) external;
-    function isAddressWhiteListed(address contractAddress) external view returns (bool);
+    function addOwnerContract(address ownerAddress, address contractAddress) public;
+    function getOwnerList(address ownerAddress) public view returns (address[] memory);
+    function isAddressWhiteListed(address contractAddress) public view returns (bool);
 }
+
