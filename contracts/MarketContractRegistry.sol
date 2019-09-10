@@ -44,9 +44,17 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
         _;
     }
 
-    modifier onlyFactoryOrOwner(address ownerAddress) {
-        require(isOwner() || whitelist[msg.sender], "Can only be added by a whitelisted factory or owner");
+    modifier onlyFactoryOrOwner() {
+        require(isOwner() || whitelist[msg.sender], toString(msg.sender));
         _;
+    }
+
+    function toString(address x) public pure returns (string memory) {
+        bytes memory b = new bytes(20);
+        for (uint i = 0; i < 20; i++) {
+            b[i] = byte(uint8(uint(x) / (2**(8*(19 - i)))));
+        }
+        return string(b);
     }
 
     /*
@@ -64,7 +72,7 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
     /// @dev tracks the owner of a contract so that contracts can be looked up by owner
     /// @param ownerAddress address of the owner wallet
     /// @param contractAddress address of the contract
-    function addOwnerContract(address ownerAddress, address contractAddress) public onlyFactoryOrOwner(ownerAddress) notRegistered(contractAddress) {
+    function addOwnerContract(address ownerAddress, address contractAddress) public onlyFactoryOrOwner notRegistered(contractAddress) {
         registered[contractAddress] = true;
         ownerStore[ownerAddress].push(contractAddress);
         emit OwnerContractAdded(ownerAddress, contractAddress);
