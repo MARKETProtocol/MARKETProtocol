@@ -89,6 +89,37 @@ module.exports = {
   },
 
   /**
+   * Given a specific set of contract specifications and an execution price, this function returns
+   * the needed collateral a user must post in order to execute a trade at that price in an inverse
+   * contract.
+   *
+   * @param priceFloor
+   * @param priceCap
+   * @param qtyMultiplier
+   * @param qty
+   * @param price
+   * @return {number}
+   */
+  calculateCollateralToReturnForInverseContract(priceFloor, priceCap, qtyMultiplier, qty, price) {
+    const zero = 0;
+    let maxLoss;
+    if (qty > zero) {
+      if (price <= priceFloor) {
+        maxLoss = zero;
+      } else {
+        maxLoss = qtyMultiplier.div(priceFloor).sub(qtyMultiplier.div(price));
+      }
+    } else {
+      if (price >= priceCap) {
+        maxLoss = zero;
+      } else {
+        maxLoss = qtyMultiplier.div(price).sub(qtyMultiplier.div(priceCap));
+      }
+    }
+    return maxLoss.mul(qty.abs());
+  },
+
+  /**
    * Calculate total collateral required for a price range
    *
    * @param {number} priceFloor
@@ -98,6 +129,18 @@ module.exports = {
    */
   calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier) {
     return priceCap.sub(priceFloor).mul(qtyMultiplier);
+  },
+
+  /**
+   * Calculate total collateral required for a price range in an inverse contract
+   *
+   * @param {number} priceFloor
+   * @param {number} priceCap
+   * @param {number} qtyMultiplier
+   * @return {number}
+   */
+  calculateTotalCollateralForInverseContract(priceFloor, priceCap, qtyMultiplier) {
+    return qtyMultiplier.div(priceFloor).sub(qtyMultiplier.div(priceCap));
   },
 
   /**
@@ -126,7 +169,7 @@ module.exports = {
     }
 
     if (!contractSpecs) {
-      contractSpecs = [0, 150, 2, 2, 100, 50, expiration];
+      contractSpecs = [0, 150, 2, 2, 100, 50, expiration, 0];
     }
     const contractNames = [
       web3.utils.asciiToHex('BTC', 32),

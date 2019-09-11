@@ -45,6 +45,12 @@ contract MarketContract is Ownable {
     address public LONG_POSITION_TOKEN;
     address public SHORT_POSITION_TOKEN;
 
+    ContractType public CONTRACT_TYPE;
+    enum ContractType {
+        Vanilla,
+        Inverse
+    }
+
     // state variables
     uint public lastPrice;
     uint public settlementPrice;
@@ -72,10 +78,11 @@ contract MarketContract is Ownable {
     ///     feeInBasisPoints    fee amount in basis points (Collateral token denominated) for minting.
     ///     mktFeeInBasisPoints fee amount in basis points (MKT denominated) for minting.
     ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
+    ///     contractType        vanilla contract, inverse contract, etc.
     constructor(
         bytes32[3] memory contractNames,
         address[3] memory baseAddresses,
-        uint[7] memory contractSpecs
+        uint[8] memory contractSpecs
     ) public
     {
         PRICE_FLOOR = contractSpecs[0];
@@ -85,24 +92,44 @@ contract MarketContract is Ownable {
         PRICE_DECIMAL_PLACES = contractSpecs[2];
         QTY_MULTIPLIER = contractSpecs[3];
         EXPIRATION = contractSpecs[6];
+        CONTRACT_TYPE = ContractType(contractSpecs[7]);
         require(EXPIRATION > now, "EXPIRATION must be in the future");
         require(QTY_MULTIPLIER != 0,"QTY_MULTIPLIER cannot be 0");
 
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         COLLATERAL_POOL_ADDRESS = baseAddresses[2];
-        COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
-        COLLATERAL_TOKEN_FEE_PER_UNIT = MathLib.calculateFeePerUnit(
-            PRICE_FLOOR,
-            PRICE_CAP,
-            QTY_MULTIPLIER,
-            contractSpecs[4]
-        );
-        MKT_TOKEN_FEE_PER_UNIT = MathLib.calculateFeePerUnit(
-            PRICE_FLOOR,
-            PRICE_CAP,
-            QTY_MULTIPLIER,
-            contractSpecs[5]
-        );
+        if (CONTRACT_TYPE == ContractType.Vanilla) {
+            COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
+            COLLATERAL_TOKEN_FEE_PER_UNIT = MathLib.calculateFeePerUnit(
+                PRICE_FLOOR,
+                PRICE_CAP,
+                QTY_MULTIPLIER,
+                contractSpecs[4]
+            );
+            MKT_TOKEN_FEE_PER_UNIT = MathLib.calculateFeePerUnit(
+                PRICE_FLOOR,
+                PRICE_CAP,
+                QTY_MULTIPLIER,
+                contractSpecs[5]
+            );
+        } else if (CONTRACT_TYPE == ContractType.Inverse) {
+            COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateralForInverseContract(
+                PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
+            COLLATERAL_TOKEN_FEE_PER_UNIT = MathLib.calculateFeePerUnitForInverseContract(
+                PRICE_FLOOR,
+                PRICE_CAP,
+                QTY_MULTIPLIER,
+                contractSpecs[4]
+            );
+            MKT_TOKEN_FEE_PER_UNIT = MathLib.calculateFeePerUnitForInverseContract(
+                PRICE_FLOOR,
+                PRICE_CAP,
+                QTY_MULTIPLIER,
+                contractSpecs[5]
+            );
+        } else {
+            revert("unkown CONTRACT_TYPE");
+        }
 
         // create long and short tokens
         CONTRACT_NAME = contractNames[0].bytes32ToString();
@@ -173,6 +200,39 @@ contract MarketContract is Ownable {
         return isSettled && (now >= (settlementTimeStamp + SETTLEMENT_DELAY));
     }
 
+    /// @notice determines the amount of needed collateral for a given position (qty and price)
+    /// @param longQty qty to redeem
+    /// @param shortQty qty to redeem
+    /// @param price of the trade
+    function calculateCollateralToReturn(
+        uint longQty,
+        uint shortQty,
+        uint price
+    ) public view returns (uint)
+    {
+        if (CONTRACT_TYPE == ContractType.Vanilla) {
+            return MathLib.calculateCollateralToReturn(
+                PRICE_FLOOR,
+                PRICE_CAP,
+                QTY_MULTIPLIER,
+                longQty,
+                shortQty,
+                price
+            );
+        } else if (CONTRACT_TYPE == ContractType.Inverse) {
+            return MathLib.calculateCollateralToReturnForInverseContract(
+                PRICE_FLOOR,
+                PRICE_CAP,
+                QTY_MULTIPLIER,
+                longQty,
+                shortQty,
+                price
+            );
+        } else {
+            revert("unkown CONTRACT_TYPE");
+        }
+    }
+    
     /*
     // PRIVATE METHODS
     */
@@ -213,5 +273,4 @@ contract MarketContract is Ownable {
         require(msg.sender == COLLATERAL_POOL_ADDRESS, "Only callable from the collateral pool");
         _;
     }
-
 }

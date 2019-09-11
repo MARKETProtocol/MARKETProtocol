@@ -29,7 +29,7 @@ contract('MarketContract', function(accounts) {
         collateralPool,
         accounts[0],
         null,
-        [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, fees, fees, expiration]
+        [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, fees, fees, expiration, 0]
       );
 
       assert.isTrue(
@@ -88,7 +88,8 @@ contract('MarketContract', function(accounts) {
           lowerPriceCap,
           priceDecimalPlaces,
           qtyMultiplier,
-          expiration
+          expiration,
+          0
         ]);
       });
     });
@@ -106,7 +107,8 @@ contract('MarketContract', function(accounts) {
           priceCap,
           priceDecimalPlaces,
           qtyMultiplier,
-          pastExpiration
+          pastExpiration,
+          0
         ]);
       });
     });

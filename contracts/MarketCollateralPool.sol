@@ -198,10 +198,7 @@ contract MarketCollateralPool is Ownable {
 
 
         // calculate amount of collateral to return and update pool balances
-        uint collateralToReturn = MathLib.calculateCollateralToReturn(
-            marketContract.PRICE_FLOOR(),
-            marketContract.PRICE_CAP(),
-            marketContract.QTY_MULTIPLIER(),
+        uint collateralToReturn = marketContract.calculateCollateralToReturn(
             longQtyToRedeem,
             shortQtyToRedeem,
             marketContract.settlementPrice()

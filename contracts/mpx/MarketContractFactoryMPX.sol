@@ -65,12 +65,13 @@ contract MarketContractFactoryMPX is Ownable {
     ///     feeInBasisPoints    fee amount in basis points (Collateral token denominated) for minting.
     ///     mktFeeInBasisPoints fee amount in basis points (MKT denominated) for minting.
     ///     expirationTimeStamp     seconds from epoch that this contract expires and enters settlement
+    ///     contractType            vanilla contract, inverse contract, etc.
     /// @param oracleURL url of data
     /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
     function deployMarketContractMPX(
         bytes32[3] calldata contractNames,
         address collateralTokenAddress,
-        uint[7] calldata contractSpecs,
+        uint[8] calldata contractSpecs,
         string calldata oracleURL,
         string calldata oracleStatistic
     ) external onlyOwner

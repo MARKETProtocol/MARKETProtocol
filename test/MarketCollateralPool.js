@@ -48,7 +48,7 @@ contract('MarketCollateralPool', function(accounts) {
       collateralPool,
       accounts[0],
       accounts[0],
-      [0, 150, 2, 1, 0, 0, utility.expirationInDays(1)]
+      [0, 150, 2, 1, 0, 0, utility.expirationInDays(1), 0]
     );
 
     feeMarketContract = await utility.createMarketContract(
@@ -56,7 +56,7 @@ contract('MarketCollateralPool', function(accounts) {
       collateralPool,
       accounts[0],
       accounts[0],
-      [0, 150, 2, 2, collateralFee, mktFee, utility.expirationInDays(1)]
+      [0, 150, 2, 2, collateralFee, mktFee, utility.expirationInDays(1), 0]
     );
 
     await marketContractRegistry.addAddressToWhiteList(marketContract.address, {
@@ -363,7 +363,7 @@ contract('MarketCollateralPool', function(accounts) {
           collateralPool,
           accounts[0],
           accounts[0],
-          [0, 150, 2, 1, 0, mktFee, utility.expirationInDays(1)]
+          [0, 150, 2, 1, 0, mktFee, utility.expirationInDays(1), 0]
         );
         mktFeePerUnit = await mktFeeMarketContract.MKT_TOKEN_FEE_PER_UNIT.call();
 
@@ -445,7 +445,7 @@ contract('MarketCollateralPool', function(accounts) {
           collateralPool,
           accounts[0],
           accounts[0],
-          [0, 150, 2, 1, collateralFee, 0, utility.expirationInDays(1)]
+          [0, 150, 2, 1, collateralFee, 0, utility.expirationInDays(1), 0]
         );
         collateralFeePerUnit = await collateralFeeMarketContract.COLLATERAL_TOKEN_FEE_PER_UNIT.call();
 

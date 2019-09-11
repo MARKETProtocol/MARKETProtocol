@@ -112,4 +112,66 @@ library MathLib {
         uint midPrice = add(priceCap, priceFloor) / 2;
         return multiply(multiply(midPrice, qtyMultiplier), feeInBasisPoints) / 10000;
     }
+
+    /// @notice determines the amount of needed collateral for a given position (qty and price)
+    /// @param priceFloor lowest price the contract is allowed to trade before expiration
+    /// @param priceCap highest price the contract is allowed to trade before expiration
+    /// @param qtyMultiplier multiplier for qty from base units
+    /// @param longQty qty to redeem
+    /// @param shortQty qty to redeem
+    /// @param price of the trade
+    function calculateCollateralToReturnForInverseContract(
+        uint priceFloor,
+        uint priceCap,
+        uint qtyMultiplier,
+        uint longQty,
+        uint shortQty,
+        uint price
+    ) pure internal returns (uint)
+    {
+        uint neededCollateral = 0;
+        uint maxLoss;
+        if (longQty > 0) {
+            if (price <= priceFloor) {
+                maxLoss = 0;
+            } else {
+                maxLoss = subtract(qtyMultiplier / priceFloor, qtyMultiplier / price);
+            }
+            // note: leave longQty in the last line to reduce the division error
+            neededCollateral = multiply(maxLoss, longQty);
+        }
+
+        if (shortQty > 0) {
+            if (price >= priceCap) {
+                maxLoss = 0;
+            } else {
+                maxLoss = subtract(qtyMultiplier / price, qtyMultiplier / priceCap);
+            }
+            // note: leave shortQty in the last line to reduce the division error
+            neededCollateral = add(neededCollateral, multiply(maxLoss, shortQty));
+        }
+        return neededCollateral;
+    }
+
+    /// @notice determines the amount of needed collateral for minting a long and short position token
+    function calculateTotalCollateralForInverseContract(
+        uint priceFloor,
+        uint priceCap,
+        uint qtyMultiplier
+    ) pure internal returns (uint)
+    {
+        return subtract(qtyMultiplier / priceFloor, qtyMultiplier / priceCap);
+    }
+
+    /// @notice calculates the fee in terms of base units of the collateral token per unit pair minted.
+    function calculateFeePerUnitForInverseContract(
+        uint priceFloor,
+        uint priceCap,
+        uint qtyMultiplier,
+        uint feeInBasisPoints
+    ) pure internal returns (uint)
+    {
+        uint midPrice = add(qtyMultiplier / priceFloor, qtyMultiplier / priceCap) / 2;
+        return multiply(midPrice, feeInBasisPoints) / 10000;
+    }
 }

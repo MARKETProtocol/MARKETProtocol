@@ -19,6 +19,7 @@ contract('MarketContractFactoryMPX', function(accounts) {
   const qtyMultiplier = 10;
   const feesInCollateralToken = 20;
   const feesInMKTToken = 10;
+  const contractType = 0; // vanilla
 
   let marketContractFactory;
   let marketContractRegistry;
@@ -39,7 +40,8 @@ contract('MarketContractFactoryMPX', function(accounts) {
         qtyMultiplier,
         feesInCollateralToken,
         feesInMKTToken,
-        expiration
+        expiration,
+        contractType
       ],
       oracleURL,
       oracleStatistic
@@ -78,7 +80,8 @@ contract('MarketContractFactoryMPX', function(accounts) {
         qtyMultiplier,
         feesInCollateralToken,
         feesInMKTToken,
-        expiration
+        expiration,
+        contractType
       ],
       oracleURL,
       oracleStatistic
