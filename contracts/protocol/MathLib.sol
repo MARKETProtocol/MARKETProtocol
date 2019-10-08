@@ -13,12 +13,10 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
-pragma solidity 0.5.2;
-
+pragma solidity 0.5.11;
 
 /// @title Math function library with overflow protection inspired by Open Zeppelin
 library MathLib {
-
     int256 constant INT256_MIN = int256((uint256(1) << 255));
     int256 constant INT256_MAX = int256(~((uint256(1) << 255)));
 
@@ -113,3 +111,4 @@ library MathLib {
         return multiply(multiply(midPrice, qtyMultiplier), feeInBasisPoints) / 10000;
     }
 }
+

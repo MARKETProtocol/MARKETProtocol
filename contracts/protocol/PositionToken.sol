@@ -14,11 +14,10 @@
     limitations under the License.
 */
 
-pragma solidity 0.5.2;
+pragma solidity 0.5.11;
 
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-
+import "github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.3.0/contracts/token/ERC20/ERC20.sol";
+import "github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.3.0/contracts/ownership/Ownable.sol";
 
 /// @title Position Token
 /// @notice A token that represents a claim to a collateral pool and a short or long position.
@@ -75,3 +74,4 @@ contract PositionToken is ERC20, Ownable {
         _burn(redeemer, qtyToRedeem);
     }
 }
+

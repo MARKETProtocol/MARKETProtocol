@@ -14,16 +14,16 @@
     limitations under the License.
 */
 
-pragma solidity 0.5.2;
+pragma solidity 0.5.11;
 
-import "./MarketContractMPX.sol";
-import "../MarketContractRegistryInterface.sol";
+import "./MarketContract.sol";
+import "./MarketContractRegistryInterface.sol";
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.3.0/contracts/ownership/Ownable.sol";
 
 /// @title MarketContractFactoryMPX
 /// @author MARKET Protocol <support@marketprotocol.io>
-contract MarketContractFactoryMPX is Ownable {
+contract MarketContractFactory is Ownable {
 
     address public marketContractRegistry;
     address public marketCollateralPool;
@@ -62,7 +62,7 @@ contract MarketContractFactoryMPX is Ownable {
     /// @param oracleURL url of data
     /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
     /// @param oracleHubAddress address of the wallet which can trigger settlement
-    function deployMarketContractMPX(
+    function deployMarketContract(
         bytes32[3] calldata contractNames,
         address collateralTokenAddress,
         uint[7] calldata contractSpecs,
@@ -71,7 +71,7 @@ contract MarketContractFactoryMPX is Ownable {
         address oracleHubAddress
     ) external
     {
-        MarketContractMPX mktContract = new MarketContractMPX(
+        MarketContract mktContract = new MarketContract(
             contractNames,
             [
             owner(),
@@ -95,3 +95,4 @@ contract MarketContractFactoryMPX is Ownable {
         marketContractRegistry = registryAddress;
     }
 }
+

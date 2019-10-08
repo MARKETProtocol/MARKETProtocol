@@ -14,14 +14,13 @@
     limitations under the License.
 */
 
-pragma solidity 0.5.2;
+pragma solidity 0.5.11;
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.3.0/contracts/ownership/Ownable.sol";
 
-import "./libraries/MathLib.sol";
-import "./libraries/StringLib.sol";
-import "./tokens/PositionToken.sol";
-
+import "./MathLib.sol";
+import "./StringLib.sol";
+import "./PositionToken.sol";
 
 /// @title MarketContract base contract implement all needed functionality for trading.
 /// @notice this is the abstract base contract that all contracts should inherit from to
@@ -44,6 +43,9 @@ contract MarketContract is Ownable {
     uint public SETTLEMENT_DELAY = 1 days;
     address public LONG_POSITION_TOKEN;
     address public SHORT_POSITION_TOKEN;
+    address public ORACLE_HUB_ADDRESS;
+    string public ORACLE_URL;
+    string public ORACLE_STATISTIC;
 
     // state variables
     uint public lastPrice;
@@ -63,19 +65,25 @@ contract MarketContract is Ownable {
     ///     ownerAddress                    address of the owner of these contracts.
     ///     collateralTokenAddress          address of the ERC20 token that will be used for collateral and pricing
     ///     collateralPoolAddress           address of our collateral pool contract
+    /// @param oracleHubAddress     address of our oracle hub providing the callbacks
     /// @param contractSpecs array of unsigned integers including:
-    ///     floorPrice          minimum tradeable price of this contract, contract enters settlement if breached
-    ///     capPrice            maximum tradeable price of this contract, contract enters settlement if breached
-    ///     priceDecimalPlaces  number of decimal places to convert our queried price from a floating point to
-    ///                         an integer
-    ///     qtyMultiplier       multiply traded qty by this value from base units of collateral token.
+    ///     floorPrice              minimum tradeable price of this contract, contract enters settlement if breached
+    ///     capPrice                maximum tradeable price of this contract, contract enters settlement if breached
+    ///     priceDecimalPlaces      number of decimal places to convert our queried price from a floating point to
+    ///                             an integer
+    ///     qtyMultiplier           multiply traded qty by this value from base units of collateral token.
     ///     feeInBasisPoints    fee amount in basis points (Collateral token denominated) for minting.
     ///     mktFeeInBasisPoints fee amount in basis points (MKT denominated) for minting.
-    ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
+    ///     expirationTimeStamp     seconds from epoch that this contract expires and enters settlement
+    /// @param oracleURL url of data
+    /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
     constructor(
         bytes32[3] memory contractNames,
         address[3] memory baseAddresses,
-        uint[7] memory contractSpecs
+        address oracleHubAddress,
+        uint[7] memory contractSpecs,
+        string memory oracleURL,
+        string memory oracleStatistic
     ) public
     {
         PRICE_FLOOR = contractSpecs[0];
@@ -119,6 +127,10 @@ contract MarketContract is Ownable {
 
         LONG_POSITION_TOKEN = address(longPosToken);
         SHORT_POSITION_TOKEN = address(shortPosToken);
+
+        ORACLE_URL = oracleURL;
+        ORACLE_STATISTIC = oracleStatistic;
+        ORACLE_HUB_ADDRESS = oracleHubAddress;
 
         transferOwnership(baseAddresses[0]);
     }
@@ -214,4 +226,37 @@ contract MarketContract is Ownable {
         _;
     }
 
+    /// @dev called only by our oracle hub when a new price is available provided by our oracle.
+    /// @param price lastPrice provided by the oracle.
+    function oracleCallBack(uint256 price) public onlyOracleHub {
+        require(!isSettled);
+        lastPrice = price;
+        emit UpdatedLastPrice(price);
+        checkSettlement();  // Verify settlement at expiration or requested early settlement.
+    }
+
+    /// @dev allows us to arbitrate a settlement price by updating the settlement value, and resetting the
+    /// delay for funds to be released. Could also be used to allow us to force a contract into early settlement
+    /// if a dispute arises that we believe is best resolved by early settlement.
+    /// @param price settlement price
+    function arbitrateSettlement(uint256 price) public onlyOwner {
+        require(price >= PRICE_FLOOR && price <= PRICE_CAP, "arbitration price must be within contract bounds");
+        lastPrice = price;
+        emit UpdatedLastPrice(price);
+        settleContract(price);
+        isSettled = true;
+    }
+
+    /// @dev allows calls only from the oracle hub.
+    modifier onlyOracleHub() {
+        require(msg.sender == ORACLE_HUB_ADDRESS, "only callable by the oracle hub");
+        _;
+    }
+
+    /// @dev allows for the owner of the contract to change the oracle hub address if needed
+    function setOracleHubAddress(address oracleHubAddress) public onlyOwner {
+        require(oracleHubAddress != address(0), "cannot set oracleHubAddress to null address");
+        ORACLE_HUB_ADDRESS = oracleHubAddress;
+    }
 }
+

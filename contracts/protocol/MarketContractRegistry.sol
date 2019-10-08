@@ -14,9 +14,9 @@
     limitations under the License.
 */
 
-pragma solidity 0.5.2;
+pragma solidity 0.5.11;
 
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.3.0/contracts/ownership/Ownable.sol";
 import "./MarketContractRegistryInterface.sol";
 
 /// @title MarketContractRegistry
@@ -90,7 +90,6 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
         return whitelist[contractAddress];
     }
 
-
     /// @dev allows for the owner to remove an address of a factory
     /// @param factoryAddress address of factory to be removed
     function removeFactoryAddress(address factoryAddress) public onlyOwner isRegistered(factoryAddress) {
@@ -99,4 +98,5 @@ contract MarketContractRegistry is Ownable, MarketContractRegistryInterface {
         emit FactoryAddressRemoved(factoryAddress);
     }
 }
+
 

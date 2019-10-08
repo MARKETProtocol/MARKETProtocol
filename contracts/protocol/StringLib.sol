@@ -13,12 +13,16 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 */
+pragma solidity 0.5.11;
 
-pragma solidity 0.5.2;
-
-contract MarketContractRegistryInterface {
-    function addOwnerContract(address ownerAddress, address contractAddress) public;
-    function getOwnerList(address ownerAddress) public view returns (address[] memory);
-    function isAddressWhiteListed(address contractAddress) public view returns (bool);
+library StringLib {
+    /// @notice converts bytes32 into a string.
+    /// @param bytesToConvert bytes32 array to convert
+    function bytes32ToString(bytes32 bytesToConvert) internal pure returns (string memory) {
+        bytes memory bytesArray = new bytes(32);
+        for (uint256 i; i < 32; i++) {
+            bytesArray[i] = bytesToConvert[i];
+        }
+        return string(bytesArray);
+    }
 }
-

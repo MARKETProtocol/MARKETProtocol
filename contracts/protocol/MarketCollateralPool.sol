@@ -14,16 +14,16 @@
     limitations under the License.
 */
 
-pragma solidity 0.5.2;
+pragma solidity 0.5.11;
 
-import "./libraries/MathLib.sol";
+import "./MathLib.sol";
 import "./MarketContract.sol";
-import "./tokens/PositionToken.sol";
+import "./PositionToken.sol";
 import "./MarketContractRegistryInterface.sol";
 
-import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.3.0/contracts/token/ERC20/SafeERC20.sol";
+import "github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.3.0/contracts/token/ERC20/ERC20.sol";
+import "github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.3.0/contracts/ownership/Ownable.sol";
 
 
 /// @title MarketCollateralPool
@@ -265,3 +265,4 @@ contract MarketCollateralPool is Ownable {
         _;
     }
 }
+
