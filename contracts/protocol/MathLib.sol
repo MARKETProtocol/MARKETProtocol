@@ -111,4 +111,3 @@ library MathLib {
         return multiply(multiply(midPrice, qtyMultiplier), feeInBasisPoints) / 10000;
     }
 }
-

@@ -95,4 +95,3 @@ contract MarketContractFactory is Ownable {
         marketContractRegistry = registryAddress;
     }
 }
-

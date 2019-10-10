@@ -18,44 +18,81 @@ pragma solidity 0.5.11;
 
 import "github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.3.0/contracts/ownership/Ownable.sol";
 
+import "./MarketContractStore.sol";
 import "./MathLib.sol";
 import "./StringLib.sol";
 import "./PositionToken.sol";
 
-/// @title MarketContract base contract implement all needed functionality for trading.
-/// @notice this is the abstract base contract that all contracts should inherit from to
-/// implement different oracle solutions.
+/// @title MarketContract base contract implementing all needed functionality for trading.
 /// @author MARKET Protocol <support@marketprotocol.io>
 contract MarketContract is Ownable {
     using StringLib for *;
 
-    string public CONTRACT_NAME;
-    address public COLLATERAL_TOKEN_ADDRESS;
-    address public COLLATERAL_POOL_ADDRESS;
-    uint public PRICE_CAP;
-    uint public PRICE_FLOOR;
-    uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
-    uint public QTY_MULTIPLIER;         // multiplier corresponding to the value of 1 increment in price to token base units
-    uint public COLLATERAL_PER_UNIT;    // required collateral amount for the full range of outcome tokens
-    uint public COLLATERAL_TOKEN_FEE_PER_UNIT;
-    uint public MKT_TOKEN_FEE_PER_UNIT;
-    uint public EXPIRATION;
-    uint public SETTLEMENT_DELAY = 1 days;
-    address public LONG_POSITION_TOKEN;
-    address public SHORT_POSITION_TOKEN;
-    address public ORACLE_HUB_ADDRESS;
-    string public ORACLE_URL;
-    string public ORACLE_STATISTIC;
-
-    // state variables
-    uint public lastPrice;
-    uint public settlementPrice;
-    uint public settlementTimeStamp;
-    bool public isSettled = false;
+    address public storeAddress;
+    string public name;
 
     // events
     event UpdatedLastPrice(uint256 price);
     event ContractSettled(uint settlePrice);
+
+    constructor(
+        string memory name_,
+        address storeAddress_,
+
+        address collateralPoolAddress,
+        address collateralTokenAddress,
+        address feeStrategyAddress,
+        address longTokenAddress,
+        address owner,
+        address settler,
+        address shortTokenAddress,
+
+        uint quantityMultiplier,
+        uint priceCap,
+        uint priceFloor,
+        uint priceDecimals
+    )
+        public
+    {
+        name = name_;
+        storeAddress = storeAddress_;
+        
+        MarketContractStore(storeAddress).register(
+            collateralPoolAddress,
+            collateralTokenAddress,
+            feeStrategyAddress,
+            longTokenAddress,
+            owner,
+            settler,
+            shortTokenAddress,
+            quantityMultiplier,
+            priceCap,
+            priceFloor,
+            priceDecimals
+        );
+    }
+
+    // External functions
+    // ...
+
+    // External functions that are view
+    // ...
+
+    // External functions that are pure
+    // ...
+
+    // Public functions
+    // ...
+
+    // Internal functions
+    // ...
+
+    // Private functions
+    // ...
+
+
+
+
 
     /// @param contractNames bytes32 array of names
     ///     contractName            name of the market contract
@@ -77,63 +114,63 @@ contract MarketContract is Ownable {
     ///     expirationTimeStamp     seconds from epoch that this contract expires and enters settlement
     /// @param oracleURL url of data
     /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
-    constructor(
-        bytes32[3] memory contractNames,
-        address[3] memory baseAddresses,
-        address oracleHubAddress,
-        uint[7] memory contractSpecs,
-        string memory oracleURL,
-        string memory oracleStatistic
-    ) public
-    {
-        PRICE_FLOOR = contractSpecs[0];
-        PRICE_CAP = contractSpecs[1];
-        require(PRICE_CAP > PRICE_FLOOR, "PRICE_CAP must be greater than PRICE_FLOOR");
+    // constructor(
+    //     bytes32[3] memory contractNames,
+    //     address[3] memory baseAddresses,
+    //     address oracleHubAddress,
+    //     uint[7] memory contractSpecs,
+    //     string memory oracleURL,
+    //     string memory oracleStatistic
+    // ) public
+    // {
+    //     PRICE_FLOOR = contractSpecs[0];
+    //     PRICE_CAP = contractSpecs[1];
+    //     require(PRICE_CAP > PRICE_FLOOR, "PRICE_CAP must be greater than PRICE_FLOOR");
 
-        PRICE_DECIMAL_PLACES = contractSpecs[2];
-        QTY_MULTIPLIER = contractSpecs[3];
-        EXPIRATION = contractSpecs[6];
-        require(EXPIRATION > now, "EXPIRATION must be in the future");
-        require(QTY_MULTIPLIER != 0,"QTY_MULTIPLIER cannot be 0");
+    //     PRICE_DECIMAL_PLACES = contractSpecs[2];
+    //     QTY_MULTIPLIER = contractSpecs[3];
+    //     EXPIRATION = contractSpecs[6];
+    //     require(EXPIRATION > now, "EXPIRATION must be in the future");
+    //     require(QTY_MULTIPLIER != 0,"QTY_MULTIPLIER cannot be 0");
 
-        COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
-        COLLATERAL_POOL_ADDRESS = baseAddresses[2];
-        COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
-        COLLATERAL_TOKEN_FEE_PER_UNIT = MathLib.calculateFeePerUnit(
-            PRICE_FLOOR,
-            PRICE_CAP,
-            QTY_MULTIPLIER,
-            contractSpecs[4]
-        );
-        MKT_TOKEN_FEE_PER_UNIT = MathLib.calculateFeePerUnit(
-            PRICE_FLOOR,
-            PRICE_CAP,
-            QTY_MULTIPLIER,
-            contractSpecs[5]
-        );
+    //     COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
+    //     COLLATERAL_POOL_ADDRESS = baseAddresses[2];
+    //     COLLATERAL_PER_UNIT = MathLib.calculateTotalCollateral(PRICE_FLOOR, PRICE_CAP, QTY_MULTIPLIER);
+    //     COLLATERAL_TOKEN_FEE_PER_UNIT = MathLib.calculateFeePerUnit(
+    //         PRICE_FLOOR,
+    //         PRICE_CAP,
+    //         QTY_MULTIPLIER,
+    //         contractSpecs[4]
+    //     );
+    //     MKT_TOKEN_FEE_PER_UNIT = MathLib.calculateFeePerUnit(
+    //         PRICE_FLOOR,
+    //         PRICE_CAP,
+    //         QTY_MULTIPLIER,
+    //         contractSpecs[5]
+    //     );
 
-        // create long and short tokens
-        CONTRACT_NAME = contractNames[0].bytes32ToString();
-        PositionToken longPosToken = new PositionToken(
-            "MARKET Protocol Long Position Token",
-            contractNames[1].bytes32ToString(),
-            uint8(PositionToken.MarketSide.Long)
-        );
-        PositionToken shortPosToken = new PositionToken(
-            "MARKET Protocol Short Position Token",
-            contractNames[2].bytes32ToString(),
-            uint8(PositionToken.MarketSide.Short)
-        );
+    //     // create long and short tokens
+    //     CONTRACT_NAME = contractNames[0].bytes32ToString();
+    //     PositionToken longPosToken = new PositionToken(
+    //         "MARKET Protocol Long Position Token",
+    //         contractNames[1].bytes32ToString(),
+    //         uint8(PositionToken.MarketSide.Long)
+    //     );
+    //     PositionToken shortPosToken = new PositionToken(
+    //         "MARKET Protocol Short Position Token",
+    //         contractNames[2].bytes32ToString(),
+    //         uint8(PositionToken.MarketSide.Short)
+    //     );
 
-        LONG_POSITION_TOKEN = address(longPosToken);
-        SHORT_POSITION_TOKEN = address(shortPosToken);
+    //     LONG_POSITION_TOKEN = address(longPosToken);
+    //     SHORT_POSITION_TOKEN = address(shortPosToken);
 
-        ORACLE_URL = oracleURL;
-        ORACLE_STATISTIC = oracleStatistic;
-        ORACLE_HUB_ADDRESS = oracleHubAddress;
+    //     ORACLE_URL = oracleURL;
+    //     ORACLE_STATISTIC = oracleStatistic;
+    //     ORACLE_HUB_ADDRESS = oracleHubAddress;
 
-        transferOwnership(baseAddresses[0]);
-    }
+    //     transferOwnership(baseAddresses[0]);
+    // }
 
     /*
     // EXTERNAL - onlyCollateralPool METHODS
@@ -142,74 +179,53 @@ contract MarketContract is Ownable {
     /// @notice called only by our collateral pool to create long and short position tokens
     /// @param qtyToMint    qty in base units of how many short and long tokens to mint
     /// @param minter       address of minter to receive tokens
-    function mintPositionTokens(
-        uint256 qtyToMint,
-        address minter
-    ) external onlyCollateralPool
-    {
-        // mint and distribute short and long position tokens to our caller
-        PositionToken(LONG_POSITION_TOKEN).mintAndSendToken(qtyToMint, minter);
-        PositionToken(SHORT_POSITION_TOKEN).mintAndSendToken(qtyToMint, minter);
-    }
+    // function mintPositionTokens(
+    //     uint256 qtyToMint,
+    //     address minter
+    // ) external onlyCollateralPool
+    // {
+    //     // mint and distribute short and long position tokens to our caller
+    //     PositionToken(LONG_POSITION_TOKEN).mintAndSendToken(qtyToMint, minter);
+    //     PositionToken(SHORT_POSITION_TOKEN).mintAndSendToken(qtyToMint, minter);
+    // }
 
     /// @notice called only by our collateral pool to redeem long position tokens
     /// @param qtyToRedeem  qty in base units of how many tokens to redeem
     /// @param redeemer     address of person redeeming tokens
-    function redeemLongToken(
-        uint256 qtyToRedeem,
-        address redeemer
-    ) external onlyCollateralPool
-    {
-        // mint and distribute short and long position tokens to our caller
-        PositionToken(LONG_POSITION_TOKEN).redeemToken(qtyToRedeem, redeemer);
-    }
+    // function redeemLongToken(
+    //     uint256 qtyToRedeem,
+    //     address redeemer
+    // ) external onlyCollateralPool
+    // {
+    //     // mint and distribute short and long position tokens to our caller
+    //     PositionToken(LONG_POSITION_TOKEN).redeemToken(qtyToRedeem, redeemer);
+    // }
 
     /// @notice called only by our collateral pool to redeem short position tokens
     /// @param qtyToRedeem  qty in base units of how many tokens to redeem
     /// @param redeemer     address of person redeeming tokens
-    function redeemShortToken(
-        uint256 qtyToRedeem,
-        address redeemer
-    ) external onlyCollateralPool
-    {
-        // mint and distribute short and long position tokens to our caller
-        PositionToken(SHORT_POSITION_TOKEN).redeemToken(qtyToRedeem, redeemer);
-    }
+    // function redeemShortToken(
+    //     uint256 qtyToRedeem,
+    //     address redeemer
+    // ) external onlyCollateralPool
+    // {
+    //     // mint and distribute short and long position tokens to our caller
+    //     PositionToken(SHORT_POSITION_TOKEN).redeemToken(qtyToRedeem, redeemer);
+    // }
 
     /*
     // Public METHODS
     */
 
     /// @notice checks to see if a contract is settled, and that the settlement delay has passed
-    function isPostSettlementDelay() public view returns (bool) {
-        return isSettled && (now >= (settlementTimeStamp + SETTLEMENT_DELAY));
-    }
+    // function isPostSettlementDelay() public view returns (bool) {
+    //     return isSettled && (now >= (settlementTimeStamp + SETTLEMENT_DELAY));
+    // }
 
     /*
     // PRIVATE METHODS
     */
 
-    /// @dev checks our last query price to see if our contract should enter settlement due to it being past our
-    //  expiration date or outside of our tradeable ranges.
-    function checkSettlement() internal {
-        require(!isSettled, "Contract is already settled"); // already settled.
-
-        uint newSettlementPrice;
-        if (now > EXPIRATION) {  // note: miners can cheat this by small increments of time (minutes, not hours)
-            isSettled = true;                   // time based expiration has occurred.
-            newSettlementPrice = lastPrice;
-        } else if (lastPrice >= PRICE_CAP) {    // price is greater or equal to our cap, settle to CAP price
-            isSettled = true;
-            newSettlementPrice = PRICE_CAP;
-        } else if (lastPrice <= PRICE_FLOOR) {  // price is lesser or equal to our floor, settle to FLOOR price
-            isSettled = true;
-            newSettlementPrice = PRICE_FLOOR;
-        }
-
-        if (isSettled) {
-            settleContract(newSettlementPrice);
-        }
-    }
 
     /// @dev records our final settlement price and fires needed events.
     /// @param finalSettlementPrice final query price at time of settlement
@@ -259,4 +275,3 @@ contract MarketContract is Ownable {
         ORACLE_HUB_ADDRESS = oracleHubAddress;
     }
 }
-

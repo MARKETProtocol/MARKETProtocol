@@ -265,4 +265,3 @@ contract MarketCollateralPool is Ownable {
         _;
     }
 }
-
