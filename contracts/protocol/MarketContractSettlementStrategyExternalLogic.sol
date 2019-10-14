@@ -17,49 +17,25 @@
 pragma solidity 0.5.11;
 
 import "github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.3.0/contracts/ownership/Ownable.sol";
-import "./MarketContractSettlementExternalSettlementStore.sol";
-import "./MarketContractSettlementStrategyInterface.sol";
-import "./MarketContract.sol";
-import "./MarketContractStore.sol";
 
-contract MarketContractSettlementExternalSettlement is Ownable {
-    address private storeAddress;
-    
-    constructor() public {
-        storeAddress = address(new MarketContractSettlementExternalSettlementStore());
-    }
-    
+contract MarketContractSettlementStrategyExternalLogic is Ownable {
     // Modifiers
-    modifier notSettled(address contractAddress) {
-        require(isSettled(contractAddress), "Contract is already settled");
-        _;
-    }
-    
+
     // External functions
-    // ...
+
+    function settle(address contractAddress, uint settlementPrice) {
+        
+    }
 
     // External functions that are view
     // ...
 
-    // External functions that are pure
-    // ...
-
-    // Public functions
-    // ...
-
-    // Public functions that are view
-
-    function isSettled(address contractAddress) public view returns (bool) {
-        return contractStore(contractAddress).state(contractAddress) == "settled";
-    }
-
-    // Internal functions
-    // ...
     /// @dev checks our last query price to see if our contract should enter settlement due to it being past our
     //  expiration date or outside of our tradeable ranges.
-    function checkSettlement(address contractAddress) internal notSettled(contractAddress) {
+    function checkSettlement(address contractAddress) external view onlyOwner {
         uint newSettlementPrice;
-        if (now > expiration()) {  // note: miners can cheat this by small increments of time (minutes, not hours)
+
+        if (now > expiration()) { // note: miners can cheat this by small increments of time (minutes, not hours)
             isSettled = true;                   // time based expiration has occurred.
             newSettlementPrice = lastPrice;
         } else if (lastPrice >= PRICE_CAP) {    // price is greater or equal to our cap, settle to CAP price
@@ -74,20 +50,30 @@ contract MarketContractSettlementExternalSettlement is Ownable {
             settleContract(newSettlementPrice);
         }
     }
-    
-    // Internal functions that are view
-    
-    function contractStore(address contractAddress) internal view {
-        return MarketContractStore(MarketContract(contractAddress).storeAddress);
-    }
+
+    /// @dev called only by our oracle hub when a new price is available provided by our oracle.
+    /// @param price lastPrice provided by the oracle.
+    // function oracleCallBack(uint256 price) public onlyOracleHub {
+    //     require(!isSettled);
+    //     lastPrice = price;
+    //     emit UpdatedLastPrice(price);
+    //     checkSettlement();  // Verify settlement at expiration or requested early settlement.
+    // }
+
+    // External functions that are pure
+    // ...
+
+    // Public functions
+    // ...
+
+    // Internal functions
+    // ...
 
     // Private functions
     // ...
-    
+
     
     // Private functions that are view
-
-    function store() private view {
-        return MarketContractSettlementExternalSettlementStore(storeAddress);
-    }
+    // ...   
+    
 }

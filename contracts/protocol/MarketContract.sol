@@ -16,18 +16,20 @@
 
 pragma solidity 0.5.11;
 
-import "github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.3.0/contracts/ownership/Ownable.sol";
-
+import "./MarketContractFeeStrategy.sol";
+import "./MarketContractSettlementStrategyInterface.sol";
 import "./MarketContractStore.sol";
 import "./MathLib.sol";
-import "./StringLib.sol";
 import "./PositionToken.sol";
+import "./StringLib.sol";
 
 /// @title MarketContract base contract implementing all needed functionality for trading.
 /// @author MARKET Protocol <support@marketprotocol.io>
-contract MarketContract is Ownable {
+contract MarketContract {
     using StringLib for *;
 
+    address public feeStrategyAddress;
+    address public settlementStrategyAddress;
     address public storeAddress;
     string public name;
 
@@ -37,43 +39,65 @@ contract MarketContract is Ownable {
 
     constructor(
         string memory name_,
+        
+        address feeStrategyAddress_,
+        address settlementStrategyAddress_,
         address storeAddress_,
 
+        // Can we decrease the number of addresses required?
         address collateralPoolAddress,
         address collateralTokenAddress,
-        address feeStrategyAddress,
         address longTokenAddress,
-        address owner,
         address settler,
         address shortTokenAddress,
 
+        uint8 priceDecimals,
+
+        // Should these be smaller uints?
         uint quantityMultiplier,
         uint priceCap,
-        uint priceFloor,
-        uint priceDecimals
+        uint priceFloor
     )
         public
     {
         name = name_;
+
+        feeStrategyAddress = feeStrategyAddress_;
+        settlementStrategyAddress = settlementStrategyAddress_;
         storeAddress = storeAddress_;
         
         MarketContractStore(storeAddress).register(
+            msg.sender, // arbitrator
             collateralPoolAddress,
             collateralTokenAddress,
-            feeStrategyAddress,
             longTokenAddress,
-            owner,
+            msg.sender, // owner
             settler,
             shortTokenAddress,
+            priceDecimals,
             quantityMultiplier,
             priceCap,
-            priceFloor,
-            priceDecimals
+            priceFloor
         );
     }
 
+    // Modifiers
+
+    modifier notSettled(address contractAddress) {
+        require(isSettled(), "Already settled");
+        _;
+    }
+    
+    modifier onlySettler() {
+        require(msg.sender == settler(), "Unauthorized settlement attempt");
+        _;
+    }
+
     // External functions
-    // ...
+
+    function settle(uint settlementPrice) external onlySettler {
+        settlementStrategy().settle(settlementPrice);
+    }
 
     // External functions that are view
     // ...
@@ -84,11 +108,62 @@ contract MarketContract is Ownable {
     // Public functions
     // ...
 
+    // Public functions that are view
+
+    function isSettled() public view returns (bool) {
+        return store().state() >= 100;
+    }
+
+    function settler() public view returns (address) {
+        return store().settler();
+    }
+    
+    function settlementPrice() public view returns (uint) {
+        if (isSettled()) {
+            return settlementStrategy.settlementPrice();
+        }
+        
+        return 0;
+    }
+
+    function state() public view returns (string memory) {
+        uint8 currentState = store().state();
+        
+        if (currentState == 0) {
+            return "created";
+        }
+        
+        if (currentState == 50) {
+            return "published";
+        }
+        
+        if (currentState == 100) {
+            return "settled";
+        }
+        
+        if (currentState == 150) {
+            return "finalized";
+        }
+        
+        return "unknown";
+    }
+
     // Internal functions
     // ...
 
     // Private functions
-    // ...
+    
+    function feeStrategy() private view {
+        return MarketContractFeeStrategy(feeStrategyAddress);
+    }
+    
+    function settlementStrategy() private view {
+        return MarketContractSettlementStrategyInterface(settlementStrategyAddress);
+    }
+    
+    function store() private view {
+        return MarketContractStore(storeAddress);
+    }
 
 
 
@@ -227,29 +302,29 @@ contract MarketContract is Ownable {
     */
 
 
-    /// @dev records our final settlement price and fires needed events.
-    /// @param finalSettlementPrice final query price at time of settlement
-    function settleContract(uint finalSettlementPrice) internal {
-        settlementTimeStamp = now;
-        settlementPrice = finalSettlementPrice;
-        emit ContractSettled(finalSettlementPrice);
-    }
+    // /// @dev records our final settlement price and fires needed events.
+    // /// @param finalSettlementPrice final query price at time of settlement
+    // function settleContract(uint finalSettlementPrice) internal {
+    //     settlementTimeStamp = now;
+    //     settlementPrice = finalSettlementPrice;
+    //     emit ContractSettled(finalSettlementPrice);
+    // }
 
     /// @notice only able to be called directly by our collateral pool which controls the position tokens
     /// for this contract!
-    modifier onlyCollateralPool {
-        require(msg.sender == COLLATERAL_POOL_ADDRESS, "Only callable from the collateral pool");
-        _;
-    }
+    // modifier onlyCollateralPool {
+    //     require(msg.sender == COLLATERAL_POOL_ADDRESS, "Only callable from the collateral pool");
+    //     _;
+    // }
 
     /// @dev called only by our oracle hub when a new price is available provided by our oracle.
     /// @param price lastPrice provided by the oracle.
-    function oracleCallBack(uint256 price) public onlyOracleHub {
-        require(!isSettled);
-        lastPrice = price;
-        emit UpdatedLastPrice(price);
-        checkSettlement();  // Verify settlement at expiration or requested early settlement.
-    }
+    // function oracleCallBack(uint256 price) public onlyOracleHub {
+    //     require(!isSettled);
+    //     lastPrice = price;
+    //     emit UpdatedLastPrice(price);
+    //     checkSettlement();  // Verify settlement at expiration or requested early settlement.
+    // }
 
     /// @dev allows us to arbitrate a settlement price by updating the settlement value, and resetting the
     /// delay for funds to be released. Could also be used to allow us to force a contract into early settlement
@@ -263,15 +338,15 @@ contract MarketContract is Ownable {
         isSettled = true;
     }
 
-    /// @dev allows calls only from the oracle hub.
-    modifier onlyOracleHub() {
-        require(msg.sender == ORACLE_HUB_ADDRESS, "only callable by the oracle hub");
-        _;
-    }
+    // /// @dev allows calls only from the oracle hub.
+    // modifier onlyOracleHub() {
+    //     require(msg.sender == ORACLE_HUB_ADDRESS, "only callable by the oracle hub");
+    //     _;
+    // }
 
-    /// @dev allows for the owner of the contract to change the oracle hub address if needed
-    function setOracleHubAddress(address oracleHubAddress) public onlyOwner {
-        require(oracleHubAddress != address(0), "cannot set oracleHubAddress to null address");
-        ORACLE_HUB_ADDRESS = oracleHubAddress;
-    }
+    // /// @dev allows for the owner of the contract to change the oracle hub address if needed
+    // function setOracleHubAddress(address oracleHubAddress) public onlyOwner {
+    //     require(oracleHubAddress != address(0), "cannot set oracleHubAddress to null address");
+    //     ORACLE_HUB_ADDRESS = oracleHubAddress;
+    // }
 }

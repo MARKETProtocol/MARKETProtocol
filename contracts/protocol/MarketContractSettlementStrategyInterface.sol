@@ -17,5 +17,7 @@
 pragma solidity 0.5.11;
 
 contract MarketContractSettlementStrategyInterface {
-    function settle() public;
+    function settle(uint settlementPrice) external;
+
+    function settlementPrice(address contractAddress) external view returns (uint);
 }

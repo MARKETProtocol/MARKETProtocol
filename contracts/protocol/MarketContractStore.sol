@@ -28,32 +28,32 @@ contract MarketContractStore {
     struct ContractSettings {
         address collateralPoolAddress;
         address collateralTokenAddress;
-        address feeStrategyAddress;
         address longTokenAddress;
-        address settlementStrategyAddress;
         address shortTokenAddress;
+
+        uint8 priceDecimals;
 
         uint collateralPerUnit;          // required collateral amount for the full range of outcome tokens
         uint quantityMultiplier;         // multiplier corresponding to the value of 1 increment in price to token base units
         uint priceCap;
         uint priceFloor;
-        uint priceDecimals;
     }
     
     mapping(address => ContractPermissions) private contractPermissions;
     mapping(address => ContractSettings) private contractSettings;
-    mapping(address => string) private contractStates;     // created -> published -> settled -> finalized
+    mapping(address => uint8) private contractStates;      // created 0 -> published 50 -> settled 100 -> finalized 150
 
     mapping(address => bool) private contracts;            // record of registered contract addresses
     mapping(address => bool) private owners;               // record of registered owner addresses
     mapping(address => address[]) private ownerContracts;  // record of owned contracts
 
     // Modifiers
+
     modifier isRegistered(address addy) {
         require(contracts[addy], "Contract is not registered");
         _;
     }
-
+    
     modifier notRegistered(address addy) {
         require(!contracts[addy], "Contract is already registered");
         _;
@@ -62,19 +62,19 @@ contract MarketContractStore {
     // External functions
     // ...
     function register(
+        address arbitrator,
         address collateralPoolAddress,
         address collateralTokenAddress,
-        address feeStrategyAddress,
         address longTokenAddress,
         address owner,
         address settler,
-        address settlementStrategyAddress,
         address shortTokenAddress,
+
+        uint8 priceDecimals,
 
         uint quantityMultiplier,
         uint priceCap,
-        uint priceFloor,
-        uint priceDecimals
+        uint priceFloor
     )
         external
         notRegistered(msg.sender)
@@ -83,30 +83,45 @@ contract MarketContractStore {
         owners[owner] = true;
         ownerContracts[owner].push(msg.sender);
         
-        contractPermissions[msg.sender] = ContractPermissions(owner, owner, settler);
+        contractPermissions[msg.sender] = ContractPermissions(arbitrator, owner, settler);
 
         contractSettings[msg.sender] = ContractSettings(
             collateralPoolAddress,
             collateralTokenAddress,
-            feeStrategyAddress,
             longTokenAddress,
-            settlementStrategyAddress,
             shortTokenAddress,
+
+            priceDecimals,
 
             MathLib.calculateTotalCollateral(priceFloor, priceCap, quantityMultiplier), // collateralPerUnit
             quantityMultiplier,
             priceCap,
-            priceFloor,
-            priceDecimals
+            priceFloor
         );
 
-        contractStates[msg.sender] = "created";
+        contractStates[msg.sender] = 0;
+    }
+    
+    function setState(uint8 state) external isRegistered(msg.sender) {
+        contractStates[msg.sender] = state;
+    }
+    
+    // External functions that are view
+
+    function arbitrator() external view isRegistered(msg.sender) returns (address) {
+        return contractPermissions[msg.sender].arbitrator;
     }
 
-    // External functions that are view
-    // ...
-    function state(address contractAddress) external view isRegistered(contractAddress) returns (string memory) {
-        return contractStates[contractAddress];
+    function owner() external view isRegistered(msg.sender) returns (address) {
+        return contractPermissions[msg.sender].owner;
+    }
+
+    function settler() external view isRegistered(msg.sender) returns (address) {
+        return contractPermissions[msg.sender].settler;
+    }
+
+    function state() external view isRegistered(msg.sender) returns (uint8) {
+        return contractStates[msg.sender];
     }
 
     // External functions that are pure

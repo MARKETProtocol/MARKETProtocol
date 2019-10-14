@@ -25,6 +25,7 @@
     "web3-utils": "^1.0.0-beta.55"
   },
   "scripts": {
+    "remixd": "remixd -s ./contracts/protocol --remix-ide http://remix.ethereum.org",
     "test": "truffle test",
     "lint": "prettier-eslint --write './**/*.js' --ignore './node_modules/**' --ignore './coverage/**'"
   },

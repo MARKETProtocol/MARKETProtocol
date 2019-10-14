@@ -17,17 +17,18 @@
 pragma solidity 0.5.11;
 
 import "github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.3.0/contracts/ownership/Ownable.sol";
-import "./ArrayLib.sol";
 
-contract MarketContractExternalSettlementStore is Ownable {
+contract MarketContractSettlementStrategyExternalStore is Ownable {
     struct State {
         string oraclePricePath; // data.priceUsd
         string oracleUrl;
 
-        uint expirationTimestamp;
+        uint16 settlementDelay; // should be seconds... note 45 day max
+
+        uint40 expirationTimestamp;
+        uint40 settlementTimestamp;
+
         uint settlementPrice;
-        uint settlementTimestamp;
-        uint settlementDelay;
     }
     
     mapping(address => State) private states;
@@ -38,10 +39,13 @@ contract MarketContractExternalSettlementStore is Ownable {
     // ...
 
     // External functions that are view
-    // ...
-    
+
+    function oraclePricePath(address contractAddress) external view onlyOwner returns (string memory) {
+        return states[contractAddress].oracleUrl;
+    }
+
     function oracleUrl(address contractAddress) external view onlyOwner returns (string memory) {
-        return states[contractAddress].oraclePricePath;
+        return states[contractAddress].oracleUrl;
     }
 
     // External functions that are pure
