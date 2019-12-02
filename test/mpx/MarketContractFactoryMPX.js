@@ -17,6 +17,7 @@ contract('MarketContractFactoryMPX', function(accounts) {
   const priceFloor = 20155;
   const priceDecimalPlaces = 2;
   const qtyMultiplier = 10;
+  const qtyDenominator = 1;
   const feesInCollateralToken = 20;
   const feesInMKTToken = 10;
 
@@ -39,7 +40,8 @@ contract('MarketContractFactoryMPX', function(accounts) {
         qtyMultiplier,
         feesInCollateralToken,
         feesInMKTToken,
-        expiration
+        expiration,
+        qtyDenominator
       ],
       oracleURL,
       oracleStatistic
@@ -57,6 +59,7 @@ contract('MarketContractFactoryMPX', function(accounts) {
     assert.equal(await marketContract.ORACLE_STATISTIC(), oracleStatistic);
     assert.equal((await marketContract.EXPIRATION()).toNumber(), expiration);
     assert.equal((await marketContract.QTY_MULTIPLIER()).toNumber(), qtyMultiplier);
+    assert.equal((await marketContract.QTY_DENOMINATOR()).toNumber(), qtyDenominator);
     assert.equal((await marketContract.PRICE_DECIMAL_PLACES()).toNumber(), priceDecimalPlaces);
     assert.equal((await marketContract.PRICE_FLOOR()).toNumber(), priceFloor);
     assert.equal((await marketContract.PRICE_CAP()).toNumber(), priceCap);
@@ -78,7 +81,8 @@ contract('MarketContractFactoryMPX', function(accounts) {
         qtyMultiplier,
         feesInCollateralToken,
         feesInMKTToken,
-        expiration
+        expiration,
+        qtyDenominator
       ],
       oracleURL,
       oracleStatistic

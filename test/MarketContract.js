@@ -21,6 +21,7 @@ contract('MarketContract', function(accounts) {
       const priceCap = new BN('100');
       const priceDecimalPlaces = new BN('2');
       const qtyMultiplier = new BN('10');
+      const qtyDenominator = new BN('1');
       const expiration = Math.floor(new Date().getTime() / 1000 + 60 * 50);
       const fees = new BN('0');
 
@@ -29,7 +30,16 @@ contract('MarketContract', function(accounts) {
         collateralPool,
         accounts[0],
         null,
-        [priceFloor, priceCap, priceDecimalPlaces, qtyMultiplier, fees, fees, expiration]
+        [
+          priceFloor,
+          priceCap,
+          priceDecimalPlaces,
+          qtyMultiplier,
+          fees,
+          fees,
+          expiration,
+          qtyDenominator
+        ]
       );
 
       assert.isTrue(
@@ -80,6 +90,8 @@ contract('MarketContract', function(accounts) {
       const lowerPriceCap = 100;
       const priceDecimalPlaces = 2;
       const qtyMultiplier = 10;
+      const qtyDenominator = 1;
+      const fees = 0;
       const expiration = Math.floor(new Date().getTime() / 1000 + 60 * 50);
 
       await utility.shouldFail(async function() {
@@ -88,7 +100,10 @@ contract('MarketContract', function(accounts) {
           lowerPriceCap,
           priceDecimalPlaces,
           qtyMultiplier,
-          expiration
+          expiration,
+          fees,
+          fees,
+          qtyDenominator
         ]);
       });
     });
@@ -98,6 +113,8 @@ contract('MarketContract', function(accounts) {
       const priceCap = 100;
       const priceDecimalPlaces = 2;
       const qtyMultiplier = 10;
+      const qtyDenominator = 1;
+      const fees = 0;
       const pastExpiration = Math.floor(new Date().getTime() / 1000 - 60 * 50); // 50 mins in the past
 
       await utility.shouldFail(async function() {
@@ -106,7 +123,10 @@ contract('MarketContract', function(accounts) {
           priceCap,
           priceDecimalPlaces,
           qtyMultiplier,
-          pastExpiration
+          fees,
+          fees,
+          pastExpiration,
+          qtyDenominator
         ]);
       });
     });

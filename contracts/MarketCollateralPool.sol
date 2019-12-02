@@ -202,6 +202,7 @@ contract MarketCollateralPool is Ownable {
             marketContract.PRICE_FLOOR(),
             marketContract.PRICE_CAP(),
             marketContract.QTY_MULTIPLIER(),
+            marketContract.QTY_DENOMINATOR(),
             longQtyToRedeem,
             shortQtyToRedeem,
             marketContract.settlementPrice()

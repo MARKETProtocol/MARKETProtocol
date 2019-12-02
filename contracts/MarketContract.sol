@@ -37,6 +37,7 @@ contract MarketContract is Ownable {
     uint public PRICE_FLOOR;
     uint public PRICE_DECIMAL_PLACES;   // how to convert the pricing from decimal format (if valid) to integer
     uint public QTY_MULTIPLIER;         // multiplier corresponding to the value of 1 increment in price to token base units
+    uint public QTY_DENOMINATOR;        // denominator corresponding to the value of 1 increment in price to token base units
     uint public COLLATERAL_PER_UNIT;    // required collateral amount for the full range of outcome tokens
     uint public COLLATERAL_TOKEN_FEE_PER_UNIT;
     uint public MKT_TOKEN_FEE_PER_UNIT;
@@ -72,10 +73,11 @@ contract MarketContract is Ownable {
     ///     feeInBasisPoints    fee amount in basis points (Collateral token denominated) for minting.
     ///     mktFeeInBasisPoints fee amount in basis points (MKT denominated) for minting.
     ///     expirationTimeStamp seconds from epoch that this contract expires and enters settlement
+    ///     qtyDenominator      division traded qty by this value from base units of collateral token.
     constructor(
         bytes32[3] memory contractNames,
         address[3] memory baseAddresses,
-        uint[7] memory contractSpecs
+        uint[8] memory contractSpecs
     ) public
     {
         PRICE_FLOOR = contractSpecs[0];
@@ -84,9 +86,11 @@ contract MarketContract is Ownable {
 
         PRICE_DECIMAL_PLACES = contractSpecs[2];
         QTY_MULTIPLIER = contractSpecs[3];
+        QTY_DENOMINATOR = contractSpecs[7];
         EXPIRATION = contractSpecs[6];
         require(EXPIRATION > now, "EXPIRATION must be in the future");
         require(QTY_MULTIPLIER != 0,"QTY_MULTIPLIER cannot be 0");
+        require(QTY_DENOMINATOR != 0,"QTY_DENOMINATOR cannot be 0");
 
         COLLATERAL_TOKEN_ADDRESS = baseAddresses[1];
         COLLATERAL_POOL_ADDRESS = baseAddresses[2];

@@ -64,6 +64,7 @@ library MathLib {
         uint priceFloor,
         uint priceCap,
         uint qtyMultiplier,
+        uint qtyDenominator,
         uint longQty,
         uint shortQty,
         uint price
@@ -88,6 +89,7 @@ library MathLib {
             }
             neededCollateral = add(neededCollateral, multiply(multiply(maxLoss, shortQty),  qtyMultiplier));
         }
+        neededCollateral = neededCollateral / qtyDenominator;
         return neededCollateral;
     }
 

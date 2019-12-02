@@ -37,6 +37,7 @@ contract('PositionToken', function(accounts) {
     });
 
     qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
+    qtyDenominator = await marketContract.QTY_DENOMINATOR.call();
     priceFloor = await marketContract.PRICE_FLOOR.call();
     priceCap = await marketContract.PRICE_CAP.call();
     longPositionToken = await PositionToken.at(await marketContract.LONG_POSITION_TOKEN());

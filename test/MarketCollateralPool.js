@@ -16,6 +16,7 @@ contract('MarketCollateralPool', function(accounts) {
   let marketContractRegistry;
   let mktToken;
   let qtyMultiplier;
+  let qtyDenominator;
   let priceFloor;
   let priceCap;
   let longPositionToken;
@@ -48,7 +49,7 @@ contract('MarketCollateralPool', function(accounts) {
       collateralPool,
       accounts[0],
       accounts[0],
-      [0, 150, 2, 1, 0, 0, utility.expirationInDays(1)]
+      [0, 150, 2, 1, 0, 0, utility.expirationInDays(1), 1]
     );
 
     feeMarketContract = await utility.createMarketContract(
@@ -56,7 +57,7 @@ contract('MarketCollateralPool', function(accounts) {
       collateralPool,
       accounts[0],
       accounts[0],
-      [0, 150, 2, 2, collateralFee, mktFee, utility.expirationInDays(1)]
+      [0, 150, 2, 2, collateralFee, mktFee, utility.expirationInDays(1), 1]
     );
 
     await marketContractRegistry.addAddressToWhiteList(marketContract.address, {
@@ -67,6 +68,7 @@ contract('MarketCollateralPool', function(accounts) {
     });
 
     qtyMultiplier = await marketContract.QTY_MULTIPLIER.call();
+    qtyDenominator = await marketContract.QTY_DENOMINATOR.call();
     priceFloor = await marketContract.PRICE_FLOOR.call();
     priceCap = await marketContract.PRICE_CAP.call();
     longPositionToken = await PositionToken.at(await marketContract.LONG_POSITION_TOKEN());
@@ -363,7 +365,7 @@ contract('MarketCollateralPool', function(accounts) {
           collateralPool,
           accounts[0],
           accounts[0],
-          [0, 150, 2, 1, 0, mktFee, utility.expirationInDays(1)]
+          [0, 150, 2, 1, 0, mktFee, utility.expirationInDays(1), 1]
         );
         mktFeePerUnit = await mktFeeMarketContract.MKT_TOKEN_FEE_PER_UNIT.call();
 
@@ -445,7 +447,7 @@ contract('MarketCollateralPool', function(accounts) {
           collateralPool,
           accounts[0],
           accounts[0],
-          [0, 150, 2, 1, collateralFee, 0, utility.expirationInDays(1)]
+          [0, 150, 2, 1, collateralFee, 0, utility.expirationInDays(1), 1]
         );
         collateralFeePerUnit = await collateralFeeMarketContract.COLLATERAL_TOKEN_FEE_PER_UNIT.call();
 
@@ -476,9 +478,9 @@ contract('MarketCollateralPool', function(accounts) {
 
         it('should still charge correct collateralFees', async function() {
           const expectedCollateralFee = collateralFeePerUnit.mul(qtyToMint);
-          const expectedCollateralTransfer = (await collateralFeeMarketContract.COLLATERAL_PER_UNIT()).mul(
-            qtyToMint
-          );
+          const expectedCollateralTransfer = (
+            await collateralFeeMarketContract.COLLATERAL_PER_UNIT()
+          ).mul(qtyToMint);
 
           const finalCollateralBalance = await collateralToken.balanceOf.call(accounts[0]);
           const actualCollateralFee = initialCollateralBalance
@@ -520,9 +522,9 @@ contract('MarketCollateralPool', function(accounts) {
 
         it('should still charge correct collateralFees', async function() {
           const expectedCollateralFee = collateralFeePerUnit.mul(qtyToMint);
-          const expectedCollateralTransfer = (await collateralFeeMarketContract.COLLATERAL_PER_UNIT()).mul(
-            qtyToMint
-          );
+          const expectedCollateralTransfer = (
+            await collateralFeeMarketContract.COLLATERAL_PER_UNIT()
+          ).mul(qtyToMint);
 
           const finalCollateralBalance = await collateralToken.balanceOf.call(accounts[0]);
           const actualCollateralFee = initialCollateralBalance
@@ -844,6 +846,7 @@ contract('MarketCollateralPool', function(accounts) {
         priceFloor,
         priceCap,
         qtyMultiplier,
+        qtyDenominator,
         shortTokenQtyToRedeem.mul(new BN('-1')),
         settlementPrice
       );
@@ -909,6 +912,7 @@ contract('MarketCollateralPool', function(accounts) {
         priceFloor,
         priceCap,
         qtyMultiplier,
+        qtyDenominator,
         longTokenQtyToRedeem,
         settlementPrice
       );
@@ -972,6 +976,7 @@ contract('MarketCollateralPool', function(accounts) {
         priceFloor,
         priceCap,
         qtyMultiplier,
+        qtyDenominator,
         qtyToRedeem.mul(new BN('-1')),
         settlementPrice
       );

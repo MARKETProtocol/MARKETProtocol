@@ -45,13 +45,14 @@ contract MarketContractMPX is MarketContract {
     ///     feeInBasisPoints    fee amount in basis points (Collateral token denominated) for minting.
     ///     mktFeeInBasisPoints fee amount in basis points (MKT denominated) for minting.
     ///     expirationTimeStamp     seconds from epoch that this contract expires and enters settlement
+    ///     qtyDenominator          division traded qty by this value from base units of collateral token.
     /// @param oracleURL url of data
     /// @param oracleStatistic statistic type (lastPrice, vwap, etc)
     constructor(
         bytes32[3] memory contractNames,
         address[3] memory baseAddresses,
         address oracleHubAddress,
-        uint[7] memory contractSpecs,
+        uint[8] memory contractSpecs,
         string memory oracleURL,
         string memory oracleStatistic
     ) MarketContract(

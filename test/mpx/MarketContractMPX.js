@@ -19,7 +19,7 @@ contract('MarketContractMPX', function(accounts) {
       contractNames,
       [accounts[0], CollateralToken.address, MarketCollateralPool.address],
       accounts[8], // substitute our address for the oracleHubAddress so we can callback from queries.
-      [0, 150, 2, 2, 0, 0, expiration],
+      [0, 150, 2, 2, 0, 0, expiration, 1],
       oracleURL,
       oracleStatistic
     );
@@ -90,7 +90,7 @@ contract('MarketContractMPX', function(accounts) {
       contractNames,
       [accounts[0], CollateralToken.address, MarketCollateralPool.address],
       accounts[8], // substitute our address for the oracleHubAddress so we can callback from queries.
-      [25, 150, 2, 2, 0, 0, expiration],
+      [25, 150, 2, 2, 0, 0, expiration, 1],
       oracleURL,
       oracleStatistic
     );

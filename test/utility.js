@@ -69,7 +69,7 @@ module.exports = {
    * @param price
    * @return {number}
    */
-  calculateCollateralToReturn(priceFloor, priceCap, qtyMultiplier, qty, price) {
+  calculateCollateralToReturn(priceFloor, priceCap, qtyMultiplier, qtyDenominator, qty, price) {
     const zero = 0;
     let maxLoss;
     if (qty > zero) {
@@ -85,7 +85,10 @@ module.exports = {
         maxLoss = priceCap.sub(price);
       }
     }
-    return maxLoss.mul(qty.abs()).mul(qtyMultiplier);
+    return maxLoss
+      .mul(qty.abs())
+      .mul(qtyMultiplier)
+      .div(qtyDenominator);
   },
 
   /**
@@ -126,7 +129,7 @@ module.exports = {
     }
 
     if (!contractSpecs) {
-      contractSpecs = [0, 150, 2, 2, 100, 50, expiration];
+      contractSpecs = [0, 150, 2, 2, 100, 50, expiration, 1];
     }
     const contractNames = [
       web3.utils.asciiToHex('BTC', 32),

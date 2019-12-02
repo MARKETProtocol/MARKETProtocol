@@ -67,7 +67,8 @@ module.exports = async function(deployer, network, accounts) {
                                             100000000,
                                             25,
                                             12,
-                                            marketContractExpiration
+                                            marketContractExpiration,
+                                            1
                                           ],
                                           'api.coincap.io/v2/rates/bitcoin',
                                           'rateUsd',
@@ -88,7 +89,8 @@ module.exports = async function(deployer, network, accounts) {
                                               25,
                                               12,
                                               100000000,
-                                              marketContractExpiration
+                                              marketContractExpiration,
+                                              1
                                             ],
                                             'api.coincap.io/v2/rates/bitcoin',
                                             'rateUsd',
