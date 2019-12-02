@@ -84,7 +84,7 @@ contract MarketCollateralPool is Ownable {
         require(!marketContract.isSettled(), "Contract is already settled");
 
         address collateralTokenAddress = marketContract.COLLATERAL_TOKEN_ADDRESS();
-        uint neededCollateral = MathLib.multiply(qtyToMint, marketContract.COLLATERAL_PER_UNIT());
+        uint neededCollateral = MathLib.divideFractional(qtyToMint, marketContract.COLLATERAL_PER_UNIT(), marketContract.QTY_DENOMINATOR());
         // the user has selected to pay fees in MKT and those fees are non zero (allowed) OR
         // the user has selected not to pay fees in MKT, BUT the collateral token fees are disabled (0) AND the
         // MKT fees are enabled (non zero).  (If both are zero, no fee exists)
@@ -106,7 +106,7 @@ contract MarketCollateralPool is Ownable {
             // ERC20.approve in order for this call to succeed.
             ERC20(mktToken).safeTransferFrom(msg.sender, address(this), feeAmount);
         } else { // fee are either zero, or being paid in the collateral token
-            feeAmount = MathLib.multiply(qtyToMint, marketContract.COLLATERAL_TOKEN_FEE_PER_UNIT());
+            feeAmount = MathLib.divideFractional(qtyToMint, marketContract.COLLATERAL_TOKEN_FEE_PER_UNIT(), marketContract.QTY_DENOMINATOR());
             totalCollateralTokenTransferAmount = neededCollateral.add(feeAmount);
             feeToken = collateralTokenAddress;
             // we will transfer collateral and fees all at once below.

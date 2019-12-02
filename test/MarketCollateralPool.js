@@ -1155,4 +1155,133 @@ contract('MarketCollateralPool', function(accounts) {
       );
     });
   });
+
+  describe('support usdt', function() {
+    // price.decimals = 10, position.decimals = 5, usdt.decimals = 6
+    // multiplier / denominator = 1 / 1e9
+    // so price.decimals * multiplier * position.decimals / denominator = usdt
+    let usdtMarketContract;
+
+    beforeEach(async function() {
+      usdtMarketContract = await utility.createMarketContract(
+        collateralToken,
+        collateralPool,
+        accounts[0],
+        accounts[0],
+        [
+          '8000' + '0000000000',
+          '10000' + '0000000000',
+          10,
+          1,
+          50,
+          500,
+          utility.expirationInDays(1),
+          '1000000000'
+        ]
+      );
+
+      await marketContractRegistry.addAddressToWhiteList(usdtMarketContract.address, {
+        from: accounts[0]
+      });
+
+      qtyMultiplier = await usdtMarketContract.QTY_MULTIPLIER.call();
+      qtyDenominator = await usdtMarketContract.QTY_DENOMINATOR.call();
+      priceFloor = await usdtMarketContract.PRICE_FLOOR.call();
+      priceCap = await usdtMarketContract.PRICE_CAP.call();
+      collateralFeePerUnit = await usdtMarketContract.COLLATERAL_TOKEN_FEE_PER_UNIT.call();
+      mktFeePerUnit = await usdtMarketContract.MKT_TOKEN_FEE_PER_UNIT.call();
+      longPositionToken = await PositionToken.at(await usdtMarketContract.LONG_POSITION_TOKEN());
+      shortPositionToken = await PositionToken.at(await usdtMarketContract.SHORT_POSITION_TOKEN());
+    });
+
+    it('marketContract constant', async function() {
+      assert.isTrue(qtyMultiplier.eq(new BN('1')), 'qty multiplier is not correct');
+      assert.isTrue(qtyDenominator.eq(new BN('1000000000')), 'qty denominator is not correct');
+
+      assert.isTrue(
+        (await usdtMarketContract.COLLATERAL_PER_UNIT()).eq(new BN('2000' + '0000000000')),
+        'collateral per unit is not correct'
+      );
+      assert.isTrue(
+        collateralFeePerUnit.eq(new BN('45' + '0000000000')),
+        'collateral fee per unit is not correct'
+      );
+      assert.isTrue(
+        mktFeePerUnit.eq(new BN('450' + '0000000000')),
+        'mkt fee per unit is not correct'
+      );
+    });
+
+    it('should mint', async function() {
+      // 1. approve collateral and mint tokens
+      const amountToApprove = new BN('10000000000000000000000'); // 1e22
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = new BN('100');
+      await collateralPool.mintPositionTokens(usdtMarketContract.address, qtyToMint, false, {
+        from: accounts[0]
+      });
+
+      // 2. balance after should be equal to expected balance
+      const amountToBeLocked = qtyToMint
+        .mul(
+          utility
+            .calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier)
+            .add(collateralFeePerUnit)
+        )
+        .div(qtyDenominator);
+      const expectedBalanceAfterMint = initialCollateralBalance.sub(amountToBeLocked);
+      const actualBalanceAfterMint = await collateralToken.balanceOf.call(accounts[0]);
+
+      assert.isTrue(
+        actualBalanceAfterMint.eq(expectedBalanceAfterMint),
+        'incorrect collateral amount locked for minting'
+      );
+    });
+
+    it('settlement', async function() {
+      // 1. approve collateral and mint tokens
+      const amountToApprove = new BN('10000000000000000000000'); // 1e22
+      await collateralToken.approve(collateralPool.address, amountToApprove);
+      const qtyToMint = new BN('1');
+      await collateralPool.mintPositionTokens(usdtMarketContract.address, qtyToMint, false, {
+        from: accounts[0]
+      });
+
+      // 2. transfer part of the long token
+      await longPositionToken.transfer(accounts[1], 1, { from: accounts[0] });
+
+      // 3. force contract to settlement
+      const settlementPrice = await utility.settleContract(
+        usdtMarketContract,
+        priceCap.sub(new BN('10')),
+        accounts[0]
+      );
+      await utility.increase(87000); // extend time past delay for withdrawal of funds
+
+      // 4. redeem all shorts on settlement
+      const collateralBalanceBeforeRedeem = await collateralToken.balanceOf.call(accounts[0]);
+      const qtyToRedeem = await shortPositionToken.balanceOf.call(accounts[0]);
+      await collateralPool.settleAndClose(usdtMarketContract.address, 0, qtyToRedeem, {
+        from: accounts[0]
+      });
+
+      // 5. should return appropriate collateral
+      const collateralToReturn = utility.calculateCollateralToReturn(
+        priceFloor,
+        priceCap,
+        qtyMultiplier,
+        qtyDenominator,
+        qtyToRedeem.mul(new BN('-1')),
+        settlementPrice
+      );
+      const expectedCollateralBalanceAfterRedeem = collateralBalanceBeforeRedeem.add(
+        collateralToReturn
+      );
+      const actualCollateralBalanceAfterRedeem = await collateralToken.balanceOf.call(accounts[0]);
+      assert.isTrue(
+        actualCollateralBalanceAfterRedeem.eq(expectedCollateralBalanceAfterRedeem),
+        'short position tokens balance was not reduced'
+      );
+    });
+  });
 });

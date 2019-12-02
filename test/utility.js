@@ -70,16 +70,16 @@ module.exports = {
    * @return {number}
    */
   calculateCollateralToReturn(priceFloor, priceCap, qtyMultiplier, qtyDenominator, qty, price) {
-    const zero = 0;
+    const zero = new BN('0');
     let maxLoss;
-    if (qty > zero) {
-      if (price <= priceFloor) {
+    if (qty.gt(zero)) {
+      if (price.lte(priceFloor)) {
         maxLoss = zero;
       } else {
         maxLoss = price.sub(priceFloor);
       }
     } else {
-      if (price >= priceCap) {
+      if (price.gte(priceCap)) {
         maxLoss = zero;
       } else {
         maxLoss = priceCap.sub(price);
