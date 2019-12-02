@@ -1222,14 +1222,13 @@ contract('MarketCollateralPool', function(accounts) {
       });
 
       // 2. balance after should be equal to expected balance
+      const expectedCollateralFee = collateralFeePerUnit.mul(qtyToMint).div(qtyDenominator);
       const amountToBeLocked = qtyToMint
-        .mul(
-          utility
-            .calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier)
-            .add(collateralFeePerUnit)
-        )
+        .mul(utility.calculateTotalCollateral(priceFloor, priceCap, qtyMultiplier))
         .div(qtyDenominator);
-      const expectedBalanceAfterMint = initialCollateralBalance.sub(amountToBeLocked);
+      const expectedBalanceAfterMint = initialCollateralBalance
+        .sub(amountToBeLocked)
+        .sub(expectedCollateralFee);
       const actualBalanceAfterMint = await collateralToken.balanceOf.call(accounts[0]);
 
       assert.isTrue(
